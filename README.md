@@ -36,7 +36,8 @@ cd erciyuan_AI
 
 ## 目录
 
-- `docs/`：团队开发安排。
+- `docs/`：团队开发安排与技术调研。
+- `docs/调研/`：移动端技术方案调研，供选型讨论，不代表已定案。
 - `planning/output/`：四份正式 Word 计划，保留原文件及版本。
 - `planning/assets/`：规划配图；其中聊天界面图为概念示意，不是运行截图。
 - `planning/build_*.py`：文档生成脚本。
