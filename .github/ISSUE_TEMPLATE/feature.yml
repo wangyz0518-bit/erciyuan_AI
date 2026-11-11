@@ -1,19 +1,19 @@
-name: 功能建议
-description: 提出新功能或改进建议
-title: "[Feature]: "
+name: 需求
+description: 提出产品需求或功能改进
+title: "[需求] "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
         提交前先搜索现有 Issue 和调研文档，避免重复。
-        功能建议先说明要解决的问题，再谈方案。
+        需求先说明要解决的问题，再谈方案；具体实现拆解请用任务模板。
 
   - type: textarea
     id: problem
     attributes:
       label: 要解决什么问题
-      description: 你正在做什么？现在哪里不方便？
+      description: 用户场景是什么？现在哪里不方便？
     validations:
       required: true
 
@@ -23,7 +23,18 @@ body:
       label: 期望方案
       description: 你希望它怎么工作？可以不写具体实现。
     validations:
-      required: false
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级
+      options:
+        - 第一阶段必须
+        - 后续阶段
+        - 待讨论
+    validations:
+      required: true
 
   - type: dropdown
     id: area
