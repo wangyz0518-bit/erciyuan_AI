@@ -16,6 +16,8 @@
 - 角色与对话记录可保存、可恢复。
 - 形象能力、声音能力分别完成验证。
 
+首版平台范围按 [ADR-0002](docs/decisions/0002-three-platform-scope.md) 执行：Android、iOS；原生鸿蒙后续适配，具体时间另行确定。原生鸿蒙不是首版交付、PoC 或验收条件，不据此扩大首版范围。
+
 技术栈尚未定案。选型调研见 `docs/research/`，决策记录见 `docs/decisions/`。
 
 ## 目录
