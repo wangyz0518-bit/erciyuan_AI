@@ -29,7 +29,7 @@ git push -u origin docs/interface-v1
 ## 文档与接口
 
 - 当前计划入口和历史版本关系见 `planning/README.md`。
-- 原 Word 文档保留原版本；多人协作方式以 `docs/team-development.md` 补充说明。
+- 原 Word 文档保留原版本；多人协作方式以 `docs/process/team-development.md` 补充说明。
 - 接口说明与样例先审阅，再连接各模块。改变字段含义或删除字段时同步更新调用方。
 - 验收记录区分真实能力、模拟结果、未接通和失败项，不将规划目标标成完成。
 - 修改 Word 文档时记录版本变化，并检查渲染后的排版；不要无意覆盖原版。

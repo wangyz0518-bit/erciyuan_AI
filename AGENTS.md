@@ -16,13 +16,17 @@
 - 角色与对话记录可保存、可恢复。
 - 形象能力、声音能力分别完成验证。
 
-技术栈尚未定案。选型调研见 `docs/调研/移动端技术方案调研.md`，决策记录见 `docs/decisions/`。
+技术栈尚未定案。选型调研见 `docs/research/`，决策记录见 `docs/decisions/`。
 
 ## 目录
 
-- `docs/`：团队开发安排、技术调研、接口契约与决策记录。
-- `docs/接口/`：跨工作线接口约定与样例。
+- `docs/`：文档索引入口，详见 `docs/README.md`。
+- `docs/state.md`：当前阶段、待办、风险。
+- `docs/process/`：团队安排、协作流程、文档规范。
+- `docs/research/`：移动端选型调研与复核。
 - `docs/decisions/`：架构与选型决策记录（ADR）。
+- `docs/guides/`：配置与操作指南。
+- `docs/接口/`：跨工作线接口约定与样例（暂缓整理）。
 - `planning/`：开发计划、Word 文档与生成脚本。
 - `planning/output/`：正式 Word 计划，保留原版本，不随意覆盖。
 - `planning/assets/`：规划配图；聊天界面图为概念示意，不是运行截图。
@@ -37,7 +41,7 @@
 
 ## 协作约定
 
-- 先读 `CONTRIBUTING.md`、`docs/team-development.md` 和本文件。
+- 先读 `CONTRIBUTING.md`、`docs/process/team-development.md`、`docs/README.md` 和本文件。
 - 日常开发使用任务分支，完成后向 `main` 发起 PR；不直接 push `main`。
 - 提交信息使用 Conventional Commits，例如 `feat(a-chat): ...`、`docs(interface): ...`。
 - 接口字段的含义变更或删除，必须同步更新调用方和 `docs/接口/`。
