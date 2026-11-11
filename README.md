@@ -11,7 +11,7 @@
 ## 从这里开始
 
 1. 阅读 [开发计划索引](planning/README.md)：以第一阶段详版 v2.0 为实施计划入口。
-2. 阅读 [团队开发安排](docs/team-development.md)：确认四条工作线、共同接口和首批任务。
+2. 阅读 [团队开发安排](docs/process/team-development.md)：确认四条工作线、共同接口和首批任务。
 3. 阅读 [协作规则](CONTRIBUTING.md)：通过任务分支和 Pull Request 合作。
 
 | 工作线 | 范围 | 负责人 |
@@ -37,11 +37,13 @@ cd erciyuan_AI
 ## 目录
 
 - `AGENTS.md`：AI 协作规则与项目约束。
-- `docs/`：团队开发安排、技术调研、接口契约与决策记录。
-- `docs/调研/`：移动端技术方案调研，供选型讨论，不代表已定案。
-- `docs/接口/`：跨工作线接口契约与样例。
+- `docs/`：文档索引入口，详见 `docs/README.md`。
+- `docs/state.md`：当前阶段、待办、风险。
+- `docs/process/`：团队安排、协作流程与文档规范。
+- `docs/research/`：移动端选型调研与复核。
 - `docs/decisions/`：技术选型与架构决策记录。
-- `docs/配置说明.md`：配置项与密钥管理原则。
+- `docs/guides/`：配置与操作指南。
+- `docs/接口/`：接口契约草案，暂缓整理，后续迁到 `docs/api/`。
 - `.github/`：Issue 与 Pull Request 模板。
 - `planning/output/`：四份正式 Word 计划，保留原文件及版本。
 - `planning/assets/`：规划配图；其中聊天界面图为概念示意，不是运行截图。

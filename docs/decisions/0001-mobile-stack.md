@@ -1,8 +1,9 @@
 # ADR-0001 移动端技术栈选型
 
-- 状态：提议，待团队确认
+- 状态：前提变化，待重新评估（见 ADR-0002）
 - 日期：2026-11-11
 - 决策者：待定（A/B/C/D 工作线共同确认）
+- 相关决策：ADR-0002 三端范围确认
 
 ## 背景
 
@@ -14,7 +15,7 @@
 - 交互密集：聊天流、录音、播放、角色切换、表情状态。
 - 小团队、四条工作线并行，希望减少双端重复开发。
 - 关注包体积、流畅度和长期维护稳定性。
-- 鸿蒙是未来可能项，但不是第一阶段目标。
+- 撰写时把鸿蒙视为未来可能项；ADR-0002 提议将其列为首版目标，前提待确认。
 
 ## 选项
 
@@ -25,7 +26,7 @@
 
 ## 评估摘要
 
-详细数据见 `docs/调研/移动端技术方案调研.md`。相对比较：
+详细数据见 [`docs/research/mobile-stack-research-20261111.md`](../research/mobile-stack-research-20261111.md)。相对比较：
 
 | 维度 | Flutter | RN + Expo | KMP + CMP | 原生双端 |
 | --- | ---: | ---: | ---: | ---: |
@@ -40,7 +41,9 @@
 
 ## 当前建议
 
-**第一阶段优先评估 Flutter**：
+**基于 Android/iOS 优先的前提，第一阶段优先评估 Flutter**：
+
+> 如果 ADR-0002 确认三端（含原生鸿蒙），本节结论需要重新评估。
 
 - 一套 UI 覆盖 Android/iOS，适合聊天、语音、形象组件这类交互密集型界面。
 - 自绘引擎让动画、滚动和表情切换更可控。
@@ -69,6 +72,8 @@
 
 ## 参考
 
-- `docs/调研/移动端技术方案调研.md`
-- `docs/team-development.md`
-- `CONTRIBUTING.md`
+- [移动端技术方案调研](../research/mobile-stack-research-20261111.md)
+- [三端需求复核](../research/mobile-stack-review-20261111.md)
+- [团队开发安排](../process/team-development.md)
+- [ADR-0002 三端范围确认](0002-three-platform-scope.md)
+- [CONTRIBUTING.md](../../CONTRIBUTING.md)
