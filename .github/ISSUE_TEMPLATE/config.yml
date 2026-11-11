@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 移动端技术方案调研
+    url: https://github.com/wangyz0518-bit/erciyuan_AI/tree/main/docs/%E8%B0%83%E7%A0%94
+    about: 选型背景、框架对比与建议
+  - name: 接口契约
+    url: https://github.com/wangyz0518-bit/erciyuan_AI/blob/main/docs/%E6%8E%A5%E5%8F%A3/README.md
+    about: 字段、流式事件与取消约定
+  - name: 团队协作规则
+    url: https://github.com/wangyz0518-bit/erciyuan_AI/blob/main/CONTRIBUTING.md
+    about: 分支、PR 流程与提交前检查

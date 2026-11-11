@@ -1,0 +1,71 @@
+name: 任务
+description: 记录一项可验收的团队任务
+title: "[任务] "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前先搜索现有 Issue，避免重复。
+        任务应能独立验收；跨工作线的任务请写明依赖。
+
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+      description: 这项工作解决什么问题？
+      placeholder: 用一两句话说明背景和目标。
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: workstream
+    attributes:
+      label: 工作线
+      description: 可多选。
+      options:
+        - label: A 手机界面与交互
+        - label: B 角色与对话核心
+        - label: C 形象制作与驱动
+        - label: D 声音处理
+        - label: 跨工作线 / 其他
+
+  - type: input
+    id: owner
+    attributes:
+      label: 负责人 / 审阅人
+      placeholder: 例如：负责人 @xxx，审阅人 @yyy
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依赖
+      description: 依赖哪些接口、素材、其他任务？没有填“无”。
+    validations:
+      required: false
+
+  - type: textarea
+    id: deliverables
+    attributes:
+      label: 交付内容
+      description: 完成后会产出什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收条件
+      description: 可检查、可演示的结果；区分真实能力与模拟结果。
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 备注
+      description: 其他上下文、参考链接、风险。
+    validations:
+      required: false
