@@ -14,7 +14,14 @@
 
 两份报告都保留，不覆盖、不改写。最终采用哪个方向，由团队确认后写入 [`decisions/`](../decisions/README.md)，调研报告本身不作为定案依据。
 
+## 当前决策
+
+[ADR-0002](../decisions/0002-three-platform-scope.md) 已确认：首版覆盖 Android、iOS，原生鸿蒙后续适配，具体时间另行确定。上表保留两份报告各自的历史前提和建议，当前平台范围以该 ADR 为准。
+
+平台范围确认不等于框架定案。[ADR-0001](../decisions/0001-mobile-stack.md) 仍为提议，最终框架由 [#8](https://github.com/wangyz0518-bit/erciyuan_AI/issues/8) 结合双端 PoC 与团队评审确认。
+
 ## 待补
 
-- 三端构建、录音播放、本地存储、形象渲染的 PoC 结果。
+- 首版 Android/iOS 构建、录音播放、本地存储、形象渲染的 PoC 结果。
+- 后续原生鸿蒙适配启动时，另补对应平台的验证结果。
 - 团队成员技术栈熟练度与候选框架的匹配情况。
