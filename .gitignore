@@ -1,0 +1,33 @@
+# Local document review outputs and calculated cost snapshot
+/planning/qa*/
+/planning/cost_check.json
+
+# Credentials and machine-local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Dependency and build outputs
+node_modules/
+dist/
+build/
+coverage/
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+~$*
