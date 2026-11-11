@@ -1,0 +1,86 @@
+name: Bug 报告
+description: 报告一个问题或非预期行为
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前先搜索现有 Issue，避免重复。
+        安全漏洞或密钥泄露不要公开提交，请先私下联系维护者。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 实际行为是什么？和预期有什么不同？
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / 分支 / 提交
+      description: 当前使用的版本、分支名或 commit。
+      placeholder: 例如：main @ 0a89625
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: 设备与系统
+      description: 机型、系统版本、模拟器或真机。
+      placeholder: 例如：Pixel 8 / Android 15；iPhone 15 / iOS 18
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - A 手机界面与交互
+        - B 角色与对话核心
+        - C 形象制作与驱动
+        - D 声音处理
+        - 服务端 / 接口
+        - 文档 / 工具
+        - 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: 粘贴错误输出；请移除密钥、个人信息和真实聊天内容。
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 其他补充
+      description: 最近改动、出现频率、是否必现等。
+    validations:
+      required: false
