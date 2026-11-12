@@ -35,6 +35,8 @@
 
 Flutter PoC 工程位于 `apps/mobile_poc`，分层与运行方法见 [运行指南](docs/guides/flutter-poc-guide-20261112.md)。继续由 [#10](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10) 跟踪双端验证。
 
+C 线 Live2D 组件位于 `packages/live2d_avatar`，Android 独立预览入口为 `apps/mobile_poc/lib/main_live2d.dart`。首次构建本分支前，在仓库根目录运行 `pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action prepare`；SDK 和模型仅保留本地。之后可用 `-Action run` 运行独立 `live2d` flavor。原 PoC 默认使用 `poc` flavor。范围与验收见 [Live2D 指南](docs/guides/live2d-flutter-poc-20261112.md)，iOS 插件尚未实现。
+
 ## 命令
 
 在 `apps/mobile_poc` 中运行：

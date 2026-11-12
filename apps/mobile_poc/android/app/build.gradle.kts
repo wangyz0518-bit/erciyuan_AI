@@ -8,6 +8,14 @@ android {
     namespace = "dev.erciyuan.companion_poc"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+    flavorDimensions += "mode"
+    productFlavors {
+        create("poc") { dimension = "mode" }
+        create("live2d") {
+            dimension = "mode"
+            applicationIdSuffix = ".live2d"
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -15,6 +23,8 @@ android {
     }
 
     defaultConfig {
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.erciyuan.companion_poc"
         // You can update the following values to match your application needs.
@@ -46,4 +56,9 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    androidTestImplementation("androidx.test:runner:1.3.0")
+    androidTestImplementation("androidx.test:rules:1.2.0")
 }

@@ -16,6 +16,7 @@
 - 文档目录整理与索引。
 - 首版 Android/iOS 客户端选定 **Flutter + Dart**，见 [ADR-0001](decisions/0001-mobile-stack.md)。
 - 三个 PoC 页面及本地存储、模拟回复、角色展示、录音播放实现；构建和检查命令见 [运行指南](guides/flutter-poc-guide-20261112.md)。
+- C 线新增独立 Live2D 预览入口，官方 Haru/Mark 已在 Android 模拟器通过 Native + Flutter Texture 显示；具体检查与限制见 [Live2D 验证记录](reports/live2d-flutter-poc-20261112.md)。
 
 ## 进行中
 
@@ -31,7 +32,7 @@
 
 | 事项 | 现状 | 决策位置 |
 | --- | --- | --- |
-| 形象展示方案 | 已验证占位绘图与状态切换；真实图片素材、序列帧、Live2D 未验证 | 待补素材路线验证 |
+| 形象展示方案 | 占位绘图已验证；Live2D 完成 Android 模拟器接入，真机、iOS、正式页面装配及自制模型仍待验证 | [Live2D 验证记录](reports/live2d-flutter-poc-20261112.md) |
 | 接口字段 | v1 草案未评审 | `接口/README.md` |
 
 ## 风险

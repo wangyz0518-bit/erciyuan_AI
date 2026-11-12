@@ -1,0 +1,15 @@
+name: live2d_avatar
+description: Android Cubism Native texture integration for the local character PoC.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ^3.14.0
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.erciyuan.live2d
+        pluginClass: Live2dPlugin

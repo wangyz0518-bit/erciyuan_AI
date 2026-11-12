@@ -28,6 +28,8 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  live2d_avatar:
+    path: ../../packages/live2d_avatar
   flutter:
     sdk: flutter
   material_ui: ^1.1.0
@@ -59,11 +61,22 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  default-flavor: poc
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/live2d/Haru/
+    - assets/live2d/Haru/Haru.2048/
+    - assets/live2d/Haru/expressions/
+    - assets/live2d/Haru/motions/
+    - assets/live2d/Haru/sounds/
+    - assets/live2d/Mark/
+    - assets/live2d/Mark/Mark.2048/
+    - assets/live2d/Mark/motions/
+    - assets/live2d/fixtures/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

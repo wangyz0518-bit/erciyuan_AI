@@ -4,6 +4,8 @@
 
 ## 入口
 
+C 线 Live2D 试验：[运行指南](guides/live2d-flutter-poc-20261112.md)、[验收记录](reports/live2d-flutter-poc-20261112.md)。
+
 | 文档 | 用途 | 更新时机 |
 | --- | --- | --- |
 | [state.md](state.md) | 当前阶段、待办、风险、下一步 | 每周或阶段变化时 |

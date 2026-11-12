@@ -6,6 +6,7 @@
 
 | 文档 | 范围与状态 |
 | --- | --- |
+| [Live2D Flutter 接入](live2d-flutter-poc-20261112.md) | C 线原生对照与 Flutter 纹理接入结果 |
 | [android-poc-report-20261112.md](android-poc-report-20261112.md) | 第一批七项 Android 模拟器验证；区分通过、部分通过和未验证项 |
 
 仅提交测试样例、统计和界面截图。原始录音、真实个人对话和完整设备日志留在本机，不纳入仓库。
