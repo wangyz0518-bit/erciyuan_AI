@@ -4,5 +4,4 @@
 | --- | --- |
 | [configuration.md](configuration.md) | 配置项、密钥管理与本地配置原则 |
 | [flutter-poc-guide-20261112.md](flutter-poc-guide-20261112.md) | Flutter 本地验证版运行、检查、构建与平台边界（评审中） |
-
-技术栈确定后，在本目录补充开发环境、构建、测试和排障指南。
+| [Windows 安卓开发环境搭建与验证](windows-android-setup-20261112.md) | 安装 Flutter 和安卓工具、运行官方示例、查看验证记录（评审中） |
