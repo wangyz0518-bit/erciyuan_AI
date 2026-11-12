@@ -18,10 +18,10 @@
 
 [ADR-0002](../decisions/0002-three-platform-scope.md) 已确认：首版覆盖 Android、iOS，原生鸿蒙后续适配，具体时间另行确定。上表保留两份报告各自的历史前提和建议，当前平台范围以该 ADR 为准。
 
-平台范围确认不等于框架定案。[ADR-0001](../decisions/0001-mobile-stack.md) 仍为提议，最终框架由 [#8](https://github.com/wangyz0518-bit/erciyuan_AI/issues/8) 结合双端 PoC 与团队评审确认。
+[ADR-0001](../decisions/0001-mobile-stack.md) 已接受，首版客户端采用 Flutter + Dart。双端真机验证见 [#10 Flutter 双端 PoC 与工程初始化](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10)。
 
 ## 待补
 
 - 首版 Android/iOS 构建、录音播放、本地存储、形象渲染的 PoC 结果。
 - 后续原生鸿蒙适配启动时，另补对应平台的验证结果。
-- 团队成员技术栈熟练度与候选框架的匹配情况。
+- 团队对 Flutter 开发和双端构建的熟悉程度。

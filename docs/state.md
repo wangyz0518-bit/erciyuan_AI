@@ -1,7 +1,7 @@
 # 当前状态
 
 > 状态：有效
-> 更新：2026-11-11
+> 更新：2026-11-12
 > 维护：团队共同更新，阶段变化时优先更新本文件
 
 ## 阶段
@@ -14,36 +14,36 @@
 - 移动端框架技术调研，以及按三端需求做的复核。
 - 协作规则、Issue 表单、PR 模板。
 - 文档目录整理与索引。
+- 首版 Android/iOS 客户端选定 **Flutter + Dart**，见 [ADR-0001](decisions/0001-mobile-stack.md)。
 
 ## 进行中
 
-- 技术栈选型与验证，见 [#8](https://github.com/wangyz0518-bit/erciyuan_AI/issues/8)。
+- 准备 [#10 Flutter 双端 PoC 与工程初始化](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10)，Android/iOS 真机结果待补。
 
 ## 已确认的平台范围
 
 - 首版覆盖 Android、iOS；原生鸿蒙放到后续阶段适配，具体时间另行确定。
 - 原生鸿蒙不属于首版交付、PoC 或验收条件。
-- 依据：[ADR-0002](decisions/0002-three-platform-scope.md)（已接受）；关联 [#7](https://github.com/wangyz0518-bit/erciyuan_AI/issues/7)。框架仍未定案。
+- 依据：[ADR-0002](decisions/0002-three-platform-scope.md)（已接受）；关联 [#7](https://github.com/wangyz0518-bit/erciyuan_AI/issues/7)。
 
 ## 待决策
 
 | 事项 | 现状 | 决策位置 |
 | --- | --- | --- |
-| 首选框架 | 平台范围已确认；Flutter 等候选仍待 Android/iOS PoC 与团队评审 | `decisions/0001-mobile-stack.md` |
 | 形象展示方案 | 图片、序列帧、Live2D 未验证 | 待补 PoC |
 | 接口字段 | v1 草案未评审 | `接口/README.md` |
 
 ## 风险
 
-- 两份调研的历史前提不同，当前平台范围以 ADR-0002 为准；候选框架的 Android/iOS 构建、录音播放、本地存储和形象渲染仍待本项目验证。
+- Flutter 的 Android/iOS 构建、录音播放、本地存储和形象渲染仍待真机验证。
 - 团队成员的技术栈熟练度未知，影响框架落地速度。
 - 接口草案未确认，A/B/C/D 并行开发时可能出现字段不一致。
 
 ## 下一步
 
-1. 在已确认的 Android/iOS 首版范围内，评审候选框架并明确 PoC 设备与验收条件。
-2. 按计划用 1–2 周做双端 PoC：聊天与输入、录音/播放、本地记录、形象组件、Android/iOS 构建安装；未验证项据实记录。
-3. 根据 PoC 结果完成 #8，形成已接受的框架 ADR，再建立产品代码目录并补充开发命令。
+1. 落实 Android/iOS 真机、iOS 构建与签名环境，明确验收用例。
+2. 按 #10 建立 Flutter 工程目录与分层约定，补充实际开发命令，验证聊天与输入、录音播放、本地记录、形象组件和双端安装。
+3. 记录双端验证结果和关键问题，确认后推进第一阶段功能开发。
 
 ## 后续原生鸿蒙适配
 
