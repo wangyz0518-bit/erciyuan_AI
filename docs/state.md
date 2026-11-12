@@ -6,7 +6,7 @@
 
 ## 阶段
 
-第一批本地能力验证。`apps/mobile_poc` 已建立 Flutter 工程；当前验证使用 Android 模拟器、模拟回复和占位角色。真实服务与 Android/iOS 真机尚未完成，详见 [本批记录](reports/android-poc-report-20261112.md)。
+第一批本地能力验证。`apps/mobile_poc` 已建立 Flutter 工程；原聊天使用模拟回复和占位角色，C 线独立入口使用官方 Live2D 样例。当前均为 Android 模拟器验证，真实服务与 Android/iOS 真机尚未完成，详见 [本批记录](reports/android-poc-report-20261112.md) 和 [Live2D 记录](reports/live2d-flutter-poc-20261112.md)。
 
 ## 已完成
 
@@ -38,6 +38,7 @@
 ## 风险
 
 - Flutter 的 Android/iOS 构建、录音播放、本地存储和形象渲染仍待真机验证。
+- Live2D 持续测试返回通过后，专用模拟器进程退出，详细 JSON 遗失；退出原因及真实 Surface 回收恢复仍待查证，见 Live2D 验证记录。
 - 团队成员的技术栈熟练度未知，影响框架落地速度。
 - 接口草案未确认，A/B/C/D 并行开发时可能出现字段不一致。
 

@@ -1,6 +1,6 @@
 # Live2D Flutter 本地接入验证
 
-> 状态：实施中，验收结果另见报告
+> 状态：Android 本地验证可用，验收范围与证据缺口另见报告
 > 日期：2026-11-12
 > 工作线：C；关联 #10
 
@@ -24,6 +24,8 @@ pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action run -Device emulator-5580
 
 脚本支持 `-DevRoot` 和可选 `-ProxyUrl`，只设置当前进程环境。准备步骤下载官方发行包并校验 SHA-256，将 SDK 保留在 `.local/live2d/sdk/`，把 Haru、Mark 和着色器复制到被 Git 忽略的本地资源目录。SDK、模型、生成 APK 不提交。首次准备前阅读下方对应条款；后续不自动升级依赖。
 
+脚本不创建模拟器。先按现有 Windows Android 指南启动设备，用 `adb devices` 确认编号，再传入 `-Device`。本次专用设备为 API 36 x86_64、SwiftShader、720×1280，编号 `emulator-5580`；真实手机通常使用自己的序列号。
+
 - 发行包：`CubismSdkForNative-5-r.5.zip`（官方稳定版 R5）。
 - 地址：<https://cubism.live2d.com/sdk-native/bin/CubismSdkForNative-5-r.5.zip>
 - SHA-256：`7ff3a4bbc19c0a8728965aa522ab77eb11b252916453e68a8a78d3b71188bb12`。
@@ -39,7 +41,7 @@ SDK 包中的 Core、Framework 和模型保持配套。官方原生示例的本�
 | 操作 | 含义 |
 | --- | --- |
 | `create()` | 建立纹理和渲染线程，得到 Texture ID |
-| `load(asset)` | 检查打包资源、MOC3 一致性并加载；返回实际表情、动作列表 |
+| `load(asset)` | 检查打包资源、MOC3 一致性并加载；返回实际表情、动作和 `lipSyncParameters` 列表；加载失败保留原模型 |
 | `command('expression', value: id)` | 播放模型自带表情，不把 F01 等编号擅自命名为业务情绪 |
 | `command('motion', value: 'group:index')` | 播放模型自带动作 |
 | `command('mouth', number: 0…1)` | 嘴部开合；音频包络按播放器实际位置驱动 |
@@ -54,6 +56,8 @@ SDK 包中的 Core、Framework 和模型保持配套。官方原生示例的本�
 ## 操作与检查
 
 预览页可切换 Haru/Mark、加载卸载、半身全身、嘴部开合、位置缩放、自带表情和动作。控制面板可滚动，右上角可收起。底部输入的是独立测试消息。历史面板、侧栏及键盘用于观察叠层和点击是否正常。
+
+Haru 有 8 个表情、6 个动作及嘴部映射；Mark 有 6 个动作，但没有表情和嘴部映射。因此 Mark 不显示表情按钮、嘴部滑块禁用，仍可播放测试音频。不能把“音频可播放”解释成该模型可做嘴部驱动。
 
 ```powershell
 pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action analyze
