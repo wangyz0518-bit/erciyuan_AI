@@ -80,6 +80,8 @@ void main() {
 
     try {
       await tester.pumpWidget(CompanionApp(chat: chat, audio: audio));
+      await tester.tap(find.byKey(const Key('text-mode')));
+      await tester.pump(const Duration(milliseconds: 300));
       final input = find.byKey(const Key('message-input'));
       const text = '存储恢复前保留这条草稿';
       await tester.enterText(input, text);

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('analyze','test','acceptance','soak','build','run')]
+    [ValidateSet('analyze','test','acceptance','suite','soak','build','run')]
     [string]$Action = 'run',
     [string]$DevRoot = 'D:\dev',
     [string]$Device = 'emulator-5554',
@@ -30,6 +30,7 @@ try {
         analyze { & flutter analyze }
         test { & flutter test }
         acceptance { & flutter test integration_test/acceptance_test.dart -d $Device --reporter expanded }
+        suite { & flutter test integration_test/device_suite.dart -d $Device --reporter expanded }
         soak { & flutter test integration_test/soak_test.dart -d $Device --reporter expanded }
         build { & flutter build apk --debug }
         run { & flutter run -d $Device }

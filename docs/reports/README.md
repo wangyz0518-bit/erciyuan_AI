@@ -6,6 +6,7 @@
 
 | 文档 | 范围与状态 |
 | --- | --- |
+| [immersive-chat-flutter-20261112.md](immersive-chat-flutter-20261112.md) | 沉浸聊天界面、录音试听与通话演示；本轮 Android 验收 |
 | [android-poc-report-20261112.md](android-poc-report-20261112.md) | 第一批七项 Android 模拟器验证；区分通过、部分通过和未验证项 |
 
 仅提交测试样例、统计和界面截图。原始录音、真实个人对话和完整设备日志留在本机，不纳入仓库。

@@ -12,6 +12,7 @@ import 'package:companion_poc/audio_controller.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  WidgetController.hitTestWarningShouldBeFatal = true;
   testWidgets('15 minute real-time emulator UI exercise', (tester) async {
     final store = await LocalStore.open(
       name: 'soak-${DateTime.now().microsecondsSinceEpoch}.db',
@@ -24,7 +25,28 @@ void main() {
     final audio = AudioController();
     await tester.pumpWidget(CompanionApp(chat: chat, audio: audio));
     await tester.pump(const Duration(seconds: 1));
+    Future<void> ready(Key key) async {
+      final target = find.byKey(key);
+      final deadline = DateTime.now().add(const Duration(seconds: 20));
+      bool visible() {
+        if (target.hitTestable().evaluate().isEmpty) return false;
+        final animation = ModalRoute.of(tester.element(target))?.animation;
+        return animation == null ||
+            animation.status == AnimationStatus.completed;
+      }
+
+      while (!visible() && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        visible(),
+        isTrue,
+        reason: '$key must be visible and its route settled',
+      );
+    }
+
     Future<void> tap(Key key) async {
+      await ready(key);
       await tester.tap(find.byKey(key));
       await tester.pump(const Duration(milliseconds: 400));
       expect(tester.takeException(), isNull);
@@ -33,6 +55,7 @@ void main() {
     final start = DateTime.now();
     var cycles = 0;
     while (DateTime.now().difference(start) < const Duration(minutes: 15)) {
+      await tap(const Key('text-mode'));
       await tester.enterText(
         find.byKey(const Key('message-input')),
         '持续验证第 $cycles 轮：中文🙂与本地回复',
@@ -45,28 +68,30 @@ void main() {
       }
       expect(chat.busy, isFalse);
       expect(chat.messages.last.status, 'complete');
+      await tap(const Key('voice-mode'));
+      await tap(const Key('open-history'));
+      await ready(const Key('message-list'));
       await tester.drag(
         find.byKey(const Key('message-list')),
-        const Offset(0, 180),
+        const Offset(0, 160),
       );
-      await tester.pump(const Duration(milliseconds: 300));
-      await tap(const Key('nav-avatar'));
-      await tap(ValueKey('emotion-${cycles.isEven ? '开心' : '疑惑'}'));
-      await tap(ValueKey('activity-${cycles.isEven ? '说话' : '待机'}'));
-      await tap(const Key('nav-audio'));
-      await tap(const Key('play-tone'));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tap(const Key('close-history'));
+      await tap(const Key('camera-toggle'));
+      await tap(const Key('start-call'));
       await tester.pump(const Duration(seconds: 1));
-      expect(audio.playing, isTrue);
-      await tap(const Key('role-selector'));
-      final nextRole = chat.selected == 'xing' ? '小月' : '小星';
-      await tester.tap(find.text(nextRole).last);
-      await tester.pump(const Duration(seconds: 1));
+      await tap(const Key('mute-call'));
+      await tap(const Key('end-call'));
+      await tap(const Key('open-menu'));
+      await tap(const Key('menu-roles'));
+      final nextRole = chat.selected == 'xing' ? 'yue' : 'xing';
+      await tap(Key('select-$nextRole'));
+      await tester.pump(const Duration(milliseconds: 500));
       expect(audio.playing, isFalse);
       expect(
         chat.messages.every((m) => m.characterId == chat.selected),
         isTrue,
       );
-      await tap(const Key('nav-chat'));
       // Periodically detach the whole page and recreate it with the same saved core.
       if (cycles % 5 == 4) {
         await tester.pumpWidget(const SizedBox());
@@ -89,7 +114,7 @@ void main() {
       'cycles': cycles,
       'message_count': await store.count(),
       'result': 'passed',
-      'scope': 'real-time automated UI; simulated chat, real SQLite and Android audio player; no microphone capture',
+      'scope': 'real-time immersive UI; simulated chat/calls, real SQLite; no microphone capture',
     };
     final dir = await getApplicationDocumentsDirectory();
     await File('${dir.path}/soak-results.json')

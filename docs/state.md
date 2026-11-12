@@ -6,7 +6,7 @@
 
 ## 阶段
 
-第一批本地能力验证。`apps/mobile_poc` 已建立 Flutter 工程；当前验证使用 Android 模拟器、模拟回复和占位角色。真实服务与 Android/iOS 真机尚未完成，详见 [本批记录](reports/android-poc-report-20261112.md)。
+第一批本地能力验证。`apps/mobile_poc` 已建立 Flutter 工程；当前验证使用 Android 模拟器、模拟回复、原型插画与占位角色。真实服务与 Android/iOS 真机尚未完成，详见 [本批记录](reports/android-poc-report-20261112.md) 和 [沉浸聊天验收](reports/immersive-chat-flutter-20261112.md)。
 
 ## 已完成
 
@@ -19,6 +19,7 @@
 
 ## 进行中
 
+- 独立分支 `codex/immersive-chat-flutter` 接入 PR #15/v4 沉浸聊天设计，保留 PR #13 聊天与数据库能力。录音采用“松开试听、不保存聊天消息”，通话仅演示；结果见[本轮验收](reports/immersive-chat-flutter-20261112.md)。PR #13/#15 仍待评审，未合并。
 - 已执行 [#10 Flutter 双端 PoC 与工程初始化](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10) 的第一批七项模拟器检查。拼音选词发送、人声录制回放及六轮重启恢复已复测。此前的冷启动异常未复现，原因仍未查明。双端真机结果待补。
 
 ## 已确认的平台范围
@@ -37,6 +38,7 @@
 ## 风险
 
 - Flutter 的 Android/iOS 构建、录音播放、本地存储和形象渲染仍待真机验证。
+- 沉浸聊天验收时，Android 模拟器冷启动出现系统界面 ANR，启动命令超时；应用仍安装且数据库校验一致，原因未定位。不能把本轮重启结果视为全部无异常通过。新界面人声录音听感待人工确认。
 - 团队成员的技术栈熟练度未知，影响框架落地速度。
 - 接口草案未确认，A/B/C/D 并行开发时可能出现字段不一致。
 

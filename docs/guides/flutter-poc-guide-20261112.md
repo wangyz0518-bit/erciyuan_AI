@@ -5,7 +5,7 @@
 > 负责人：待定
 > 关联：A/B/C/D、ADR-0001、任务 #10
 
-`apps/mobile_poc` 是第一批七项验证使用的独立 Flutter 工程。包含聊天、角色预览、声音测试三个页面。回复是本地预设内容，头像为程序绘制的占位素材，录音和记录保存在设备本地；没有接入真实模型、语音识别、语音合成或账号系统。
+`apps/mobile_poc` 是第一批七项验证使用的独立 Flutter 工程。当前任务分支加入沉浸聊天：首页直接恢复最近角色，提供全屏场景、半身/全身、72 宽侧栏、半透明历史、文字输入、本地录音试听和通话演示。原有聊天、角色预览、声音测试页面保留在“设置 → 本地验证工具”。回复是本地预设内容，小星使用原型插画，小月使用程序占位形象；没有接入真实模型、语音识别、语音合成、账号或真实通话服务。
 
 ## 运行
 
@@ -36,11 +36,14 @@ flutter analyze
 flutter test
 flutter test integration_test/acceptance_test.dart -d emulator-5554 --reporter expanded
 flutter test integration_test/storage_failure_test.dart -d emulator-5554 --reporter expanded
+flutter test integration_test/device_suite.dart -d emulator-5556 --reporter expanded
 flutter test integration_test/soak_test.dart -d emulator-5554 --reporter expanded
 flutter build apk --debug
 ```
 
-`acceptance_test.dart` 在真实安卓运行环境中检查模拟聊天、切换隔离、SQLite、角色状态及音频播放器。`soak_test.dart` 按实际经过时间执行至少 15 分钟的连续 UI 操作。运行测试时不要手动点击模拟器；录音人工测试单独安排。自动文本输入不等于中文输入法实测。
+`acceptance_test.dart` 通过保留的验证工具检查模拟聊天、切换隔离、SQLite、角色状态及音频播放器。`device_suite.dart` 聚合原验收、三个数据库故障用例和 `immersive_test.dart` 的沉浸界面及真实临时录音测试；可使用 `tool/windows.ps1 -Action suite -Device emulator-5556`。测试 APK 安装后需要给测试安装麦克风权限（另一终端执行 `adb -s emulator-5556 shell pm grant dev.erciyuan.companion_poc android.permission.RECORD_AUDIO`）；权限拒绝另测。
+
+`soak_test.dart` 按实际经过时间执行至少 15 分钟的新界面连续操作，包括文字、历史、镜头、通话演示和角色切换。运行测试时不要手动点击同一模拟器；录音人工测试单独安排。自动文本输入不等于中文输入法实测。用例截图保存在测试应用 documents 目录，`flutter test` 结束卸载测试应用前需导出；实际记录见[沉浸聊天报告](../reports/immersive-chat-flutter-20261112.md)。
 
 `storage_failure_test.dart` 在独立的测试数据库里用 SQLite 触发器注入写入错误，检查重开数据库后的重试、持续失败时保留草稿，以及写入期间取消。建议指定专用测试模拟器，集成测试会重新安装应用。
 
@@ -52,7 +55,9 @@ flutter build apk --debug
 
 | 文件 | 职责 |
 | --- | --- |
-| `lib/main.dart` | 三个页面、键盘布局、生命周期与媒体停止 |
+| `lib/main.dart` | 初始化 SQLite/控制器并启动沉浸聊天 |
+| `lib/immersive_chat_page.dart`、`lib/widgets/` | 沉浸聊天、侧栏、历史、输入与通话演示，生命周期与媒体停止 |
+| `lib/poc_tools_page.dart` | 保留原有三页验证工具 |
 | `lib/chat_controller.dart` | 模拟回复、取消、重试与角色隔离 |
 | `lib/data.dart` | PoC 内部的角色与消息模型、SQLite 保存和中断恢复 |
 | `lib/avatar.dart` | 占位人物、表情、活动和轻微待机动作 |
@@ -63,6 +68,9 @@ flutter build apk --debug
 ## 手动检查
 
 - 聊天页切换“正常”“模拟失败”“延迟 6 秒”，检查取消、重试和角色切换。
+- 上述故障模拟及原角色/声音页位于“侧栏 → 设置 → 本地验证工具”；沉浸聊天自身的失败回复也可直接重试。
+- 默认按住录音，松开出现试听卡；滑出按钮后松开取消。点击试听、删除或重新按住录音。语音片段不写入消息表，退出/后台/切角色会清理；异常终止后的缓存片段在下次初始化时清理。
+- 通话只演示计时、静音状态与挂断，不实际录音、不发送消息，后台自动结束。
 - 角色页分别操作表情、活动状态和素材缺失回退；说话状态不是精确口型。
 - 声音页允许或拒绝麦克风权限；录制、保存、取消、回放。录音最长 30 秒，仅在应用缓存中保存一个片段，不上传。
 - 模拟器需要接入主机麦克风才能收到声音。控制台 `adb -s emulator-5554 emu avd hostmicon` 可启用输入，完成录音后用 `hostmicoff` 关闭。此开关不能保证远程桌面已转发真实麦克风。
