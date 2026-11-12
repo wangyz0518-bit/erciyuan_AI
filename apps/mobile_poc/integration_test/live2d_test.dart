@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:live2d_avatar/live2d_avatar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:companion_poc/main_live2d.dart';
 import 'package:companion_poc/live2d_preview_page.dart';
@@ -30,6 +31,7 @@ void main() {
       final state = await boot(tester);
       final c = state.controller;
       expect(c.expressions.length, 8);
+      expect(c.supportsLipSync, isTrue);
       expect(c.motions, isNotEmpty);
       await tester.pump(const Duration(seconds: 2));
       expect((await c.stats())['frames'], greaterThan(0));
@@ -54,10 +56,25 @@ void main() {
       await state.loadModel('Haru');
       await c.command('mouth', number: .8);
       expect((await c.stats())['mouth'], closeTo(.8, .001));
+      await c.command('mouth');
       await state.playAudio();
-      await tester.pump(const Duration(milliseconds: 700));
+      final audioMouth = <num>[];
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 150));
+        audioMouth.add((await c.stats())['mouth'] as num);
+      }
       expect(state.playing, isTrue);
+      expect(audioMouth.any((value) => value > 0), isTrue);
       await state.stopAudio();
+      expect((await c.stats())['mouth'], 0);
+      await state.playAudio();
+      await tester.pump(const Duration(seconds: 2));
+      expect(state.playing, isFalse);
+      expect((await c.stats())['mouth'], 0);
+      await state.playAudio();
+      await state.loadModel('Mark');
+      expect(c.supportsLipSync, isFalse);
+      expect(state.playing, isFalse);
       expect((await c.stats())['mouth'], 0);
       final samples = <Map<String, dynamic>>[];
       for (int i = 0; i < 30; i++) {
@@ -97,17 +114,36 @@ void main() {
       final result = {
         'reloads': 30,
         'pauseResume': 20,
+        'contextRecreations': 20,
         'expressions': 8,
         'faults': 4,
+        'audioMouthSamples': audioMouth,
         'samples': samples,
         'final': await c.stats(),
       };
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+      for (int i = 0; i < 20; i++) {
+        final next = Live2dController();
+        await next.create();
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Live2dView(controller: next),
+          ),
+        );
+        await next.load('assets/live2d/Haru/Haru.model3.json');
+        await tester.pump(const Duration(milliseconds: 150));
+        expect((await next.stats())['error'], isNull);
+        await next.setActive(false);
+        await tester.pumpWidget(const SizedBox());
+        await next.close();
+      }
+      expect(tester.takeException(), isNull);
       final dir = await getApplicationDocumentsDirectory();
       await File('${dir.path}/live2d-acceptance.json')
           .writeAsString(const JsonEncoder.withIndent('  ').convert(result));
       binding.reportData = result;
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump(const Duration(seconds: 1));
     },
     timeout: const Timeout(Duration(minutes: 10)),
   );

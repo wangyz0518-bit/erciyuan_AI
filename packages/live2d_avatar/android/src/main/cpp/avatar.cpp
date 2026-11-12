@@ -158,7 +158,10 @@ struct Session {
  ~Session() {
    if(display!=EGL_NO_DISPLAY && context!=EGL_NO_CONTEXT) {
      eglMakeCurrent(display,surface,surface,context); model.reset();
-     if(started) { CubismFramework::Dispose(); CubismFramework::CleanUp(); }
+     if(started) {
+       Rendering::CubismOffscreenManager_OpenGLES2::ReleaseInstance();
+       CubismFramework::Dispose(); CubismFramework::CleanUp();
+     }
      eglMakeCurrent(display,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT);
      if(surface!=EGL_NO_SURFACE) eglDestroySurface(display,surface);
      eglDestroyContext(display,context); eglTerminate(display);

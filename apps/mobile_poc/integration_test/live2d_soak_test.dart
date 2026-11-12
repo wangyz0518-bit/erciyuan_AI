@@ -27,13 +27,18 @@ void main() {
       await tester.tap(find.byKey(const Key('close-history')));
       await tester.pump(const Duration(milliseconds: 100));
       debugPrint('SOAK $round input');
+      await tester.tap(find.byKey(const Key('live2d-input')));
+      await tester.pump(const Duration(milliseconds: 100));
       await tester.enterText(
         find.byKey(const Key('live2d-input')),
         '持续测试 $round',
       );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(state.input.text, '持续测试 $round');
       await tester.tap(find.byKey(const Key('send')));
       await tester.pump(const Duration(milliseconds: 100));
-      FocusManager.instance.primaryFocus?.unfocus();
+      expect(state.messages.last, '持续测试 $round');
+      expect(state.messages.length, round + 3);
       debugPrint('SOAK $round audio');
       if (round % 4 == 0) {
         await state.playAudio();
@@ -53,6 +58,7 @@ void main() {
     final result = {
       'elapsedMs': watch.elapsedMilliseconds,
       'rounds': round,
+      'messages': state.messages.length,
       'samples': samples,
     };
     final dir = await getApplicationDocumentsDirectory();

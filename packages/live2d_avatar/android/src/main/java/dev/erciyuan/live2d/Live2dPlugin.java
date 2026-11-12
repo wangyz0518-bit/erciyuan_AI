@@ -178,6 +178,14 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
     JSONObject groups=refs.optJSONObject("Motions");
     if(groups!=null)for(var keys=groups.keys();keys.hasNext();){String group=keys.next();JSONArray list=groups.getJSONArray(group);
       for(int i=0;i<list.length();i++){checkFile(dir,list.getJSONObject(i).getString("File"));motions.add(group+":"+i);}}
-    Map<String,Object> info=new HashMap<>();info.put("expressions",expressions);info.put("motions",motions);info.put("textures",tex.length());return info;
+    ArrayList<String> lipSync=new ArrayList<>();JSONArray parameterGroups=json.optJSONArray("Groups");
+    if(parameterGroups!=null)for(int i=0;i<parameterGroups.length();i++){
+      JSONObject group=parameterGroups.getJSONObject(i);
+      if("LipSync".equals(group.optString("Name")) && "Parameter".equals(group.optString("Target"))){
+        JSONArray ids=group.getJSONArray("Ids");for(int j=0;j<ids.length();j++)lipSync.add(ids.getString(j));
+      }
+    }
+    Map<String,Object> info=new HashMap<>();info.put("expressions",expressions);info.put("motions",motions);
+    info.put("lipSyncParameters",lipSync);info.put("textures",tex.length());return info;
   }
 }

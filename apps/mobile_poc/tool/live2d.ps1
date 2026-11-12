@@ -36,9 +36,12 @@ function Invoke-AndroidSuite([string]$TestFile, [string]$ReportName) {
     & $adb -s $Device install -r $apk
     if($LASTEXITCODE -ne 0){throw "Test APK installation failed: $apk"}
   }
+  # A successful run must produce a new report, not reuse an earlier result.
+  & $adb -s $Device shell run-as dev.erciyuan.companion_poc.live2d rm -f "app_flutter/$ReportName"
+  if($LASTEXITCODE -ne 0){throw 'Could not reset the synthetic test report'}
   $result=& $adb -s $Device shell am instrument -w dev.erciyuan.companion_poc.live2d.test/androidx.test.runner.AndroidJUnitRunner
   $result | Write-Output
-  if($LASTEXITCODE -ne 0 -or ($result -join "`n") -notmatch 'OK \(\d+ tests?\)'){throw 'Android instrumentation suite failed; inspect output above'}
+  if($LASTEXITCODE -ne 0 -or ($result -join "`n") -notmatch 'OK \([1-9]\d* tests?\)'){throw 'Android instrumentation suite failed; inspect output above'}
   $evidence=Join-Path $local 'evidence'
   New-Item -ItemType Directory -Force $evidence | Out-Null
   & $adb -s $Device shell run-as dev.erciyuan.companion_poc.live2d cat "app_flutter/$ReportName" | Set-Content (Join-Path $evidence $ReportName)

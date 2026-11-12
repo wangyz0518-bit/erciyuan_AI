@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 class Live2dController extends ChangeNotifier {
   static const channel = MethodChannel('erciyuan/live2d');
   int? textureId;
-  List<String> expressions = [], motions = [];
+  List<String> expressions = [], motions = [], lipSyncParameters = [];
+  bool get supportsLipSync => lipSyncParameters.isNotEmpty;
   String? error;
   bool loaded = false, busy = false, _closed = false;
   int _generation = 0;
@@ -28,6 +29,9 @@ class Live2dController extends ChangeNotifier {
       if (_closed || generation != _generation) return;
       expressions = List<String>.from(result!['expressions'] as List);
       motions = List<String>.from(result['motions'] as List);
+      lipSyncParameters = List<String>.from(
+        result['lipSyncParameters'] as List,
+      );
       loaded = true;
     } catch (e) {
       if (!_closed && generation == _generation) error = e.toString();
@@ -48,6 +52,7 @@ class Live2dController extends ChangeNotifier {
     busy = false;
     expressions = [];
     motions = [];
+    lipSyncParameters = [];
     notifyListeners();
   }
 

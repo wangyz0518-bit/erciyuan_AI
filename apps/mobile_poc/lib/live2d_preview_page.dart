@@ -173,7 +173,7 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
     setState(() {
       model = name;
       status =
-          '$name 已加载 · 表情 ${controller.expressions.length} · 动作 ${controller.motions.length}';
+          '$name 已加载 · 表情 ${controller.expressions.length} · 动作 ${controller.motions.length}${controller.supportsLipSync ? '' : ' · 无嘴部映射'}';
     });
   }
 
@@ -456,7 +456,7 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
                           child: Slider(
                             key: const Key('mouth'),
                             value: mouth.clamp(0, 1),
-                            onChanged: ready
+                            onChanged: ready && controller.supportsLipSync
                                 ? (v) {
                                     setState(() => mouth = v);
                                     unawaited(
