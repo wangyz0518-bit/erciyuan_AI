@@ -18,7 +18,7 @@
 
 首版平台范围按 [ADR-0002](docs/decisions/0002-three-platform-scope.md) 执行：Android、iOS；原生鸿蒙后续适配，具体时间另行确定。原生鸿蒙不是首版交付、PoC 或验收条件，不据此扩大首版范围。
 
-技术栈尚未定案。选型调研见 `docs/research/`，决策记录见 `docs/decisions/`。
+首版移动端采用 **Flutter + Dart**，见 [ADR-0001](docs/decisions/0001-mobile-stack.md)。
 
 ## 目录
 
@@ -33,13 +33,13 @@
 - `planning/output/`：正式 Word 计划，保留原版本，不随意覆盖。
 - `planning/assets/`：规划配图；聊天界面图为概念示意，不是运行截图。
 
-产品代码目录待技术栈确定后建立。
+Flutter 工程目录与分层约定随 [#10 Flutter 双端 PoC 与工程初始化](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10) 建立。
 
 ## 命令
 
 当前没有构建、测试或启动命令。
 
-技术栈确定后，在本节补充安装、开发、测试、lint、构建命令，并保持与实际脚本一致。
+工程初始化时，在本节补充安装、开发、测试、lint、构建命令，并保持与实际脚本一致（#10）。
 
 ## 协作约定
 

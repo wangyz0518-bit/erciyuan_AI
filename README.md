@@ -8,7 +8,7 @@
 
 第一阶段先完成手机文字聊天骨架、可恢复的角色和对话记录，并分别验证形象、声音能力。完整语音联动、普通用户角色创建、完整记忆和用量管理在后续阶段推进。
 
-首版平台范围已确认：**Android、iOS；原生鸿蒙后续适配，具体时间另行确定**。决策依据见 [ADR-0002](docs/decisions/0002-three-platform-scope.md)，客户端框架仍待验证与确认。
+首版平台范围已确认：**Android、iOS；原生鸿蒙后续适配，具体时间另行确定**。决策依据见 [ADR-0002](docs/decisions/0002-three-platform-scope.md)，客户端采用 **Flutter + Dart**，见 [ADR-0001](docs/decisions/0001-mobile-stack.md)。双端 PoC 和工程初始化见 [#10 Flutter 双端 PoC 与工程初始化](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10)。
 
 ## 从这里开始
 
@@ -23,7 +23,7 @@
 | C | 形象制作与驱动 | 待团队分配 |
 | D | 声音处理 | 待团队分配 |
 
-技术栈、服务供应商、部署方式和成员分工尚未最终确定。工作线划分不等于需要部署四套独立服务。
+服务端技术方案、服务供应商、部署方式和成员分工尚待确定。工作线划分不等于需要部署四套独立服务。
 
 ## 获取项目
 
@@ -52,4 +52,4 @@ cd erciyuan_AI
 - `planning/build_*.py`：文档生成脚本。
 - `planning/inspect_pdf.py`：PDF 排版检查工具。
 
-本地排版检查产物、环境配置和密钥不纳入 Git。新增产品代码的目录在技术方案确定后建立。
+本地排版检查产物、环境配置和密钥不纳入 Git。Flutter 工程目录随工程初始化建立。
