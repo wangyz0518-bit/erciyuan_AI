@@ -21,6 +21,8 @@ class ChatController extends ChangeNotifier {
   bool switching = false;
   String? error;
   Message? _active;
+  Future<bool>? _initialSave;
+  Future<void>? _cancellation;
   int _generation = 0;
   int _lastId = DateTime.now().microsecondsSinceEpoch;
   int _nextId() => ++_lastId;
@@ -34,7 +36,11 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> send(String text, {Message? retry}) async {
+  Future<bool> send(
+    String text, {
+    Message? retry,
+    VoidCallback? onSaved,
+  }) async {
     text = text.trim();
     if (text.isEmpty || busy || switching) return false;
     busy = true; // Reserve synchronously, before the first database await.
@@ -62,15 +68,23 @@ class ChatController extends ChangeNotifier {
     _active = reply;
     if (retry == null) messages.add(user);
     messages.add(reply);
+    final initialSave = _saveInitial(user, reply, includeUser: retry == null);
+    _initialSave = initialSave;
     notifyListeners();
     try {
-      if (retry == null) {
-        await store.savePair(user, reply);
-      } else {
-        await store.save(reply);
+      if (!await initialSave) {
+        messages.remove(reply);
+        if (retry == null) messages.remove(user);
+        if (token == _generation) error = '本地保存失败，请检查存储后重试';
+        return false;
       }
+      onSaved?.call();
       // Cancellation may have occurred while the initial transaction was pending.
       if (token != _generation) return true;
+      if (reply.status == 'failed') {
+        error = '本地写入失败，消息已保留，请重试回复';
+        return true;
+      }
       if (currentMode == ReplyMode.delayed) {
         await Future<void>.delayed(const Duration(seconds: 6));
       }
@@ -103,22 +117,60 @@ class ChatController extends ChangeNotifier {
       if (token == _generation) {
         busy = false;
         _active = null;
+        _initialSave = null;
         notifyListeners();
       }
     }
     return true;
   }
 
-  Future<void> cancel() async {
-    ++_generation;
-    final pending = _active;
-    _active = null;
-    busy = false;
-    if (pending != null) {
-      pending.status = 'cancelled';
-      await store.save(pending);
+  Future<bool> _saveInitial(
+    Message user,
+    Message reply, {
+    required bool includeUser,
+  }) async {
+    Future<void> save() =>
+        includeUser ? store.savePair(user, reply) : store.save(reply);
+    try {
+      await save();
+      return true;
+    } catch (_) {
+      // A failed pair transaction rolls back the user message too.
+      reply.status = 'failed';
+      try {
+        await save();
+        return true;
+      } catch (_) {
+        return false;
+      }
     }
-    notifyListeners();
+  }
+
+  Future<void> cancel() {
+    final ongoing = _cancellation;
+    if (ongoing != null) return ongoing;
+    final pending = _active;
+    final initialSave = _initialSave;
+    if (pending == null || initialSave == null) return Future<void>.value();
+    ++_generation;
+    return _cancellation = _cancelReply(pending, initialSave);
+  }
+
+  Future<void> _cancelReply(Message pending, Future<bool> initialSave) async {
+    try {
+      if (await initialSave) {
+        pending.status = 'cancelled';
+        await store.save(pending);
+      }
+    } catch (_) {
+      error = '无法保存取消状态，请检查本地存储';
+    } finally {
+      _cancellation = null;
+      _active = null;
+      _initialSave = null;
+      busy = false;
+      notifyListeners();
+    }
   }
 
   Future<void> switchCharacter(String id) async {
@@ -139,7 +191,11 @@ class ChatController extends ChangeNotifier {
 
   Future<bool> retry(Message failed) async {
     final user = messages.where((m) => m.id == failed.replyTo).firstOrNull;
-    if (user == null) return false;
+    if (user == null) {
+      error = '找不到原消息，请重新输入后发送';
+      notifyListeners();
+      return false;
+    }
     return send(user.text, retry: user);
   }
 }

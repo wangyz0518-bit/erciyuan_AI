@@ -134,9 +134,15 @@ class _CompanionHomeState extends State<CompanionHome>
       return;
     }
     final text = input.text;
-    input.clear();
-    drafts[chat.selected] = '';
-    final task = chat.send(text);
+    final role = chat.selected;
+    final task = chat.send(
+      text,
+      onSaved: () {
+        if (!mounted) return;
+        if (chat.selected == role && input.text == text) input.clear();
+        if (drafts[role] == text) drafts.remove(role);
+      },
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && scroll.hasClients) {
         scroll.jumpTo(scroll.position.maxScrollExtent);

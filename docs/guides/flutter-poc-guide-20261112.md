@@ -35,11 +35,14 @@ pwsh -File tool/windows.ps1 -Action build
 flutter analyze
 flutter test
 flutter test integration_test/acceptance_test.dart -d emulator-5554 --reporter expanded
+flutter test integration_test/storage_failure_test.dart -d emulator-5554 --reporter expanded
 flutter test integration_test/soak_test.dart -d emulator-5554 --reporter expanded
 flutter build apk --debug
 ```
 
 `acceptance_test.dart` 在真实安卓运行环境中检查模拟聊天、切换隔离、SQLite、角色状态及音频播放器。`soak_test.dart` 按实际经过时间执行至少 15 分钟的连续 UI 操作。运行测试时不要手动点击模拟器；录音人工测试单独安排。自动文本输入不等于中文输入法实测。
+
+`storage_failure_test.dart` 在独立的测试数据库里用 SQLite 触发器注入写入错误，检查重开数据库后的重试、持续失败时保留草稿，以及写入期间取消。建议指定专用测试模拟器，集成测试会重新安装应用。
 
 集成测试使用独立数据库，且仅在手动版默认数据库为空时写入 100 条明确标注的恢复测试样例。测试过程中 `flutter test` 可能重新安装测试应用；重要私人数据不要放入此原型。测试结果 JSON 写入安卓应用的 documents 目录，主机侧保存到验证证据目录。APK 位于 `build/app/outputs/flutter-apk/app-debug.apk`，不提交到 Git。
 

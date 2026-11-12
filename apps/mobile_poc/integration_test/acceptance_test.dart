@@ -38,7 +38,9 @@ void main() {
       }
 
       Future<void> tap(Key key) async {
-        await tester.tap(find.byKey(key));
+        final target = find.byKey(key);
+        await until(() => target.evaluate().isNotEmpty);
+        await tester.tap(target);
         await tester.pump(const Duration(milliseconds: 250));
       }
 
