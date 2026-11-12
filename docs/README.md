@@ -11,6 +11,7 @@
 | [research/](research/README.md) | 调研、选型、技术评估 | 按需 |
 | [decisions/](decisions/README.md) | 架构与选型决策记录 | 每次决策 |
 | [guides/](guides/README.md) | 配置、开发、排障 | 按需 |
+| [reports/](reports/README.md) | 实际验证结果、问题与证据边界 | 每轮验证后 |
 | [接口/](接口/README.md) | 接口契约草案（暂缓整理） | 接口变更时 |
 
 ## 约定
@@ -26,5 +27,4 @@
 | --- | --- |
 | `architecture.md` | 技术栈确定后 |
 | `api/` | 接口进入实现阶段，从 `接口/` 迁入 |
-| `reports/` | 第一阶段验收时 |
 | `archive/` | 出现第一份过期文档时 |

@@ -8,7 +8,7 @@
 
 ## 当前阶段
 
-仓库处于规划与团队协作准备阶段，尚无产品代码或可运行应用。
+仓库包含规划文档及 `apps/mobile_poc` 本地能力验证工程。真实 AI 服务尚未接入；模拟器验证不能代替 Android/iOS 真机验收。
 
 第一阶段目标：
 
@@ -33,13 +33,23 @@
 - `planning/output/`：正式 Word 计划，保留原版本，不随意覆盖。
 - `planning/assets/`：规划配图；聊天界面图为概念示意，不是运行截图。
 
-Flutter 工程目录与分层约定随 [#10 Flutter 双端 PoC 与工程初始化](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10) 建立。
+Flutter PoC 工程位于 `apps/mobile_poc`，分层与运行方法见 [运行指南](docs/guides/flutter-poc-guide-20261112.md)。继续由 [#10](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10) 跟踪双端验证。
 
 ## 命令
 
-当前没有构建、测试或启动命令。
+在 `apps/mobile_poc` 中运行：
 
-工程初始化时，在本节补充安装、开发、测试、lint、构建命令，并保持与实际脚本一致（#10）。
+```sh
+flutter pub get
+flutter run -d emulator-5554
+flutter analyze
+flutter test
+flutter test integration_test/acceptance_test.dart -d emulator-5554 --reporter expanded
+flutter test integration_test/soak_test.dart -d emulator-5554 --reporter expanded
+flutter build apk --debug
+```
+
+Windows 环境辅助脚本为 `tool/windows.ps1`，用法见运行指南。集成测试期间不要同时手动操作模拟器。PoC 本地数据模型不是服务端接口契约。
 
 ## 协作约定
 
