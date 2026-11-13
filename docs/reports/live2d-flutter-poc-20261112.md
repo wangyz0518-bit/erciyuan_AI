@@ -62,6 +62,18 @@ Android APK 已构建，Haru 和 Mark 已通过 Native → EGL → Flutter Textu
 
 另向后台应用发送 `COMPLETE` 内存压力通知，恢复后帧数继续增长、无渲染错误，进程未重启。但该次 `surfaceRebuilds` 仍为 1，未触发真实 Surface 回收，不能作为 Surface 丢失恢复的通过证据。
 
+## 头部交互补充（2026-11-13）
+
+独立预览页增加左右转头、抬头低头、歪头滑块，人物区域拖动跟随开关，以及右上角姿态／取景重置按钮。原生渲染器读取 MOC 的真实参数及范围，并在动作更新后应用手动值；切换模型清除手动覆盖。没有新增 3D 相机或模型生成能力。
+
+- `flutter analyze` 无问题，原有 2 项单元测试通过。
+- 扩展后的 Android instrumentation 功能测试返回 `OK (1 test)`，耗时 84.441 秒，JSON 成功取回。
+- 用实际滑块手势控制三个轴，并读取渲染器中的 Cubism 参数断言结果；Haru 的三个轴均为 -30…30、默认值 0。额外用越界输入确认钳制到模型边界。
+- 拖动后实际读回 X=9.479166、Y=8.123792、Z=0；关闭跟随后同一区域的拖动不改变角度。重置回到三个默认值、全身及缩放 1；切换 Mark 再回 Haru 后手动覆盖清除。
+- 同一轮仍通过 30 次加载卸载、20 次暂停恢复、20 次完整渲染器重建、表情／动作、资源异常、音频嘴部与消息叠层检查。结果保存在本地 `evidence/head-controls-acceptance.json`。
+- 普通双 ABI Debug APK 构建、安装成功。通过 ADB 输入实际操作三个滑块和人物拖动，目视确认头部变化及半身取景；操作截图为 `head-controls-posed.png`、`head-controls-drag.png`，恢复后的体验界面为 `head-controls-ready.png`。已恢复普通预览入口，APK 更新至 `evidence/live2d-preview-debug.apk`。
+- 本次没有重跑 15 分钟持续测试、原聊天数据库专项回归、真实 Surface 回收或真机测试；上文的历史结果与限制保持原样。
+
 ## 明确未覆盖
 
 - Android 真机上的 Profile 性能、耗电和实际音频听感。

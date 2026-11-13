@@ -71,6 +71,9 @@ class Model final : public CubismUserModel {
  std::map<std::string,ACubismMotion*> motions,expressions;
  std::vector<GLuint> textures;
  std::string idle;
+ int headIndices[3]={-1,-1,-1};
+ float headValues[3]={0,0,0};
+ bool headManual[3]={false,false,false};
  public:
  ~Model() override {
    _motionManager->StopAllMotions(); _expressionManager->StopAllMotions();
@@ -84,6 +87,14 @@ class Model final : public CubismUserModel {
    std::string dir=path.substr(0,path.find_last_of('/')+1);
    auto moc=read(dir+settings->GetModelFileName()); LoadModel(moc.data(),moc.size(),true);
    if(!_model) throw std::runtime_error("MOC3 consistency check failed");
+   const char* headIds[]={"ParamAngleX","ParamAngleY","ParamAngleZ"};
+   // GetParameterIndex creates synthetic entries for absent IDs; inspect real IDs instead.
+   for(int axis=0;axis<3;++axis) {
+     auto id=CubismFramework::GetIdManager()->GetId(headIds[axis]);
+     for(int i=0;i<_model->GetParameterCount();++i) if(_model->GetParameterId(i)==id) {
+       headIndices[axis]=i;headValues[axis]=_model->GetParameterDefaultValue(i);break;
+     }
+   }
    auto optional=[&](const char* file,auto fn) { if(file && *file) {auto b=read(dir+file);fn(b);} };
    optional(settings->GetPhysicsFileName(),[&](auto& b){LoadPhysics(b.data(),b.size());});
    optional(settings->GetPoseFileName(),[&](auto& b){LoadPose(b.data(),b.size());});
@@ -132,14 +143,38 @@ class Model final : public CubismUserModel {
    auto it=motions.find(id); if(it==motions.end()) throw std::runtime_error("Unsupported motion: "+id);
    _motionManager->StartMotionPriority(it->second,false,3);
  }
+ void head(int axis,float normalized) {
+   const int i=headIndices[axis];
+   if(i<0)throw std::runtime_error("Head parameter not supported by this model");
+   const float center=_model->GetParameterDefaultValue(i);
+   normalized=std::clamp(normalized,-1.f,1.f);
+   headValues[axis]=center+normalized*(normalized<0?center-_model->GetParameterMinimumValue(i):_model->GetParameterMaximumValue(i)-center);
+   headManual[axis]=true;
+ }
+ void applyHead() {
+   for(int axis=0;axis<3;++axis)if(headManual[axis])_model->SetParameterValue(headIndices[axis],headValues[axis]);
+ }
+ std::string headInfo() {
+   std::string json="{";const char* keys[]={"headX","headY","headZ"};bool first=true;
+   for(int axis=0;axis<3;++axis) {
+     const int i=headIndices[axis];if(i<0)continue;
+     if(!first)json+=",";first=false;
+     json+=std::string("\"")+keys[axis]+"\":{\"min\":"+std::to_string(_model->GetParameterMinimumValue(i))+
+       ",\"max\":"+std::to_string(_model->GetParameterMaximumValue(i))+",\"default\":"+std::to_string(_model->GetParameterDefaultValue(i))+
+       ",\"value\":"+std::to_string(_model->GetParameterValue(i))+",\"manual\":"+(headManual[axis]?"true":"false")+"}";
+   }
+   return json+"}";
+ }
  void draw(float dt,int w,int h,float mouth,float zoom,float x,float y) {
    _model->LoadParameters();
    if(_motionManager->IsFinished() && !idle.empty()) _motionManager->StartMotionPriority(motions.at(idle),false,1);
    bool moved=_motionManager->UpdateMotion(_model,dt); _model->SaveParameters();
    if(!moved && _eyeBlink) _eyeBlink->UpdateParameters(_model,dt);
    _expressionManager->UpdateMotion(_model,dt);
+   applyHead(); // Feed head motion into hair/accessory physics.
    if(_physics) _physics->Evaluate(_model,dt);
    if(_pose) _pose->UpdateParameters(_model,dt);
+   applyHead(); // Keep manual pose stable even when a motion/physics writes these IDs.
    for(int i=0;i<settings->GetLipSyncParameterCount();++i)
      _model->SetParameterValue(settings->GetLipSyncParameterId(i),mouth);
    _model->Update();
@@ -212,10 +247,15 @@ extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeCommand)(JNIEnv* e,jclass,jlo
    else if(a=="x")s->x=std::clamp(float(number),-2.f,2.f);
    else if(a=="y")s->y=std::clamp(float(number),-2.f,2.f);
    else if(!s->model)throw std::runtime_error("Model not loaded");
+   else if(a=="headX" || a=="headY" || a=="headZ")s->model->head(a.back()-'X',number);
    else if(a=="expression")s->model->expression(str(e,value));
    else if(a=="motion")s->model->motion(str(e,value));
    else throw std::runtime_error("Unknown command");
  }catch(const std::exception& x){error(e,x);}
+}
+extern "C" JNIEXPORT jstring JNICALL JNI_METHOD(nativeHeadInfo)(JNIEnv* e,jclass,jlong h) {
+ try {auto s=reinterpret_cast<Session*>(h);return e->NewStringUTF(s->model?s->model->headInfo().c_str():"{}");}
+ catch(const std::exception& x){error(e,x);return nullptr;}
 }
 extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeFrame)(JNIEnv* e,jclass,jlong h) {
  try{reinterpret_cast<Session*>(h)->frame();}catch(const std::exception& x){error(e,x);}

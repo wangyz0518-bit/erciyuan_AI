@@ -73,6 +73,8 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
       playing = false;
   String model = 'Haru', status = '准备渲染器…';
   double mouth = 0, zoom = 1, x = 0, y = 0;
+  final head = <String, double>{'headX': 0, 'headY': 0, 'headZ': 0};
+  bool dragFollow = true;
   List<double> envelope = [];
   Timer? statistics;
   Map<String, dynamic> latest = {};
@@ -172,6 +174,7 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
     if (!mounted) return;
     setState(() {
       model = name;
+      head.updateAll((_, value) => 0);
       status =
           '$name 已加载 · 表情 ${controller.expressions.length} · 动作 ${controller.motions.length}${controller.supportsLipSync ? '' : ' · 无嘴部映射'}';
     });
@@ -193,6 +196,77 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
       await stopAudio();
       rethrow;
     }
+  }
+
+  bool get canPose => ready && controller.loaded && !controller.busy;
+
+  Future<void> setHead(String axis, double value) async {
+    if (!canPose || !controller.headParameters.containsKey(axis)) return;
+    final next = value.clamp(-1.0, 1.0);
+    setState(() => head[axis] = next);
+    await controller.command(axis, number: next);
+  }
+
+  void follow(Offset position, Size size) {
+    if (!canPose || !dragFollow || size.isEmpty) return;
+    unawaited(
+      safe(() async {
+        await setHead('headX', position.dx / size.width * 2 - 1);
+        await setHead('headY', 1 - position.dy / size.height * 2);
+      }, updateStatus: false),
+    );
+  }
+
+  Future<void> resetPose() async {
+    if (!canPose) return;
+    await stopAudio();
+    for (final axis in head.keys) {
+      await setHead(axis, 0);
+    }
+    await controller.command('zoom', number: 1);
+    await controller.command('x');
+    await controller.command('y');
+    if (mounted) {
+      setState(() {
+        full = true;
+        zoom = 1;
+        x = 0;
+        y = 0;
+      });
+    }
+  }
+
+  Widget headSlider(String axis, String label) {
+    final info = controller.headParameters[axis];
+    final normalized = head[axis]!;
+    final center = (info?['default'] as num?)?.toDouble() ?? 0;
+    final bound =
+        (info?[normalized < 0 ? 'min' : 'max'] as num?)?.toDouble() ?? 0;
+    final value = center + normalized.abs() * (bound - center);
+    return Row(
+      children: [
+        SizedBox(width: 82, child: Text(label)),
+        Expanded(
+          child: Slider(
+            key: Key(axis),
+            value: normalized,
+            min: -1,
+            max: 1,
+            semanticFormatterCallback: (_) =>
+                '$label ${value.toStringAsFixed(0)}',
+            onChanged: canPose && info != null
+                ? (v) => unawaited(
+                    safe(() => setHead(axis, v), updateStatus: false),
+                  )
+                : null,
+          ),
+        ),
+        SizedBox(
+          width: 42,
+          child: Text(info == null ? '不支持' : value.toStringAsFixed(0)),
+        ),
+      ],
+    );
   }
 
   @override
@@ -230,6 +304,12 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
       appBar: AppBar(
         title: const Text('Live2D · 本地接入验证'),
         actions: [
+          IconButton(
+            key: const Key('reset-pose'),
+            tooltip: '重置姿态与取景',
+            onPressed: canPose ? () => unawaited(safe(resetPose)) : null,
+            icon: const Icon(Icons.restart_alt),
+          ),
           IconButton(
             key: const Key('controls'),
             onPressed: () => setState(() => controls = !controls),
@@ -283,7 +363,22 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
                     ),
                   ),
                 ),
-                Live2dView(controller: controller),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = constraints.biggest;
+                    return GestureDetector(
+                      key: const Key('head-drag'),
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: canPose && dragFollow
+                          ? (d) => follow(d.localPosition, size)
+                          : null,
+                      onPanUpdate: canPose && dragFollow
+                          ? (d) => follow(d.localPosition, size)
+                          : null,
+                      child: Live2dView(controller: controller),
+                    );
+                  },
+                ),
                 if (!controller.loaded)
                   const Center(
                     child: Column(
@@ -406,11 +501,31 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
           ),
           if (controls && !keyboard)
             SizedBox(
-              height: 205,
+              height: 260,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Column(
                   children: [
+                    Row(
+                      children: [
+                        const Text('拖动跟随'),
+                        Switch(
+                          key: const Key('drag-follow'),
+                          value: dragFollow,
+                          onChanged: (value) =>
+                              setState(() => dragFollow = value),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            '拖动人物转头，松手保持',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                    headSlider('headX', '左右转头'),
+                    headSlider('headY', '抬头低头'),
+                    headSlider('headZ', '歪头'),
                     Wrap(
                       spacing: 6,
                       children: [

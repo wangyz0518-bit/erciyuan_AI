@@ -36,6 +36,7 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
   private String path;
   private String frameError;
   private float mouth, zoom=1, offsetX, offsetY;
+  private final Float[] head = new Float[3];
   private int loads, unloads, surfaceRebuilds;
   private Map<String,Object> capabilities = new HashMap<>();
   private static native long nativeCreate(AssetManager assets, Surface surface);
@@ -43,6 +44,16 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
   private static native void nativeCommand(long handle, String action, String value, float number);
   private static native void nativeFrame(long handle);
   private static native void nativeDestroy(long handle);
+  private static native String nativeHeadInfo(long handle);
+  private Map<String,Object> headInfo() throws Exception {
+    JSONObject json=new JSONObject(nativeHeadInfo(handle));Map<String,Object> info=new HashMap<>();
+    for(var keys=json.keys();keys.hasNext();){
+      String key=keys.next();JSONObject axis=json.getJSONObject(key);Map<String,Object> values=new HashMap<>();
+      for(var fields=axis.keys();fields.hasNext();){String field=fields.next();values.put(field,axis.get(field));}
+      info.put(key,values);
+    }
+    return info;
+  }
 
   @Override public void onAttachedToEngine(FlutterPluginBinding b) {
     binding=b; channel=new MethodChannel(b.getBinaryMessenger(),"erciyuan/live2d");channel.setMethodCallHandler(this);
@@ -62,6 +73,7 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
     if(path!=null)nativeLoad(handle,path);
     nativeCommand(handle,"mouth","",mouth);nativeCommand(handle,"zoom","",zoom);
     nativeCommand(handle,"x","",offsetX);nativeCommand(handle,"y","",offsetY);
+    if(path!=null)for(int i=0;i<3;i++)if(head[i]!=null)nativeCommand(handle,"head"+(char)('X'+i),"",head[i]);
     frameError=null;render.removeCallbacks(tick);if(active)render.post(tick);
   }
   private void destroyNative() {
@@ -120,6 +132,8 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
             if(handle==0)throw new IllegalStateException("Surface unavailable");
             long t=SystemClock.elapsedRealtime();
             nativeLoad(handle,key);
+            for(int i=0;i<3;i++)head[i]=null;
+            info.put("headParameters",headInfo());
             path=key;capabilities=info;lastLoadMs=SystemClock.elapsedRealtime()-t;loads++;frameError=null;
             response=info;break;
           }
@@ -139,13 +153,16 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
             if(action.equals("x"))offsetX=Math.max(-2,Math.min(2,n));
             if(action.equals("y"))offsetY=Math.max(-2,Math.min(2,n));
             if(handle==0)throw new IllegalStateException("Surface unavailable");
-            nativeCommand(handle,action,value==null?"":value,n);break;
+            nativeCommand(handle,action,value==null?"":value,n);
+            if(action.equals("headX")||action.equals("headY")||action.equals("headZ"))head[action.charAt(4)-'X']=Math.max(-1,Math.min(1,n));
+            break;
           }
           case "stats": {
             Map<String,Object> s=new HashMap<>();s.put("frames",frames);s.put("elapsedMs",SystemClock.elapsedRealtime()-started);
             s.put("loadMs",lastLoadMs);s.put("loads",loads);s.put("unloads",unloads);s.put("surfaceRebuilds",surfaceRebuilds);
             s.put("nativeInstances",handle==0?0:1);s.put("models",path==null?0:1);s.put("active",active);
-            s.put("mouth",mouth);s.put("error",frameError);s.put("capabilities",capabilities);response=s;break;
+            s.put("mouth",mouth);s.put("error",frameError);s.put("capabilities",capabilities);
+            s.put("headParameters",handle==0?new HashMap<>():headInfo());response=s;break;
           }
           default: main.post(result::notImplemented);return;
         }

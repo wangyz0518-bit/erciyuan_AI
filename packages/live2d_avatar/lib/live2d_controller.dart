@@ -5,6 +5,7 @@ class Live2dController extends ChangeNotifier {
   static const channel = MethodChannel('erciyuan/live2d');
   int? textureId;
   List<String> expressions = [], motions = [], lipSyncParameters = [];
+  Map<String, Map<String, dynamic>> headParameters = {};
   bool get supportsLipSync => lipSyncParameters.isNotEmpty;
   String? error;
   bool loaded = false, busy = false, _closed = false;
@@ -33,6 +34,10 @@ class Live2dController extends ChangeNotifier {
         result['lipSyncParameters'] as List,
       );
       loaded = true;
+      headParameters = (result['headParameters'] as Map).map(
+        (key, value) =>
+            MapEntry(key as String, Map<String, dynamic>.from(value as Map)),
+      );
     } catch (e) {
       if (!_closed && generation == _generation) error = e.toString();
       rethrow;
@@ -53,6 +58,7 @@ class Live2dController extends ChangeNotifier {
     expressions = [];
     motions = [];
     lipSyncParameters = [];
+    headParameters = {};
     notifyListeners();
   }
 
