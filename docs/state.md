@@ -1,12 +1,12 @@
 # 当前状态
 
 > 状态：有效
-> 更新：2026-11-12
+> 更新：2026-11-13
 > 维护：团队共同更新，阶段变化时优先更新本文件
 
 ## 阶段
 
-第一批本地能力验证。`apps/mobile_poc` 已建立 Flutter 工程；原聊天使用模拟回复和占位角色，C 线独立入口使用官方 Live2D 样例。当前均为 Android 模拟器验证，真实服务与 Android/iOS 真机尚未完成，详见 [本批记录](reports/android-poc-report-20261112.md) 和 [Live2D 记录](reports/live2d-flutter-poc-20261112.md)。
+第一批本地能力验证。`apps/mobile_poc` 已建立 Flutter 工程；原聊天使用模拟回复和占位角色，C 线独立入口默认展示白发龙角角色的 2.5D 自然待机，另保留官方 Live2D 样例入口。当前均为 Android 模拟器验证，真实服务与 Android/iOS 真机尚未完成，详见 [本批记录](reports/android-poc-report-20261112.md) 和 [形象验证记录](reports/live2d-flutter-poc-20261112.md)。
 
 ## 已完成
 
@@ -17,6 +17,7 @@
 - 首版 Android/iOS 客户端选定 **Flutter + Dart**，见 [ADR-0001](decisions/0001-mobile-stack.md)。
 - 三个 PoC 页面及本地存储、模拟回复、角色展示、录音播放实现；构建和检查命令见 [运行指南](guides/flutter-poc-guide-20261112.md)。
 - C 线新增独立 Live2D 预览入口，官方 Haru/Mark 已在 Android 模拟器通过 Native + Flutter Texture 显示；具体检查与限制见 [Live2D 验证记录](reports/live2d-flutter-poc-20261112.md)。
+- C 线增加用户指定角色的 2.5D 自然待机体验：单图网格呼吸、轻微重心与附属物摆动，支持暂停、幅度和近景；Android 模拟器画面及交互检查通过。没有完成该角色的正式 Live2D 分层与绑定。
 
 ## 进行中
 

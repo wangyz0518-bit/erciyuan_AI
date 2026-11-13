@@ -68,6 +68,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
+    - assets/characters/dragon-character-v1.png
     - assets/live2d/Haru/
     - assets/live2d/Haru/Haru.2048/
     - assets/live2d/Haru/expressions/

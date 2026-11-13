@@ -1,10 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'live2d_preview_page.dart';
+import 'dragon_idle_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const Live2dPreviewApp());
+  runApp(const DragonIdlePreviewApp());
 }
 
 class Live2dPreviewApp extends StatelessWidget {

@@ -1,12 +1,14 @@
 # Live2D Flutter 本地接入验证
 
 > 状态：Android 本地验证可用，验收范围与证据缺口另见报告
-> 日期：2026-11-12
+> 更新：2026-11-13
 > 工作线：C；关联 #10
 
 ## 范围
 
-在 `apps/mobile_poc` 增加独立入口 `lib/main_live2d.dart`，使用 `packages/live2d_avatar` 将 Cubism Native R5 的 OpenGL ES 渲染结果放进 Flutter Texture。Android 验证应用标识为 `dev.erciyuan.companion_poc.live2d`；原 PoC 使用 `poc` flavor 和原标识。验证页只使用固定样例，不打开聊天数据库，不改变角色绑定或服务端接口。
+`apps/mobile_poc/lib/main_live2d.dart` 默认打开白发龙角角色的 **2.5D 自然待机预览**。它使用单张透明立绘和 Flutter 连续网格形变，表现小幅呼吸、重心、头发、裙摆、翅膀及尾巴变化；不是已绑定的 Live2D 模型，也没有真实三维视角或腿部关节动作。
+
+原 Haru/Mark 验证页保留在 `lib/main_live2d_samples.dart`，使用 `packages/live2d_avatar` 将 Cubism Native R5 的 OpenGL ES 渲染结果放进 Flutter Texture。两个入口使用同一 Android 验证应用标识 `dev.erciyuan.companion_poc.live2d`；原 PoC 使用 `poc` flavor 和原标识。验证页不打开聊天数据库，不改变角色绑定或服务端接口。
 
 首轮只实现 Android 的 x86_64、arm64-v8a。iOS 没有插件实现，调用会明确提示未支持；不能将 Android 结果解释为双端通过。现有沉浸聊天界面由另一分支开发，本页用独立消息、侧栏和历史面板测试组合效果，尚未替换正式聊天页的人物。
 
@@ -22,7 +24,7 @@ pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action build
 pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action run -Device emulator-5580
 ```
 
-脚本支持 `-DevRoot` 和可选 `-ProxyUrl`，只设置当前进程环境。准备步骤下载官方发行包并校验 SHA-256，将 SDK 保留在 `.local/live2d/sdk/`，把 Haru、Mark 和着色器复制到被 Git 忽略的本地资源目录。SDK、模型、生成 APK 不提交。首次准备前阅读下方对应条款；后续不自动升级依赖。
+脚本支持 `-DevRoot` 和可选 `-ProxyUrl`，只设置当前进程环境。准备步骤下载官方发行包并校验 SHA-256，将 SDK 保留在 `.local/live2d/sdk/`，把 Haru、Mark 和着色器复制到被 Git 忽略的本地资源目录。官方 SDK、官方模型、生成 APK 不提交；2.5D 预览立绘随工程打包，来源见 `assets/characters/README.md`。两个入口仍共用现有构建依赖，因此待机预览也需要准备步骤。首次准备前阅读下方对应条款；后续不自动升级依赖。
 
 脚本不创建模拟器。先按现有 Windows Android 指南启动设备，用 `adb devices` 确认编号，再传入 `-Device`。本次专用设备为 API 36 x86_64、SwiftShader、720×1280，编号 `emulator-5580`；真实手机通常使用自己的序列号。
 
@@ -57,6 +59,17 @@ SDK 包中的 Core、Framework 和模型保持配套。官方原生示例的本�
 
 ## 操作与检查
 
+### 默认：2.5D 自然待机
+
+- 启动后自动播放，默认动作幅度 75%。胸腹与肩部随呼吸小幅起伏，腿部随重心轻微变化，发梢、裙摆、翅膀和尾巴错开相位。脚底附近保持固定，避免整体漂浮。
+- “暂停动作”冻结当前姿态；“近景观察”放大人物，“完整人物”恢复全身。近景会裁切部分翅膀和下摆。
+- “动作幅度”控制整组自然动作，0% 回到静态；右上角重置恢复默认幅度、全身和播放。
+- 应用进入后台暂停动画，返回后继续；遵循系统减少动画设置。没有逐部位滑块、眨眼、口型或真正转身能力。
+
+### 原官方 Live2D 样例
+
+在已配置的 Flutter 环境、`apps/mobile_poc` 目录执行 `flutter run --flavor live2d -t lib/main_live2d_samples.dart -d emulator-5580`。它会替换同标识应用的启动入口；随后用上方脚本 `-Action run` 恢复默认待机版。
+
 - 默认打开纯人物视图。右上角聊天图标可切换测试消息、历史和输入框，调节图标可收起面板。
 - 在“部位”页选择分组并滚动查看所有滑块。调整滑块会进入手动调姿，停住当前自动动画和物理摆动。可同时调整头、躯干、手臂等部位。数值是模型参数值，外形和活动范围由模型决定。
 - Haru 的“手臂”和“手腕与手型”分组提供左、右臂 A/B 外形切换。B 臂及对应手腕、手型需要在适用外形下观察。Mark 的“腿部”可控制左右腿。
@@ -68,12 +81,13 @@ SDK 包中的 Core、Framework 和模型保持配套。官方原生示例的本�
 ```powershell
 pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action analyze
 pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action test
+pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action idle-acceptance -Device emulator-5580
 pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action acceptance -Device emulator-5580
 pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action soak -Device emulator-5580
 pwsh -File apps/mobile_poc/tool/live2d.ps1 -Action regression -Device emulator-5580
 ```
 
-`acceptance`、`soak`、`regression` 使用 Flutter 官方支持的 Android instrumentation 方式：构建测试入口和 AndroidTest APK，在指定设备通过 `AndroidJUnitRunner` 执行，无需桌面 DDS 连接。脚本检查 JUnit 成功结果并取回 JSON；`regression` 包含原聊天验收和三个 SQLite 故障用例。测试应用保留安装，完成后用 `-Action run` 恢复正常验证入口。
+`idle-acceptance` 验证新待机页的实际画面变化、暂停像素稳定、暂停时切换取景、生命周期和重置；`acceptance`、`soak` 验证原 Live2D 样例，`regression` 包含原聊天验收和三个 SQLite 故障用例。它们使用 Flutter 官方支持的 Android instrumentation 方式：构建测试入口和 AndroidTest APK，在指定设备通过 `AndroidJUnitRunner` 执行，无需桌面 DDS 连接。脚本检查 JUnit 成功结果并取回 JSON。测试应用保留安装，完成后用 `-Action run` 恢复正常待机入口。
 
 使用专用模拟器，测试期间不要手动操作。统计 JSON 位于测试应用 documents 目录，脚本自动复制到 `.local/live2d/evidence/`。持续操作测试按真实经过时间至少 15 分钟执行；逐轮进度可从 `adb -s emulator-5580 logcat -s flutter:I` 查看。
 
