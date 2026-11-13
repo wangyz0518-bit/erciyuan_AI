@@ -7,6 +7,8 @@
 
 本目录提供 Windows CPU 上的 ZipVoice 四表达筛选入口。参考录音、权重、试听音频和逐条日志位于仓库根目录的 `.voice-local/`。实验结果见 [电脑验证记录](../../docs/reports/desktop-voice-screening-20261113.md)。
 
+新的 Qwen 直接生成 / CosyVoice 3.5 Plus / Flash 对比入口为 `compare_voices.py`。服务开通、本机密钥配置、运行命令及延迟边界见 [电脑端三模型声音对比指南](../../docs/guides/desktop-voice-comparison-20261113.md)。下方保留先前 ZipVoice 的复现步骤，其试听结果尚未达到用户要求的自然度和音色一致性。
+
 从仓库根目录运行以下 PowerShell 命令。需要 Python 3.12 和 Windows 自带的 `curl.exe`、`tar.exe`。
 
 ```powershell
