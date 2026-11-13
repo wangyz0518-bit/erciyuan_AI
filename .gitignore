@@ -2,6 +2,9 @@
 /planning/qa*/
 /planning/cost_check.json
 
+# Desktop voice PoC models, reference recordings and generated audio
+/.voice-local/
+
 # Credentials and machine-local configuration
 .env
 .env.*
