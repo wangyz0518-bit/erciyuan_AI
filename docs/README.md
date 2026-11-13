@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | [state.md](state.md) | 当前阶段、待办、风险、下一步 | 每周或阶段变化时 |
 | [process/](process/README.md) | 团队安排、协作流程、文档规范 | 按需 |
-| [research/](research/README.md) | 调研、选型、技术评估 | 按需 |
+| [research/](research/README.md) | 调研、选型、技术评估，含 [D 单角色端侧语音方案](research/on-device-voice-proposal-20261113.md)（评审中，待确认后实施） | 按需 |
 | [decisions/](decisions/README.md) | 架构与选型决策记录 | 每次决策 |
 | [guides/](guides/README.md) | 配置、开发、排障，含 [Windows 安卓开发环境搭建与验证](guides/windows-android-setup-20261112.md) | 按需 |
 | [接口/](接口/README.md) | 接口契约草案（暂缓整理） | 接口变更时 |
