@@ -66,9 +66,21 @@ def quantile(values, q):
 def credentials():
     key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
     workspace = os.environ.get("DASHSCOPE_WORKSPACE_ID", "").strip()
-    if not key or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,127}", workspace):
-        raise InputError("Configure the Beijing DashScope API key and workspace ID locally first.")
+    if not key:
+        raise InputError("Configure the Beijing DashScope API key locally first.")
+    if workspace and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,127}", workspace):
+        raise InputError("Invalid optional workspace ID; enter the ID only, not a URL.")
     return key, workspace
+
+
+def cloud_host(workspace):
+    return f"{workspace}.cn-beijing.maas.aliyuncs.com" if workspace else "dashscope.aliyuncs.com"
+
+
+def scope_fingerprint(key, workspace):
+    # Preserve existing explicit-workspace manifests; key-only mode must not reuse
+    # another account's voice IDs. Only a digest is stored in the ignored local file.
+    return hashlib.sha256((workspace or "default:" + key).encode()).hexdigest()
 
 
 def safe_error(error):
@@ -104,7 +116,7 @@ class CloudVoice:
         connected = self.ws is not None
         if self.ws is None:
             self.ws = self.factory(
-                f"wss://{self.workspace}.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference",
+                f"wss://{cloud_host(self.workspace)}/api-ws/v1/inference",
                 header=[f"Authorization: Bearer {self.key}"], timeout=20,
             )
         connect_seconds = time.perf_counter() - started
@@ -319,7 +331,7 @@ def prepare_reference(args):
 def enrollment_request(key, workspace, payload):
     import requests
     response = requests.post(
-        f"https://{workspace}.cn-beijing.maas.aliyuncs.com/api/v1/services/audio/tts/customization",
+        f"https://{cloud_host(workspace)}/api/v1/services/audio/tts/customization",
         headers={"Authorization": f"Bearer {key}"}, json={"model": "voice-enrollment", "input": payload},
         timeout=(15, 60),
     )
@@ -339,7 +351,7 @@ def enroll(args):
     if not np.isfinite(samples).all() or not np.any(samples) or args.reference.stat().st_size > 10_000_000:
         raise InputError("Invalid or oversized reference.")
     fingerprint = sha256(args.reference)
-    workspace_fingerprint = hashlib.sha256(workspace.encode()).hexdigest()
+    workspace_fingerprint = scope_fingerprint(key, workspace)
     manifest = {"reference_sha256": fingerprint, "workspace_sha256": workspace_fingerprint, "voices": {}}
     if args.output.exists():
         manifest = json.loads(args.output.read_text(encoding="utf-8"))
@@ -395,7 +407,7 @@ def run(args):
     if args.backend in MODELS:
         key, workspace = credentials()
         manifest = json.loads(args.voices.read_text(encoding="utf-8"))
-        if manifest["workspace_sha256"] != hashlib.sha256(workspace.encode()).hexdigest():
+        if manifest["workspace_sha256"] != scope_fingerprint(key, workspace):
             raise InputError("Voice manifest workspace does not match credentials.")
         voice = manifest["voices"][MODELS[args.backend]]
         if not voice.startswith(MODELS[args.backend] + "-"):

@@ -17,18 +17,18 @@ Qwen 使用固定预设 Serena 直接生成最终台词。用同一预设生成�
 
 1. 登录 [阿里云百炼](https://bailian.console.aliyun.com/)，选择 **华北 2（北京）**。首次使用按页面提示完成服务开通及账号要求。
 2. 创建该地域、该业务空间的 **百炼 API Key**。需要语音合成 `cosyvoice-v3.5-plus`、`cosyvoice-v3.5-flash` 和音色复刻能力的调用权限。已有空间管理员限制模型访问时，请由管理员开放这两款模型及音色服务。
-3. 取得该 Key 对应的 **业务空间 ID（Workspace ID）**，在业务空间管理/详情中查看；它不是账号 UID、AccessKey ID 或应用 App ID。
+3. **当前只需 API Key。** 配置脚本默认使用北京区通用域名。业务空间 ID（Workspace ID）为可选项，使用空间专属域名时再从业务空间详情取得；它不是账号 UID、AccessKey ID 或应用 App ID。
 4. 确认有免费额度或可用余额。无需购买 GPU 服务器、OSS 存储、智能语音交互 ISI 的独立语音包，也无需准备 MiniMax 或 Qwen 云 API Key。
 
-官方入口：[获取 API Key](https://help.aliyun.com/zh/model-studio/get-api-key)、[声音复刻](https://help.aliyun.com/zh/model-studio/voice-cloning-user-guide)。同一个北京区 Key 和业务空间可用于两款 CosyVoice 模型；音色 ID 按目标模型分别创建，不能跨型号混用。
+官方入口：[获取 API Key](https://help.aliyun.com/zh/model-studio/get-api-key)、[声音复刻](https://help.aliyun.com/zh/model-studio/voice-cloning-user-guide)。同一个北京区 Key 可用于两款 CosyVoice 模型；音色 ID 按目标模型分别创建，不能跨型号混用。默认域名 `dashscope.aliyuncs.com` 仍可使用，详见[官方接口说明](https://help.aliyun.com/zh/model-studio/voice-clone-design-http-api)。
 
-在本机 PowerShell 运行，按提示输入 ID 和 Key：
+在本机 CMD 或 PowerShell 运行以下整行，按提示输入 Key。若旧脚本仍在等待 Workspace ID，先按 Ctrl+C 退出：
 
-```powershell
-& 'D:\codex\erciyuan_AI\.worktrees\d-voice-desktop\experiments\voice_poc\configure_cloud.ps1'
+```cmd
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\codex\erciyuan_AI\.worktrees\d-voice-desktop\experiments\voice_poc\configure_cloud.ps1"
 ```
 
-脚本通过隐藏输入获取 Key，用 Windows DPAPI 加密保存到被 Git 忽略的 `.voice-local/dashscope-key.dpapi`。只有当前 Windows 账号/机器可解密。业务空间 ID 保存在同目录配置文件中。脚本不会发起 API 调用。不要把 Key 放进聊天、命令行参数、截图或仓库。
+脚本通过隐藏输入获取 Key，用 Windows DPAPI 加密保存到被 Git 忽略的 `.voice-local/dashscope-key.dpapi`。只有当前 Windows 账号/机器可解密。地域及可选业务空间 ID 保存在同目录配置文件中。脚本不会发起 API 调用。不要把 Key 放进聊天、命令行参数、截图或仓库。使用专属域名时可在命令末尾增加 `-WorkspaceId "你的业务空间ID"`。
 
 只检查是否配置，不显示内容：
 
@@ -65,7 +65,7 @@ Qwen 另需本地权重和 `qwen-tts==0.1.1`，其依赖包括 `transformers==4.
 ./experiments/voice_poc/invoke_comparison.ps1 -Cloud enroll --reference .voice-local/comparison-reference/reference.wav --output .voice-local/comparison-voices.json
 ```
 
-每创建一个音色立即保存 ID，后续重跑查询已有 ID，避免重复创建。更换参考或业务空间时须使用新的 manifest 路径。已创建但仍部署中的音色可以稍后重新查询。音色 ID、参考、测试输出均不提交 Git。
+每创建一个音色立即保存 ID，后续重跑查询已有 ID，避免重复创建。更换参考或业务空间时须使用新的 manifest 路径；只用 Key 的模式更换 Key 后也需新路径，避免误用其他账号的音色。已创建但仍部署中的音色可以稍后重新查询。音色 ID、参考、测试输出均不提交 Git。
 
 检查播放设备，再运行。默认使用系统默认输出，可通过 `--audio-device` 指定设备编号；有远程音频重定向时须注明。
 

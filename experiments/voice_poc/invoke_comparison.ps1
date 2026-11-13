@@ -26,8 +26,8 @@ try {
             finally { $voiceSecret.Dispose() }
             $env:DASHSCOPE_WORKSPACE_ID = $voiceConfig.workspace_id
         }
-        if (-not $env:DASHSCOPE_API_KEY -or -not $env:DASHSCOPE_WORKSPACE_ID) {
-            throw 'Run configure_cloud.ps1 first, or configure both DashScope environment variables.'
+        if (-not $env:DASHSCOPE_API_KEY) {
+            throw 'Run configure_cloud.ps1 first, or configure DASHSCOPE_API_KEY.'
         }
     }
     if ($CudaOverlay) {

@@ -70,6 +70,26 @@ class StreamTests(unittest.TestCase):
             voice.generate("你好", "平静", 21, lambda _: None)
         self.assertTrue(socket.closed)
 
+    def test_key_only_stream_uses_official_beijing_endpoint(self):
+        with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "secret", "DASHSCOPE_WORKSPACE_ID": ""}):
+            key, workspace = c.credentials()
+        socket = SocketFixture(["task-started", b"\x01\x00", "task-finished"])
+        connections = []
+        def connect(url, **kwargs):
+            connections.append((url, kwargs))
+            return socket
+        voice = c.CloudVoice("cosyvoice-v3.5-plus", "example", key, workspace, socket_factory=connect)
+        voice.generate("你好", "平静", 21, lambda _: None)
+        self.assertEqual(connections[0][0], "wss://dashscope.aliyuncs.com/api-ws/v1/inference")
+        self.assertEqual(connections[0][1]["header"], ["Authorization: Bearer secret"])
+
+    def test_key_only_enrollment_uses_default_endpoint(self):
+        with patch("requests.post") as post:
+            post.return_value.ok = True
+            post.return_value.json.return_value = {"output": {"status": "OK"}}
+            c.enrollment_request("secret", "", {"action": "query_voice", "voice_id": "saved"})
+        self.assertEqual(post.call_args.args[0], "https://dashscope.aliyuncs.com/api/v1/services/audio/tts/customization")
+
 
 class BoundaryTests(unittest.TestCase):
     def test_budget_gate_precedes_credentials_and_output_creation(self):
@@ -85,6 +105,10 @@ class BoundaryTests(unittest.TestCase):
         with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "secret", "DASHSCOPE_WORKSPACE_ID": "host.example/path"}):
             with self.assertRaises(ValueError):
                 c.credentials()
+
+    def test_key_only_voice_manifest_cannot_cross_credentials(self):
+        self.assertNotEqual(c.scope_fingerprint("key-one", ""), c.scope_fingerprint("key-two", ""))
+        self.assertEqual(c.scope_fingerprint("key-one", "workspace"), c.hashlib.sha256(b"workspace").hexdigest())
 
     def test_exception_logs_do_not_include_secrets(self):
         self.assertNotIn("secret-key", c.safe_error(RuntimeError("Authorization: Bearer secret-key")))

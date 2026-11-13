@@ -1,4 +1,4 @@
-param([switch]$Status)
+param([switch]$Status, [string]$WorkspaceId = '')
 $ErrorActionPreference = 'Stop'
 $voiceRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $voiceLocal = Join-Path $voiceRoot '.voice-local'
@@ -12,10 +12,11 @@ if ($Status) {
     return
 }
 Write-Host 'Use Alibaba Cloud Model Studio, China (Beijing). Do not paste the key into chat.'
-$voiceWorkspace = (Read-Host 'Workspace ID').Trim()
-if ($voiceWorkspace -notmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{0,127}$') {
+$voiceWorkspace = $WorkspaceId.Trim()
+if ($voiceWorkspace -and $voiceWorkspace -notmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{0,127}$') {
     throw 'Invalid workspace ID. Enter the ID only, not a URL.'
 }
+if (-not $voiceWorkspace) { Write-Host 'Using the default Beijing endpoint. Workspace ID is optional.' }
 $voiceSecret = Read-Host 'DashScope API Key (hidden)' -AsSecureString
 if ($voiceSecret.Length -lt 10) { throw 'API Key is empty or too short.' }
 New-Item -ItemType Directory -Force -Path $voiceLocal | Out-Null
