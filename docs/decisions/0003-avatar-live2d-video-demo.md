@@ -1,7 +1,7 @@
 # ADR-0003 通过双 Demo 评估人物模型与视频动作路线
 
 - 状态：提议
-- 执行状态：待执行，待提交实际验收结果
+- 执行状态：技术底座部分完成；完整同角色双 Demo 待素材与验收
 - 日期：2026-11-13
 - 决策者／负责人：待团队确认
 - 关联：C 形象制作、A 页面装配、B 状态调度、D 声音联动
@@ -40,6 +40,7 @@
 
 ## 参考
 
+- [双 Demo 当前代码与验收（46b8d6c）](https://github.com/wangyz0518-bit/erciyuan_AI/blob/46b8d6c/docs/reports/avatar-demos-smoke-20261113.md)：官方模型与播放器管线通过 Android 模拟器测试；AI 视频、当前角色绑定、同角色效果及真机仍待验证，不能据此最终选型。
 - [可行性复核](../research/avatar-live2d-video-review-20261113.md)
 - [双 Demo 计划](../research/avatar-dual-demo-plan-20261113.md)
 - [ADR-0001](0001-mobile-stack.md)、[ADR-0002](0002-three-platform-scope.md)

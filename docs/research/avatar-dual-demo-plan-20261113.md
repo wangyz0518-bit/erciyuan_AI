@@ -1,6 +1,6 @@
 # 双 Demo 实施与验收计划
 
-> 状态：草案，待执行
+> 状态：草案；技术底座部分完成，完整计划待素材与验收
 > 日期：2026-11-13
 > 负责人：待分配
 > 关联：[ADR-0003](../decisions/0003-avatar-live2d-video-demo.md)
@@ -73,3 +73,7 @@
 - 待落实：负责人、生成账号和额度、测试设备、素材使用及团队分发范围。
 
 完成后报告用户接受度、等待时间、制作成本、资源代价及双端稳定性；再评审首版路线。本文不设未经验证的工期或费用承诺。
+
+## 执行进展（2026-11-13）
+
+已交付官方 Live2D 动作页面及可导入 MP4 的播放器入口，Android 模拟器管线测试通过。视频测试使用已有 App 录屏，非 AI 动作素材；当前角色绑定、真实三段视频、标准 ZIP 与真机仍缺。见[本轮真实验收](https://github.com/wangyz0518-bit/erciyuan_AI/blob/46b8d6c/docs/reports/avatar-demos-smoke-20261113.md)和[运行方式](https://github.com/wangyz0518-bit/erciyuan_AI/blob/46b8d6c/docs/guides/avatar-demos-20261113.md)。此进展不改变上文完整验收条件。
