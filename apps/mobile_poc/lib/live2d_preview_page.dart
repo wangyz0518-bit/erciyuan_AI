@@ -219,21 +219,20 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
 
   Future<void> resetPose() async {
     if (!canPose) return;
-    await stopAudio();
-    for (final axis in head.keys) {
-      await setHead(axis, 0);
-    }
-    await controller.command('zoom', number: 1);
-    await controller.command('x');
-    await controller.command('y');
-    if (mounted) {
-      setState(() {
-        full = true;
-        zoom = 1;
-        x = 0;
-        y = 0;
-      });
-    }
+    setState(() {
+      full = true;
+      zoom = 1;
+      x = 0;
+      y = 0;
+    });
+    // Queue the entire reset before yielding, so a later user gesture wins.
+    await Future.wait([
+      for (final axis in head.keys) setHead(axis, 0),
+      controller.command('zoom', number: 1),
+      controller.command('x'),
+      controller.command('y'),
+      stopAudio(),
+    ]);
   }
 
   Widget headSlider(String axis, String label) {
