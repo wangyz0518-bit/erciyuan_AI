@@ -6,6 +6,8 @@
 
 C 线 Live2D 试验：[运行指南](guides/live2d-flutter-poc-20261112.md)、[验收记录](reports/live2d-flutter-poc-20261112.md)。
 
+C 线第二步到第三步的离线联调：[人物资源包契约 v0.1 草案](接口/avatar-package-contract-20261113.md)、[制作方任务书](接口/avatar-package-producer-brief-20261113.md)。当前外部 ZIP 导入及 manifest 解析尚未实现。
+
 | 文档 | 用途 | 更新时机 |
 | --- | --- | --- |
 | [state.md](state.md) | 当前阶段、待办、风险、下一步 | 每周或阶段变化时 |

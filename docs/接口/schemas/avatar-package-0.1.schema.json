@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "星伴人物资源包 manifest 0.1（评审草案）",
+  "description": "仅验证 manifest 结构；不验证 ZIP、文件引用、MOC3、动作曲线或实际画面。现有 App 尚未实现该 manifest 与外部 ZIP 导入。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "formatVersion",
+    "id",
+    "version",
+    "name",
+    "renderer",
+    "runtimeProfile",
+    "entry",
+    "preview",
+    "actions"
+  ],
+  "properties": {
+    "format": {
+      "const": "erciyuan-avatar"
+    },
+    "formatVersion": {
+      "const": "0.1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{2,63}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "renderer": {
+      "const": "live2d-cubism"
+    },
+    "runtimeProfile": {
+      "const": "native-r5-basic-v1"
+    },
+    "entry": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/path"
+        },
+        {
+          "pattern": "\\.model3\\.json$"
+        }
+      ]
+    },
+    "preview": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/path"
+        },
+        {
+          "pattern": "\\.png$"
+        }
+      ]
+    },
+    "actions": {
+      "type": "object",
+      "minProperties": 3,
+      "maxProperties": 24,
+      "required": [
+        "idle",
+        "wave",
+        "weight_shift"
+      ],
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,31}$"
+      },
+      "properties": {
+        "idle": {
+          "$ref": "#/$defs/idle"
+        },
+        "wave": {
+          "$ref": "#/$defs/once"
+        },
+        "weight_shift": {
+          "$ref": "#/$defs/once"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/once"
+      }
+    },
+    "expressions": {
+      "type": "object",
+      "maxProperties": 16,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,31}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/expression"
+      }
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180,
+      "pattern": "^(?!.*\\.\\.)[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+    },
+    "idle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "group",
+        "index",
+        "playback"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "group": {
+          "const": "Idle"
+        },
+        "index": {
+          "const": 0
+        },
+        "playback": {
+          "const": "loop"
+        }
+      }
+    },
+    "once": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "group",
+        "index",
+        "playback",
+        "returnTo"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "group": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,31}$",
+          "not": {
+            "const": "Idle"
+          }
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63
+        },
+        "playback": {
+          "const": "once"
+        },
+        "returnTo": {
+          "const": "idle"
+        }
+      }
+    },
+    "expression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "name"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    }
+  }
+}

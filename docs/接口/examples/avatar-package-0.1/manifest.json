@@ -1,0 +1,34 @@
+{
+  "format": "erciyuan-avatar",
+  "formatVersion": "0.1",
+  "id": "dragon-demo",
+  "version": "1.0.0",
+  "name": "白发龙角角色",
+  "renderer": "live2d-cubism",
+  "runtimeProfile": "native-r5-basic-v1",
+  "entry": "model/character.model3.json",
+  "preview": "preview.png",
+  "actions": {
+    "idle": {
+      "label": "自然待机",
+      "group": "Idle",
+      "index": 0,
+      "playback": "loop"
+    },
+    "wave": {
+      "label": "打招呼",
+      "group": "Actions",
+      "index": 0,
+      "playback": "once",
+      "returnTo": "idle"
+    },
+    "weight_shift": {
+      "label": "换重心",
+      "group": "Actions",
+      "index": 1,
+      "playback": "once",
+      "returnTo": "idle"
+    }
+  },
+  "expressions": {}
+}
