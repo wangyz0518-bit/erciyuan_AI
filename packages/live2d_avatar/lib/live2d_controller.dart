@@ -1,11 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+class Live2dParameter {
+  const Live2dParameter(this.id, this.min, this.max, this.defaultValue);
+
+  final String id;
+  final double min, max, defaultValue;
+}
+
 class Live2dController extends ChangeNotifier {
   static const channel = MethodChannel('erciyuan/live2d');
   int? textureId;
   List<String> expressions = [], motions = [], lipSyncParameters = [];
-  Map<String, Map<String, dynamic>> headParameters = {};
+  Map<String, Live2dParameter> parameters = const {};
+  List<List<String>> poseParts = const [];
   bool get supportsLipSync => lipSyncParameters.isNotEmpty;
   String? error;
   bool loaded = false, busy = false, _closed = false;
@@ -33,11 +41,19 @@ class Live2dController extends ChangeNotifier {
       lipSyncParameters = List<String>.from(
         result['lipSyncParameters'] as List,
       );
+      parameters = {
+        for (final entry in (result['parameters'] as Map).entries)
+          entry.key as String: Live2dParameter(
+            entry.key as String,
+            (entry.value['min'] as num).toDouble(),
+            (entry.value['max'] as num).toDouble(),
+            (entry.value['default'] as num).toDouble(),
+          ),
+      };
+      poseParts = (result['poseParts'] as List)
+          .map((group) => List<String>.from(group as List))
+          .toList();
       loaded = true;
-      headParameters = (result['headParameters'] as Map).map(
-        (key, value) =>
-            MapEntry(key as String, Map<String, dynamic>.from(value as Map)),
-      );
     } catch (e) {
       if (!_closed && generation == _generation) error = e.toString();
       rethrow;
@@ -58,7 +74,8 @@ class Live2dController extends ChangeNotifier {
     expressions = [];
     motions = [];
     lipSyncParameters = [];
-    headParameters = {};
+    parameters = const {};
+    poseParts = const [];
     notifyListeners();
   }
 
@@ -70,6 +87,16 @@ class Live2dController extends ChangeNotifier {
       });
   Future<void> setActive(bool value) =>
       channel.invokeMethod<void>('active', {'value': value});
+
+  /// Applies changes together and returns the current native pose.
+  Future<Map<String, dynamic>> setPose(
+    Map<String, double> values, {
+    Map<int, int> parts = const {},
+  }) async => (await channel.invokeMapMethod<String, dynamic>('pose', {
+    'values': values,
+    'parts': parts,
+  }))!;
+
   Future<Map<String, dynamic>> stats() async =>
       (await channel.invokeMapMethod<String, dynamic>('stats'))!;
 

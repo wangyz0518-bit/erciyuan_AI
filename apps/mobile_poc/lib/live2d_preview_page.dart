@@ -59,6 +59,74 @@ class Live2dPreviewPage extends StatefulWidget {
   State<Live2dPreviewPage> createState() => Live2dPreviewPageState();
 }
 
+const parameterLabels = {
+  'ParamAngleX': '左右转头',
+  'ParamAngleY': '抬头低头',
+  'ParamAngleZ': '歪头',
+  'ParamFaceForm': '脸部缩放',
+  'ParamTere': '脸红',
+  'ParamTear': '眼泪',
+  'ParamEyeLOpen': '左眼开合',
+  'ParamEyeROpen': '右眼开合',
+  'ParamEyeLSmile': '左眼笑形',
+  'ParamEyeRSmile': '右眼笑形',
+  'ParamEyeBallX': '视线左右',
+  'ParamEyeBallY': '视线上下',
+  'ParamEyeForm': '眼形',
+  'ParamEyeBallForm': '瞳孔收缩',
+  'ParamBrowLX': '左眉左右',
+  'ParamBrowRX': '右眉左右',
+  'ParamBrowLY': '左眉上下',
+  'ParamBrowRY': '右眉上下',
+  'ParamBrowLAngle': '左眉角度',
+  'ParamBrowRAngle': '右眉角度',
+  'ParamBrowLForm': '左眉形状',
+  'ParamBrowRForm': '右眉形状',
+  'ParamMouthForm': '嘴形',
+  'ParamMouthOpenY': '嘴部开合',
+  'ParamBodyAngleX': '躯干左右转动',
+  'ParamBodyAngleY': '躯干前后',
+  'ParamBodyAngleZ': '躯干侧倾',
+  'ParamBodyUpper': '上身姿态',
+  'ParamBreath': '呼吸',
+  'ParamBustY': '胸部摆动',
+  'ParamArmL': '左臂',
+  'ParamArmR': '右臂',
+  'ParamArmLA': '左臂 A',
+  'ParamArmRA': '右臂 A',
+  'ParamArmLB': '左臂 B',
+  'ParamArmRB': '右臂 B',
+  'ParamHandAngleL': '左手腕',
+  'ParamHandAngleR': '右手腕',
+  'ParamHandChangeR': '右手型',
+  'ParamHandDhangeL': '左手型',
+  'ParamLeftLeg': '左腿',
+  'ParamRightLeg': '右腿',
+  'ParamHairFront': '前发',
+  'ParamHairSide': '侧发',
+  'ParamHairBack': '后发',
+  'ParamScarf': '围巾',
+};
+
+String parameterGroup(String id) {
+  if (id.startsWith('ParamAngle') || id == 'ParamFaceForm') return '头部';
+  if (id.startsWith('ParamEye') ||
+      id.startsWith('ParamBrow') ||
+      id == 'ParamTere' ||
+      id == 'ParamTear') {
+    return '眼睛与眉毛';
+  }
+  if (id.startsWith('ParamMouth')) return '嘴部';
+  if (id.startsWith('ParamBody') || id == 'ParamBreath' || id == 'ParamBustY') {
+    return '躯干';
+  }
+  if (id.startsWith('ParamArm') || id.startsWith('Part01Arm')) return '手臂';
+  if (id.startsWith('ParamHand')) return '手腕与手型';
+  if (id.contains('Leg')) return '腿部';
+  if (id.startsWith('ParamHair') || id == 'ParamScarf') return '头发与服饰';
+  return '其他';
+}
+
 class Live2dPreviewPageState extends State<Live2dPreviewPage>
     with WidgetsBindingObserver {
   final controller = Live2dController();
@@ -73,7 +141,12 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
       playing = false;
   String model = 'Haru', status = '准备渲染器…';
   double mouth = 0, zoom = 1, x = 0, y = 0;
-  final head = <String, double>{'headX': 0, 'headY': 0, 'headZ': 0};
+  bool pureAvatar = true, manualPose = false, _changingModel = false;
+  String parameterSection = '头部';
+  String panel = '部位';
+  Map<String, double> poseValues = {};
+  List<int> partSelections = [];
+  int _poseRevision = 0;
   bool dragFollow = true;
   List<double> envelope = [];
   Timer? statistics;
@@ -139,6 +212,7 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
       await loadModel('Haru');
       statistics = Timer.periodic(const Duration(seconds: 1), (_) async {
         if (!ready) return;
+        final revision = _poseRevision;
         try {
           final s = await controller.stats();
           if (!mounted) return;
@@ -150,7 +224,13 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
               now.difference(_lastSample).inMilliseconds;
           _lastFrames = frames;
           _lastSample = now;
-          setState(() => latest = s);
+          setState(() {
+            latest = s;
+            if (!manualPose && revision == _poseRevision && !_changingModel) {
+              poseValues = Map<String, double>.from(s['parameters'] as Map);
+              partSelections = List<int>.from(s['partSelections'] as List);
+            }
+          });
           if (s['error'] != null) setState(() => status = '渲染失败：${s['error']}');
         } catch (e) {
           if (mounted) setState(() => status = '统计失败：$e');
@@ -169,26 +249,40 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
   }
 
   Future<void> loadModel(String name) async {
-    await stopAudio();
-    await controller.load('assets/live2d/$name/$name.model3.json');
-    if (!mounted) return;
-    setState(() {
-      model = name;
-      head.updateAll((_, value) => 0);
-      status =
-          '$name 已加载 · 表情 ${controller.expressions.length} · 动作 ${controller.motions.length}${controller.supportsLipSync ? '' : ' · 无嘴部映射'}';
-    });
+    if (_changingModel) return;
+    setState(() => _changingModel = true);
+    ++_poseRevision;
+    try {
+      await stopAudio();
+      if (!mounted) return;
+      await controller.load('assets/live2d/$name/$name.model3.json');
+      if (!mounted) return;
+      setState(() {
+        model = name;
+        poseValues = {};
+        partSelections = [];
+        manualPose = false;
+        if (!parameterGroups.containsKey(parameterSection)) {
+          parameterSection = parameterGroups.keys.firstOrNull ?? '头部';
+        }
+        status = '${controller.parameters.length} 个参数';
+      });
+    } finally {
+      if (mounted) setState(() => _changingModel = false);
+    }
   }
 
   Future<void> playAudio() async {
-    if (!controller.loaded) return;
+    if (!canPose) return;
     if (playing) {
       await stopAudio();
       refresh();
       return;
     }
     envelope = wavEnvelope(await rootBundle.load('assets/$sound'));
+    if (!canPose) return;
     try {
+      await useAutomaticPose();
       await player.play(AssetSource(sound));
       playing = true;
       refresh();
@@ -198,23 +292,81 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
     }
   }
 
-  bool get canPose => ready && controller.loaded && !controller.busy;
+  bool get canPose =>
+      ready && controller.loaded && !controller.busy && !_changingModel;
 
-  Future<void> setHead(String axis, double value) async {
-    if (!canPose || !controller.headParameters.containsKey(axis)) return;
-    final next = value.clamp(-1.0, 1.0);
-    setState(() => head[axis] = next);
-    await controller.command(axis, number: next);
+  Map<String, List<Live2dParameter>> get parameterGroups {
+    final groups = <String, List<Live2dParameter>>{};
+    for (final parameter in controller.parameters.values) {
+      (groups[parameterGroup(parameter.id)] ??= []).add(parameter);
+    }
+    return groups;
   }
+
+  Future<void> editPose(
+    Map<String, double> changes, {
+    Map<int, int> parts = const {},
+  }) async {
+    if (!canPose) return;
+    final revision = ++_poseRevision;
+    setState(() {
+      manualPose = true;
+      poseValues.addAll(changes);
+    });
+    final pending = controller.setPose(changes, parts: parts);
+    final stopping = playing ? stopAudio() : Future<void>.value();
+    try {
+      final pose = await pending;
+      if (mounted && revision == _poseRevision) {
+        setState(() {
+          poseValues = Map<String, double>.from(pose['parameters'] as Map);
+          partSelections = List<int>.from(pose['partSelections'] as List);
+        });
+      }
+    } finally {
+      await stopping;
+    }
+  }
+
+  Future<void> useAutomaticPose({
+    String command = 'automaticPose',
+    String value = '',
+  }) async {
+    final revision = ++_poseRevision;
+    await controller.command(command, value: value);
+    if (mounted && revision == _poseRevision) {
+      setState(() => manualPose = false);
+    }
+  }
+
+  Future<void> resetParameters(
+    Iterable<Live2dParameter> parameters, {
+    bool resetParts = false,
+  }) => editPose(
+    {for (final p in parameters) p.id: p.defaultValue},
+    parts: {
+      if (resetParts)
+        for (int i = 0; i < controller.poseParts.length; ++i) i: 0,
+    },
+  );
 
   void follow(Offset position, Size size) {
     if (!canPose || !dragFollow || size.isEmpty) return;
-    unawaited(
-      safe(() async {
-        await setHead('headX', position.dx / size.width * 2 - 1);
-        await setHead('headY', 1 - position.dy / size.height * 2);
-      }, updateStatus: false),
-    );
+    final changes = <String, double>{};
+    void addAngle(String id, double value) {
+      final p = controller.parameters[id];
+      if (p == null) return;
+      final bound = value < 0 ? p.min : p.max;
+      changes[id] =
+          p.defaultValue +
+          value.abs().clamp(0.0, 1.0) * (bound - p.defaultValue);
+    }
+
+    addAngle('ParamAngleX', position.dx / size.width * 2 - 1);
+    addAngle('ParamAngleY', 1 - position.dy / size.height * 2);
+    if (changes.isNotEmpty) {
+      unawaited(safe(() => editPose(changes), updateStatus: false));
+    }
   }
 
   Future<void> resetPose() async {
@@ -227,42 +379,45 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
     });
     // Queue the entire reset before yielding, so a later user gesture wins.
     await Future.wait([
-      for (final axis in head.keys) setHead(axis, 0),
+      resetParameters(controller.parameters.values, resetParts: true),
       controller.command('zoom', number: 1),
       controller.command('x'),
       controller.command('y'),
-      stopAudio(),
     ]);
   }
 
-  Widget headSlider(String axis, String label) {
-    final info = controller.headParameters[axis];
-    final normalized = head[axis]!;
-    final center = (info?['default'] as num?)?.toDouble() ?? 0;
-    final bound =
-        (info?[normalized < 0 ? 'min' : 'max'] as num?)?.toDouble() ?? 0;
-    final value = center + normalized.abs() * (bound - center);
-    return Row(
+  Widget parameterSlider(Live2dParameter p) {
+    final label = parameterLabels[p.id] ?? p.id;
+    final value = (poseValues[p.id] ?? p.defaultValue).clamp(p.min, p.max);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(width: 82, child: Text(label)),
-        Expanded(
-          child: Slider(
-            key: Key(axis),
-            value: normalized,
-            min: -1,
-            max: 1,
-            semanticFormatterCallback: (_) =>
-                '$label ${value.toStringAsFixed(0)}',
-            onChanged: canPose && info != null
-                ? (v) => unawaited(
-                    safe(() => setHead(axis, v), updateStatus: false),
-                  )
-                : null,
-          ),
+        Row(
+          children: [
+            Expanded(child: Text(label)),
+            Text(value.toStringAsFixed(2)),
+            IconButton(
+              key: Key('reset-${p.id}'),
+              tooltip: '重置$label',
+              onPressed: canPose
+                  ? () => unawaited(safe(() => resetParameters([p])))
+                  : null,
+              icon: const Icon(Icons.restart_alt, size: 18),
+            ),
+          ],
         ),
-        SizedBox(
-          width: 42,
-          child: Text(info == null ? '不支持' : value.toStringAsFixed(0)),
+        Slider(
+          key: Key(p.id),
+          min: p.min,
+          max: p.max,
+          value: value,
+          semanticFormatterCallback: (value) =>
+              '$label ${value.toStringAsFixed(2)}',
+          onChanged: canPose && p.max > p.min
+              ? (value) => unawaited(
+                  safe(() => editPose({p.id: value}), updateStatus: false),
+                )
+              : null,
         ),
       ],
     );
@@ -296,13 +451,282 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
 
   Widget action(String text, VoidCallback? callback, {Key? key}) =>
       OutlinedButton(key: key, onPressed: callback, child: Text(text));
+
+  Widget parameterPanel() {
+    final groups = parameterGroups;
+    final parameters = groups[parameterSection] ?? const [];
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButton<String>(
+                key: const Key('parameter-group'),
+                isExpanded: true,
+                value: groups.containsKey(parameterSection)
+                    ? parameterSection
+                    : null,
+                hint: const Text('选择部位'),
+                items: [
+                  for (final group in groups.keys)
+                    DropdownMenuItem(value: group, child: Text(group)),
+                ],
+                onChanged: (value) {
+                  if (value != null) setState(() => parameterSection = value);
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              key: const Key('reset-group'),
+              onPressed: canPose && parameters.isNotEmpty
+                  ? () => unawaited(
+                      safe(
+                        () => resetParameters(
+                          parameters,
+                          resetParts: parameterSection == '手臂',
+                        ),
+                      ),
+                    )
+                  : null,
+              child: const Text('重置部位'),
+            ),
+          ],
+        ),
+        if (parameterSection == '手臂' || parameterSection == '手腕与手型')
+          for (int group = 0; group < controller.poseParts.length; group++)
+            partSelector(group),
+        for (final parameter in parameters) parameterSlider(parameter),
+      ],
+    );
+  }
+
+  Widget partSelector(int group) {
+    final parts = controller.poseParts[group];
+    final side = parts.first.startsWith('Part01ArmR')
+        ? '右臂'
+        : parts.first.startsWith('Part01ArmL')
+        ? '左臂'
+        : '外形 ${group + 1}';
+    return Row(
+      children: [
+        Expanded(child: Text('$side 外形')),
+        for (int index = 0; index < parts.length; index++)
+          Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: ChoiceChip(
+              key: Key('part-$group-$index'),
+              label: Text(
+                index == 0
+                    ? 'A'
+                    : index == 1
+                    ? 'B'
+                    : '${index + 1}',
+              ),
+              selected:
+                  index ==
+                  (group < partSelections.length ? partSelections[group] : 0),
+              onSelected: canPose
+                  ? (_) => unawaited(
+                      safe(() => editPose({}, parts: {group: index})),
+                    )
+                  : null,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget actionPanel() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const Text('模型动作'),
+      Wrap(
+        spacing: 6,
+        children: [
+          for (final motion in controller.motions)
+            action(
+              motion,
+              canPose
+                  ? () => unawaited(
+                      safe(
+                        () =>
+                            useAutomaticPose(command: 'motion', value: motion),
+                      ),
+                    )
+                  : null,
+              key: Key('motion-$motion'),
+            ),
+        ],
+      ),
+      if (controller.expressions.isNotEmpty) const Text('模型表情'),
+      Wrap(
+        spacing: 6,
+        children: [
+          for (final expression in controller.expressions)
+            action(
+              expression,
+              canPose
+                  ? () => unawaited(
+                      safe(
+                        () => useAutomaticPose(
+                          command: 'expression',
+                          value: expression,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+        ],
+      ),
+      action(
+        playing ? '停止音频' : '播放样例音频',
+        canPose ? () => unawaited(safe(playAudio)) : null,
+        key: const Key('audio'),
+      ),
+    ],
+  );
+
+  Widget framingSlider(
+    String label,
+    String command,
+    double value,
+    double min,
+    double max,
+  ) => Row(
+    children: [
+      Text(label),
+      Expanded(
+        child: Slider(
+          value: value,
+          min: min,
+          max: max,
+          onChanged: ready
+              ? (next) {
+                  setState(() {
+                    switch (command) {
+                      case 'zoom':
+                        zoom = next;
+                      case 'x':
+                        x = next;
+                      case 'y':
+                        y = next;
+                    }
+                  });
+                  unawaited(
+                    safe(
+                      () => controller.command(command, number: next),
+                      updateStatus: false,
+                    ),
+                  );
+                }
+              : null,
+        ),
+      ),
+    ],
+  );
+
+  Widget framingPanel() => Column(
+    children: [
+      SwitchListTile(
+        key: const Key('drag-follow'),
+        title: const Text('拖动人物转头'),
+        value: dragFollow,
+        onChanged: (value) => setState(() => dragFollow = value),
+      ),
+      framingSlider('缩放', 'zoom', zoom, .4, 3),
+      framingSlider('水平', 'x', x, -1, 1),
+      framingSlider('垂直', 'y', y, -1, 1),
+      Wrap(
+        spacing: 6,
+        children: [
+          for (final name in ['Haru', 'Mark'])
+            action(
+              '加载 $name',
+              ready && !_changingModel
+                  ? () => unawaited(safe(() => loadModel(name)))
+                  : null,
+              key: Key('load-${name.toLowerCase()}'),
+            ),
+          action(
+            '卸载',
+            canPose
+                ? () => unawaited(
+                    safe(() async {
+                      await stopAudio();
+                      await controller.unload();
+                    }),
+                  )
+                : null,
+            key: const Key('unload'),
+          ),
+        ],
+      ),
+    ],
+  );
+
+  Widget controlsPanel() => Column(
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (final tab in ['部位', '动作', '取景'])
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: ChoiceChip(
+                key: Key('panel-$tab'),
+                label: Text(tab),
+                selected: panel == tab,
+                onSelected: (_) => setState(() => panel = tab),
+              ),
+            ),
+          const SizedBox(width: 6),
+          TextButton(
+            key: const Key('pose-mode'),
+            onPressed: canPose
+                ? () => unawaited(
+                    safe(() => manualPose ? useAutomaticPose() : editPose({})),
+                  )
+                : null,
+            child: Text(manualPose ? '手动调姿' : '自动动作'),
+          ),
+        ],
+      ),
+      Expanded(
+        child: SingleChildScrollView(
+          key: ValueKey(panel),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: switch (panel) {
+            '动作' => actionPanel(),
+            '取景' => framingPanel(),
+            _ => parameterPanel(),
+          },
+        ),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Live2D · 本地接入验证'),
+        title: Text('Live2D · $model'),
         actions: [
+          IconButton(
+            key: const Key('pure-avatar'),
+            tooltip: pureAvatar ? '显示测试聊天' : '纯人物',
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              setState(() {
+                pureAvatar = !pureAvatar;
+                history = false;
+              });
+            },
+            icon: Icon(
+              pureAvatar ? Icons.chat_bubble_outline : Icons.person_outline,
+            ),
+          ),
           IconButton(
             key: const Key('reset-pose'),
             tooltip: '重置姿态与取景',
@@ -336,13 +760,14 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
                   unawaited(safe(() => loadModel('Mark')));
                 },
               ),
-              ListTile(
-                title: const Text('历史面板'),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() => history = true);
-                },
-              ),
+              if (!pureAvatar)
+                ListTile(
+                  title: const Text('历史面板'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => history = true);
+                  },
+                ),
             ],
           ),
         ),
@@ -431,39 +856,40 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
                         : null,
                   ),
                 ),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 8,
-                  child: GestureDetector(
-                    onVerticalDragEnd: (_) => setState(() => history = true),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: messages.reversed
-                          .take(keyboard ? 1 : 2)
-                          .toList()
-                          .reversed
-                          .map(
-                            (m) => Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(top: 5),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: .76),
-                                borderRadius: BorderRadius.circular(12),
+                if (!pureAvatar)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 8,
+                    child: GestureDetector(
+                      onVerticalDragEnd: (_) => setState(() => history = true),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: messages.reversed
+                            .take(keyboard ? 1 : 2)
+                            .toList()
+                            .reversed
+                            .map(
+                              (m) => Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(top: 5),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: .76),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  m,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              child: Text(
-                                m,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
+                            )
+                            .toList(),
+                      ),
                     ),
                   ),
-                ),
-                if (history)
+                if (!pureAvatar && history)
                   Positioned.fill(
                     child: Material(
                       color: Colors.black.withValues(alpha: .15),
@@ -499,241 +925,56 @@ class Live2dPreviewPageState extends State<Live2dPreviewPage>
             ),
           ),
           if (controls && !keyboard)
-            SizedBox(
-              height: 260,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Column(
+            SafeArea(
+              top: false,
+              bottom: pureAvatar,
+              child: SizedBox(
+                height: (MediaQuery.sizeOf(context).height * .43).clamp(
+                  160.0,
+                  330.0,
+                ),
+                child: controlsPanel(),
+              ),
+            ),
+          if (!pureAvatar)
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        const Text('拖动跟随'),
-                        Switch(
-                          key: const Key('drag-follow'),
-                          value: dragFollow,
-                          onChanged: (value) =>
-                              setState(() => dragFollow = value),
-                        ),
-                        const Expanded(
-                          child: Text(
-                            '拖动人物转头，松手保持',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ),
-                      ],
+                    IconButton(
+                      key: const Key('history'),
+                      onPressed: () => setState(() => history = !history),
+                      icon: const Icon(Icons.history),
                     ),
-                    headSlider('headX', '左右转头'),
-                    headSlider('headY', '抬头低头'),
-                    headSlider('headZ', '歪头'),
-                    Wrap(
-                      spacing: 6,
-                      children: [
-                        action(
-                          '加载 Haru',
-                          ready && !controller.busy
-                              ? () => unawaited(safe(() => loadModel('Haru')))
-                              : null,
-                          key: const Key('load-haru'),
+                    Expanded(
+                      child: TextField(
+                        key: const Key('live2d-input'),
+                        controller: input,
+                        decoration: const InputDecoration(
+                          hintText: '输入测试文字，检查键盘叠层',
                         ),
-                        action(
-                          '加载 Mark',
-                          ready && !controller.busy
-                              ? () => unawaited(safe(() => loadModel('Mark')))
-                              : null,
-                          key: const Key('load-mark'),
-                        ),
-                        action(
-                          '卸载',
-                          ready
-                              ? () => unawaited(
-                                  safe(() async {
-                                    await stopAudio();
-                                    await controller.unload();
-                                  }),
-                                )
-                              : null,
-                          key: const Key('unload'),
-                        ),
-                        action(
-                          playing ? '停止音频' : '播放样例',
-                          ready && controller.loaded
-                              ? () => unawaited(safe(playAudio))
-                              : null,
-                          key: const Key('audio'),
-                        ),
-                      ],
+                        minLines: 1,
+                        maxLines: 3,
+                      ),
                     ),
-                    Row(
-                      children: [
-                        const Text('嘴部'),
-                        Expanded(
-                          child: Slider(
-                            key: const Key('mouth'),
-                            value: mouth.clamp(0, 1),
-                            onChanged: ready && controller.supportsLipSync
-                                ? (v) {
-                                    setState(() => mouth = v);
-                                    unawaited(
-                                      safe(
-                                        () => controller.command(
-                                          'mouth',
-                                          number: v,
-                                        ),
-                                        updateStatus: false,
-                                      ),
-                                    );
-                                  }
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const Text('缩放'),
-                        Expanded(
-                          child: Slider(
-                            value: zoom,
-                            min: .4,
-                            max: 3,
-                            onChanged: ready
-                                ? (v) {
-                                    setState(() => zoom = v);
-                                    unawaited(
-                                      safe(
-                                        () => controller.command(
-                                          'zoom',
-                                          number: v,
-                                        ),
-                                        updateStatus: false,
-                                      ),
-                                    );
-                                  }
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const Text('水平'),
-                        Expanded(
-                          child: Slider(
-                            value: x,
-                            min: -1,
-                            max: 1,
-                            onChanged: ready
-                                ? (v) {
-                                    setState(() => x = v);
-                                    unawaited(
-                                      safe(
-                                        () =>
-                                            controller.command('x', number: v),
-                                        updateStatus: false,
-                                      ),
-                                    );
-                                  }
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const Text('垂直'),
-                        Expanded(
-                          child: Slider(
-                            value: y,
-                            min: -1,
-                            max: 1,
-                            onChanged: ready
-                                ? (v) {
-                                    setState(() => y = v);
-                                    unawaited(
-                                      safe(
-                                        () =>
-                                            controller.command('y', number: v),
-                                        updateStatus: false,
-                                      ),
-                                    );
-                                  }
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Wrap(
-                      spacing: 5,
-                      children: controller.expressions
-                          .map(
-                            (e) => action(
-                              e,
-                              () => unawaited(
-                                safe(
-                                  () => controller.command(
-                                    'expression',
-                                    value: e,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    Wrap(
-                      spacing: 5,
-                      children: controller.motions
-                          .map(
-                            (m) => action(
-                              m,
-                              () => unawaited(
-                                safe(
-                                  () => controller.command('motion', value: m),
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
+                    IconButton(
+                      key: const Key('send'),
+                      onPressed: () {
+                        if (input.text.trim().isEmpty) return;
+                        setState(() => messages.add(input.text));
+                        input.clear();
+                      },
+                      icon: const Icon(Icons.send),
                     ),
                   ],
                 ),
               ),
             ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Row(
-                children: [
-                  IconButton(
-                    key: const Key('history'),
-                    onPressed: () => setState(() => history = !history),
-                    icon: const Icon(Icons.history),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      key: const Key('live2d-input'),
-                      controller: input,
-                      decoration: const InputDecoration(
-                        hintText: '输入测试文字，检查键盘叠层',
-                      ),
-                      minLines: 1,
-                      maxLines: 3,
-                    ),
-                  ),
-                  IconButton(
-                    key: const Key('send'),
-                    onPressed: () {
-                      if (input.text.trim().isEmpty) return;
-                      setState(() => messages.add(input.text));
-                      input.clear();
-                    },
-                    icon: const Icon(Icons.send),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

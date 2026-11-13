@@ -21,6 +21,7 @@
 #include <Rendering/OpenGL/CubismOffscreenManager_OpenGLES2.hpp>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <map>
 #include <memory>
@@ -71,9 +72,7 @@ class Model final : public CubismUserModel {
  std::map<std::string,ACubismMotion*> motions,expressions;
  std::vector<GLuint> textures;
  std::string idle;
- int headIndices[3]={-1,-1,-1};
- float headValues[3]={0,0,0};
- bool headManual[3]={false,false,false};
+ bool manualPose = false;
  public:
  ~Model() override {
    _motionManager->StopAllMotions(); _expressionManager->StopAllMotions();
@@ -87,17 +86,10 @@ class Model final : public CubismUserModel {
    std::string dir=path.substr(0,path.find_last_of('/')+1);
    auto moc=read(dir+settings->GetModelFileName()); LoadModel(moc.data(),moc.size(),true);
    if(!_model) throw std::runtime_error("MOC3 consistency check failed");
-   const char* headIds[]={"ParamAngleX","ParamAngleY","ParamAngleZ"};
-   // GetParameterIndex creates synthetic entries for absent IDs; inspect real IDs instead.
-   for(int axis=0;axis<3;++axis) {
-     auto id=CubismFramework::GetIdManager()->GetId(headIds[axis]);
-     for(int i=0;i<_model->GetParameterCount();++i) if(_model->GetParameterId(i)==id) {
-       headIndices[axis]=i;headValues[axis]=_model->GetParameterDefaultValue(i);break;
-     }
-   }
    auto optional=[&](const char* file,auto fn) { if(file && *file) {auto b=read(dir+file);fn(b);} };
    optional(settings->GetPhysicsFileName(),[&](auto& b){LoadPhysics(b.data(),b.size());});
    optional(settings->GetPoseFileName(),[&](auto& b){LoadPose(b.data(),b.size());});
+   if (_pose) _pose->UpdateParameters(_model, 0);
    _eyeBlink=CubismEyeBlink::Create(settings.get());
    for(int i=0;i<settings->GetExpressionCount();++i) {
      auto b=read(dir+settings->GetExpressionFileName(i));
@@ -137,46 +129,59 @@ class Model final : public CubismUserModel {
  }
  void expression(const std::string& id) {
    auto it=expressions.find(id); if(it==expressions.end()) throw std::runtime_error("Unsupported expression: "+id);
+   resumeAutomaticPose();
    _expressionManager->StartMotion(it->second,false);
  }
  void motion(const std::string& id) {
    auto it=motions.find(id); if(it==motions.end()) throw std::runtime_error("Unsupported motion: "+id);
+   resumeAutomaticPose();
    _motionManager->StartMotionPriority(it->second,false,3);
  }
- void head(int axis,float normalized) {
-   const int i=headIndices[axis];
-   if(i<0)throw std::runtime_error("Head parameter not supported by this model");
-   const float center=_model->GetParameterDefaultValue(i);
-   normalized=std::clamp(normalized,-1.f,1.f);
-   headValues[axis]=center+normalized*(normalized<0?center-_model->GetParameterMinimumValue(i):_model->GetParameterMaximumValue(i)-center);
-   headManual[axis]=true;
- }
- void applyHead() {
-   for(int axis=0;axis<3;++axis)if(headManual[axis])_model->SetParameterValue(headIndices[axis],headValues[axis]);
- }
- std::string headInfo() {
-   std::string json="{";const char* keys[]={"headX","headY","headZ"};bool first=true;
-   for(int axis=0;axis<3;++axis) {
-     const int i=headIndices[axis];if(i<0)continue;
-     if(!first)json+=",";first=false;
-     json+=std::string("\"")+keys[axis]+"\":{\"min\":"+std::to_string(_model->GetParameterMinimumValue(i))+
-       ",\"max\":"+std::to_string(_model->GetParameterMaximumValue(i))+",\"default\":"+std::to_string(_model->GetParameterDefaultValue(i))+
-       ",\"value\":"+std::to_string(_model->GetParameterValue(i))+",\"manual\":"+(headManual[axis]?"true":"false")+"}";
+ CubismModel& parameters() { return *_model; }
+
+ void setPose(const std::vector<float>& updates) {
+   if (updates.size() != static_cast<size_t>(_model->GetParameterCount())) {
+     throw std::runtime_error("Pose does not match the model parameters");
    }
-   return json+"}";
+   manualPose = true;
+   for (int i = 0; i < _model->GetParameterCount(); ++i) {
+     if (std::isfinite(updates[i])) {
+       _model->SetParameterValue(i, updates[i]);
+     }
+   }
  }
- void draw(float dt,int w,int h,float mouth,float zoom,float x,float y) {
+
+ void resumeAutomaticPose() {
+   if (!manualPose) return;
+   manualPose = false;
+   _motionManager->StopAllMotions();
+   _expressionManager->StopAllMotions();
+   if (_pose) _pose->Reset(_model);
+   for (int i = 0; i < _model->GetParameterCount(); ++i) {
+     _model->SetParameterValue(i, _model->GetParameterDefaultValue(i));
+   }
+   _model->SaveParameters();
+ }
+
+ void updateAutomatic(float dt, float mouth) {
    _model->LoadParameters();
-   if(_motionManager->IsFinished() && !idle.empty()) _motionManager->StartMotionPriority(motions.at(idle),false,1);
-   bool moved=_motionManager->UpdateMotion(_model,dt); _model->SaveParameters();
-   if(!moved && _eyeBlink) _eyeBlink->UpdateParameters(_model,dt);
-   _expressionManager->UpdateMotion(_model,dt);
-   applyHead(); // Feed head motion into hair/accessory physics.
-   if(_physics) _physics->Evaluate(_model,dt);
+   if (_motionManager->IsFinished() && !idle.empty()) {
+     _motionManager->StartMotionPriority(motions.at(idle), false, 1);
+   }
+   const bool moved = _motionManager->UpdateMotion(_model, dt);
+   _model->SaveParameters();
+   if (!moved && _eyeBlink) _eyeBlink->UpdateParameters(_model, dt);
+   _expressionManager->UpdateMotion(_model, dt);
+   if (_physics) _physics->Evaluate(_model, dt);
+   for (int i = 0; i < settings->GetLipSyncParameterCount(); ++i) {
+     _model->SetParameterValue(settings->GetLipSyncParameterId(i), mouth);
+   }
+ }
+
+ void draw(float dt,int w,int h,float mouth,float zoom,float x,float y) {
+   if (!manualPose) updateAutomatic(dt, mouth);
+   // Cubism pose drives part visibility (e.g. which Haru arm is drawn).
    if(_pose) _pose->UpdateParameters(_model,dt);
-   applyHead(); // Keep manual pose stable even when a motion/physics writes these IDs.
-   for(int i=0;i<settings->GetLipSyncParameterCount();++i)
-     _model->SetParameterValue(settings->GetLipSyncParameterId(i),mouth);
    _model->Update();
    _modelMatrix->SetHeight(2.0f);
    CubismMatrix44 m; m.Translate(x,y); m.Scale(zoom*float(h)/w,zoom); m.MultiplyByMatrix(_modelMatrix);
@@ -247,15 +252,77 @@ extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeCommand)(JNIEnv* e,jclass,jlo
    else if(a=="x")s->x=std::clamp(float(number),-2.f,2.f);
    else if(a=="y")s->y=std::clamp(float(number),-2.f,2.f);
    else if(!s->model)throw std::runtime_error("Model not loaded");
-   else if(a=="headX" || a=="headY" || a=="headZ")s->model->head(a.back()-'X',number);
+   else if(a=="automaticPose")s->model->resumeAutomaticPose();
    else if(a=="expression")s->model->expression(str(e,value));
    else if(a=="motion")s->model->motion(str(e,value));
    else throw std::runtime_error("Unknown command");
  }catch(const std::exception& x){error(e,x);}
 }
-extern "C" JNIEXPORT jstring JNICALL JNI_METHOD(nativeHeadInfo)(JNIEnv* e,jclass,jlong h) {
- try {auto s=reinterpret_cast<Session*>(h);return e->NewStringUTF(s->model?s->model->headInfo().c_str():"{}");}
- catch(const std::exception& x){error(e,x);return nullptr;}
+extern "C" JNIEXPORT jobjectArray JNICALL JNI_METHOD(nativeParameterIds)(JNIEnv* env, jclass, jlong handle) {
+ const auto& model = reinterpret_cast<Session*>(handle)->model;
+ const int count = model ? model->parameters().GetParameterCount() : 0;
+ const auto ids = env->NewObjectArray(count, env->FindClass("java/lang/String"), nullptr);
+ if (!ids) return nullptr;
+ for (int i = 0; i < count; ++i) {
+   const auto id = env->NewStringUTF(model->parameters().GetParameterId(i)->GetString().GetRawString());
+   if (!id) return nullptr;
+   env->SetObjectArrayElement(ids, i, id);
+   env->DeleteLocalRef(id);
+ }
+ return ids;
+}
+
+// Four entries per real MOC parameter: minimum, maximum, default and current.
+extern "C" JNIEXPORT jfloatArray JNICALL JNI_METHOD(nativeParameterData)(JNIEnv* env, jclass, jlong handle) {
+ try {
+   const auto& model = reinterpret_cast<Session*>(handle)->model;
+   std::vector<float> data;
+   if (model) {
+     auto& parameters = model->parameters();
+     for (int i = 0; i < parameters.GetParameterCount(); ++i) {
+       data.insert(data.end(), {parameters.GetParameterMinimumValue(i), parameters.GetParameterMaximumValue(i),
+                                parameters.GetParameterDefaultValue(i), parameters.GetParameterValue(i)});
+     }
+   }
+   const auto result = env->NewFloatArray(data.size());
+   if (result && !data.empty()) env->SetFloatArrayRegion(result, 0, data.size(), data.data());
+   return result;
+ } catch (const std::exception& exception) {
+   error(env, exception);
+   return nullptr;
+ }
+}
+
+extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeSetPose)(JNIEnv* env, jclass, jlong handle, jfloatArray updates) {
+ try {
+   const auto& model = reinterpret_cast<Session*>(handle)->model;
+   if (!model) throw std::runtime_error("Model not loaded");
+   std::vector<float> values(env->GetArrayLength(updates));
+   if (!values.empty()) env->GetFloatArrayRegion(updates, 0, values.size(), values.data());
+   if (!env->ExceptionCheck()) model->setPose(values);
+ } catch (const std::exception& exception) {
+   error(env, exception);
+ }
+}
+
+extern "C" JNIEXPORT jint JNICALL JNI_METHOD(nativePosePart)(JNIEnv* env, jclass, jlong handle, jobjectArray parts, jint selected) {
+ try {
+   auto& model = reinterpret_cast<Session*>(handle)->model->parameters();
+   for (int i = 0; i < env->GetArrayLength(parts); ++i) {
+     const auto part = static_cast<jstring>(env->GetObjectArrayElement(parts, i));
+     const auto id = CubismFramework::GetIdManager()->GetId(str(env, part).c_str());
+     env->DeleteLocalRef(part);
+     if (selected >= 0) {
+       model.SetParameterValue(id, i == selected ? 1.0f : 0.0f);
+     } else if (model.GetParameterValue(id) > 0.001f) {
+       return i;
+     }
+   }
+   return 0;
+ } catch (const std::exception& exception) {
+   error(env, exception);
+   return 0;
+ }
 }
 extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeFrame)(JNIEnv* e,jclass,jlong h) {
  try{reinterpret_cast<Session*>(h)->frame();}catch(const std::exception& x){error(e,x);}

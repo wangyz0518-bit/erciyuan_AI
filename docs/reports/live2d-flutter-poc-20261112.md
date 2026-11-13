@@ -74,6 +74,16 @@ Android APK 已构建，Haru 和 Mark 已通过 Native → EGL → Flutter Textu
 - 普通双 ABI Debug APK 构建、安装成功。通过 ADB 输入实际操作三个滑块和人物拖动，目视确认头部变化及半身取景；操作截图为 `head-controls-posed.png`、`head-controls-drag.png`，恢复后的体验界面为 `head-controls-ready.png`。已恢复普通预览入口，APK 更新至 `evidence/live2d-preview-debug.apk`。
 - 本次没有重跑 15 分钟持续测试、原聊天数据库专项回归、真实 Surface 回收或真机测试；上文的历史结果与限制保持原样。
 
+## 全身部位体验（2026-11-13）
+
+独立体验版从 MOC 枚举真实参数和范围，Haru 42 项、Mark 21 项均开放。手动调姿暂停动作和物理参数写入，外形可见性仍由模型 Pose 规则处理。Haru 的两组 A/B 外形来自模型 Pose 文件，单独显示为左右臂选项。
+
+- `flutter analyze` 无问题，2 项单元测试通过。Android 模拟器功能验收返回 `OK (1 test)`，96.724 秒，JSON 已保存至本地 `evidence/full-body-acceptance.json`。
+- 两个模型的 63 项参数逐项验证最小值、最大值及默认值，共 189 次写入读回。验证未知参数拒绝整批更新、多个部位在渲染后保留、外形切换、单项／部位／全身重置、切换模型和一键动作恢复自动姿态。
+- 同轮通过 30 次加载卸载、20 次暂停恢复、20 次完整渲染器重建、音频嘴部驱动和测试聊天叠层。首轮测试点击了滚动区外的部位选择框，并发现 Flutter 引擎退出时的纹理释放竞态；修正点击位置与释放顺序后重跑通过。
+- 普通双 ABI Debug APK 已安装。画面截图对照确认 Haru 手臂 A/B 外形、手型与手腕变化，Mark 左右腿及躯干组合变化。证据位于本地 `evidence/full-body-haru-arm-*.png`、`full-body-haru-wrist-*.png` 和 `full-body-mark-*.png`。
+- 参数读回与画面检查是两项证据。Haru B 臂、手腕和手型的可见效果取决于当前外形；Mark 腿部调整表现为有限的腿与鞋姿态变化。画面检查覆盖上述代表部位，未对所有 63 项逐项作目视评价。
+
 ## 明确未覆盖
 
 - Android 真机上的 Profile 性能、耗电和实际音频听感。

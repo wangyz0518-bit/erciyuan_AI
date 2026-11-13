@@ -14,6 +14,8 @@ void main() {
     tester,
   ) async {
     final state = await boot(tester);
+    await tester.tap(find.byKey(const Key('pure-avatar')));
+    await tester.pump();
     final watch = Stopwatch()..start();
     final samples = <Map<String, dynamic>>[];
     int round = 0;

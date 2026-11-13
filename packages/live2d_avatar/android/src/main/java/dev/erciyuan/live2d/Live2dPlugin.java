@@ -16,6 +16,8 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -31,12 +33,18 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
   private FlutterPluginBinding binding;
   private MethodChannel channel;
   private TextureRegistry.SurfaceProducer producer;
+  private TextureRegistry.SurfaceProducer closingProducer;
+  private CountDownLatch closeFinished;
   private long handle, frames, started, lastLoadMs;
   private boolean active = true, disposed = true;
   private String path;
   private String frameError;
   private float mouth, zoom=1, offsetX, offsetY;
-  private final Float[] head = new Float[3];
+  private String[] parameterIds = new String[0];
+  private boolean manualPose;
+  private float[] savedPose;
+  private int[] savedParts;
+  private String[][] poseParts = new String[0][];
   private int loads, unloads, surfaceRebuilds;
   private Map<String,Object> capabilities = new HashMap<>();
   private static native long nativeCreate(AssetManager assets, Surface surface);
@@ -44,15 +52,71 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
   private static native void nativeCommand(long handle, String action, String value, float number);
   private static native void nativeFrame(long handle);
   private static native void nativeDestroy(long handle);
-  private static native String nativeHeadInfo(long handle);
-  private Map<String,Object> headInfo() throws Exception {
-    JSONObject json=new JSONObject(nativeHeadInfo(handle));Map<String,Object> info=new HashMap<>();
-    for(var keys=json.keys();keys.hasNext();){
-      String key=keys.next();JSONObject axis=json.getJSONObject(key);Map<String,Object> values=new HashMap<>();
-      for(var fields=axis.keys();fields.hasNext();){String field=fields.next();values.put(field,axis.get(field));}
-      info.put(key,values);
+  private static native String[] nativeParameterIds(long handle);
+  private static native float[] nativeParameterData(long handle);
+  private static native void nativeSetPose(long handle, float[] updates);
+  private static native int nativePosePart(long handle, String[] parts, int selected);
+
+  private Map<String, Object> parameterInfo() {
+    float[] data = nativeParameterData(handle);
+    Map<String, Object> info = new LinkedHashMap<>();
+    for (int i = 0; i < parameterIds.length; i++) {
+      Map<String, Double> range = new HashMap<>();
+      range.put("min", (double) data[4 * i]);
+      range.put("max", (double) data[4 * i + 1]);
+      range.put("default", (double) data[4 * i + 2]);
+      info.put(parameterIds[i], range);
     }
     return info;
+  }
+
+  private Map<String, Double> parameterValues() {
+    Map<String, Double> values = new LinkedHashMap<>();
+    if (handle == 0 || path == null) return values;
+    float[] data = nativeParameterData(handle);
+    for (int i = 0; i < parameterIds.length; i++) {
+      values.put(parameterIds[i], (double) data[4 * i + 3]);
+    }
+    return values;
+  }
+
+  private Map<String, Object> poseState() {
+    Map<String, Object> state = new HashMap<>();
+    state.put("parameters", parameterValues());
+    ArrayList<Integer> selections = new ArrayList<>();
+    if (handle != 0 && path != null) {
+      for (String[] group : poseParts) selections.add(nativePosePart(handle, group, -1));
+    }
+    state.put("partSelections", selections);
+    return state;
+  }
+
+  private Map<String, Object> setPose(Map<String, Number> changes, Map<Integer, Integer> selections) {
+    if (handle == 0 || path == null) throw new IllegalStateException("Model surface unavailable");
+    float[] updates = new float[parameterIds.length];
+    Arrays.fill(updates, Float.NaN);
+    float[] bounds = nativeParameterData(handle);
+    var ids = Arrays.asList(parameterIds);
+    for (var entry : changes.entrySet()) {
+      int index = ids.indexOf(entry.getKey());
+      float value = entry.getValue().floatValue();
+      if (index < 0 || !Float.isFinite(value)) {
+        throw new IllegalArgumentException("Invalid model parameter: " + entry.getKey());
+      }
+      updates[index] = Math.max(bounds[4 * index], Math.min(bounds[4 * index + 1], value));
+    }
+    for (var entry : selections.entrySet()) {
+      int group = entry.getKey(), choice = entry.getValue();
+      if (group < 0 || group >= poseParts.length || choice < 0 || choice >= poseParts[group].length) {
+        throw new IllegalArgumentException("Invalid pose part selection");
+      }
+    }
+    nativeSetPose(handle, updates);
+    for (var entry : selections.entrySet()) {
+      nativePosePart(handle, poseParts[entry.getKey()], entry.getValue());
+    }
+    manualPose = true;
+    return poseState();
   }
 
   @Override public void onAttachedToEngine(FlutterPluginBinding b) {
@@ -73,24 +137,78 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
     if(path!=null)nativeLoad(handle,path);
     nativeCommand(handle,"mouth","",mouth);nativeCommand(handle,"zoom","",zoom);
     nativeCommand(handle,"x","",offsetX);nativeCommand(handle,"y","",offsetY);
-    if(path!=null)for(int i=0;i<3;i++)if(head[i]!=null)nativeCommand(handle,"head"+(char)('X'+i),"",head[i]);
+    if (path != null && savedPose != null) {
+      nativeSetPose(handle, savedPose);
+      for (int i = 0; i < savedParts.length; i++) nativePosePart(handle, poseParts[i], savedParts[i]);
+      savedPose = null;
+      savedParts = null;
+    }
     frameError=null;render.removeCallbacks(tick);if(active)render.post(tick);
   }
   private void destroyNative() {
     render.removeCallbacks(tick);
-    if(handle!=0){nativeDestroy(handle);handle=0;}
+    if (handle != 0) {
+      if (manualPose && path != null) {
+        float[] data = nativeParameterData(handle);
+        savedPose = new float[parameterIds.length];
+        for (int i = 0; i < savedPose.length; i++) savedPose[i] = data[4 * i + 3];
+        savedParts = new int[poseParts.length];
+        for (int i = 0; i < savedParts.length; i++) savedParts[i] = nativePosePart(handle, poseParts[i], -1);
+      }
+      nativeDestroy(handle);
+      handle = 0;
+    }
   }
   private void close(Runnable done) {
     if(producer==null){done.run();return;}
-    final var oldProducer=producer;producer=null;
-    final var oldThread=thread;
-    render.post(()->{
-      disposed=true;path=null;destroyNative();
-      main.post(()->{oldProducer.release();oldThread.quitSafely();owner.set(false);done.run();});
+    closingProducer = producer;
+    producer = null;
+    final var oldThread = thread;
+    final var finished = new CountDownLatch(1);
+    closeFinished = finished;
+    render.post(() -> {
+      try {
+        disposed = true;
+        path = null;
+        manualPose = false;
+        savedPose = null;
+        savedParts = null;
+        destroyNative();
+      } finally {
+        finished.countDown();
+        oldThread.quitSafely();
+        main.post(() -> {
+          releaseClosingProducer();
+          owner.set(false);
+          done.run();
+        });
+      }
     });
   }
+
+  private void releaseClosingProducer() {
+    if (closingProducer == null) return;
+    closingProducer.release();
+    closingProducer = null;
+    closeFinished = null;
+  }
+
   @Override public void onDetachedFromEngine(FlutterPluginBinding b) {
-    channel.setMethodCallHandler(null);close(()->{});
+    channel.setMethodCallHandler(null);
+    close(() -> {});
+    if (closeFinished == null) return;
+    try {
+      // The texture must be released on the main thread before FlutterJNI detaches.
+      if (closeFinished.await(5, TimeUnit.SECONDS)) {
+        releaseClosingProducer();
+      } else {
+        closingProducer = null;
+        android.util.Log.e("Live2D", "Renderer teardown timed out during engine detach");
+      }
+    } catch (InterruptedException e) {
+      closingProducer = null;
+      Thread.currentThread().interrupt();
+    }
   }
   @Override public void onMethodCall(MethodCall call, MethodChannel.Result result) {
     if(call.method.equals("create")) {
@@ -129,21 +247,37 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
           case "load": {
             String key=binding.getFlutterAssets().getAssetFilePathByName(call.argument("asset"));
             Map<String,Object> info=validate(key);
+            String[][] groups = readPoseParts(key);
             if(handle==0)throw new IllegalStateException("Surface unavailable");
             long t=SystemClock.elapsedRealtime();
             nativeLoad(handle,key);
-            for(int i=0;i<3;i++)head[i]=null;
-            info.put("headParameters",headInfo());
+            parameterIds = nativeParameterIds(handle);
+            manualPose = false;
+            savedPose = null;
+            savedParts = null;
+            poseParts = groups;
+            var partGroups = new ArrayList<java.util.List<String>>();
+            for (var group : groups) partGroups.add(Arrays.asList(group));
+            info.put("poseParts", partGroups);
+            info.put("parameters", parameterInfo());
             path=key;capabilities=info;lastLoadMs=SystemClock.elapsedRealtime()-t;loads++;frameError=null;
             response=info;break;
           }
           case "unload":
-            path=null;capabilities.clear();mouth=0;unloads++;
+            path=null;capabilities=new HashMap<>();mouth=0;unloads++;
+            parameterIds = new String[0];
+            manualPose = false;
+            savedPose = null;
+            savedParts = null;
+            poseParts = new String[0][];
             if(handle!=0)nativeCommand(handle,"unload","",0);break;
           case "active":
             active=Boolean.TRUE.equals(call.argument("value"));mouth=0;
             if(handle!=0)nativeCommand(handle,"mouth","",0);
             render.removeCallbacks(tick);if(active && handle!=0)render.post(tick);break;
+          case "pose":
+            response = setPose(call.argument("values"), call.argument("parts"));
+            break;
           case "command": {
             String action=call.argument("action");String value=call.argument("value");Number number=call.argument("number");
             float n=number==null?0:number.floatValue();
@@ -154,7 +288,9 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
             if(action.equals("y"))offsetY=Math.max(-2,Math.min(2,n));
             if(handle==0)throw new IllegalStateException("Surface unavailable");
             nativeCommand(handle,action,value==null?"":value,n);
-            if(action.equals("headX")||action.equals("headY")||action.equals("headZ"))head[action.charAt(4)-'X']=Math.max(-1,Math.min(1,n));
+            if (action.equals("automaticPose") || action.equals("motion") || action.equals("expression")) {
+              manualPose = false;
+            }
             break;
           }
           case "stats": {
@@ -162,7 +298,9 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
             s.put("loadMs",lastLoadMs);s.put("loads",loads);s.put("unloads",unloads);s.put("surfaceRebuilds",surfaceRebuilds);
             s.put("nativeInstances",handle==0?0:1);s.put("models",path==null?0:1);s.put("active",active);
             s.put("mouth",mouth);s.put("error",frameError);s.put("capabilities",capabilities);
-            s.put("headParameters",handle==0?new HashMap<>():headInfo());response=s;break;
+            s.putAll(poseState());
+            s.put("manualPose", manualPose);
+            response=s;break;
           }
           default: main.post(result::notImplemented);return;
         }
@@ -176,13 +314,30 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
       if(in.read()<0)throw new IllegalArgumentException("Empty asset: "+file);
     }
   }
-  private Map<String,Object> validate(String key) throws Exception {
-    JSONObject json;
+  private String[][] readPoseParts(String modelPath) throws Exception {
+    JSONObject refs = readJson(modelPath).getJSONObject("FileReferences");
+    if (!refs.has("Pose")) return new String[0][];
+    String dir = modelPath.substring(0, modelPath.lastIndexOf('/') + 1);
+    JSONArray groups = readJson(dir + refs.getString("Pose")).getJSONArray("Groups");
+    String[][] result = new String[groups.length()][];
+    for (int i = 0; i < groups.length(); i++) {
+      JSONArray group = groups.getJSONArray(i);
+      result[i] = new String[group.length()];
+      for (int j = 0; j < group.length(); j++) result[i][j] = group.getJSONObject(j).getString("Id");
+    }
+    return result;
+  }
+
+  private JSONObject readJson(String key) throws Exception {
     try(InputStream in=binding.getApplicationContext().getAssets().open(key)) {
       ByteArrayOutputStream bytes=new ByteArrayOutputStream();byte[] buffer=new byte[4096];int n;
       while((n=in.read(buffer))!=-1){bytes.write(buffer,0,n);if(bytes.size()>1024*1024)throw new IllegalArgumentException("Model descriptor too large");}
-      json=new JSONObject(bytes.toString(StandardCharsets.UTF_8.name()));
+      return new JSONObject(bytes.toString(StandardCharsets.UTF_8.name()));
     }
+  }
+
+  private Map<String,Object> validate(String key) throws Exception {
+    JSONObject json = readJson(key);
     if(json.getInt("Version")!=3)throw new IllegalArgumentException("Only model3.json Version 3 is supported");
     JSONObject refs=json.getJSONObject("FileReferences");String dir=key.substring(0,key.lastIndexOf('/')+1);
     checkFile(dir,refs.getString("Moc"));JSONArray tex=refs.getJSONArray("Textures");

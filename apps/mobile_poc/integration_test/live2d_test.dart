@@ -35,73 +35,135 @@ void main() {
       expect(c.motions, isNotEmpty);
       await tester.pump(const Duration(seconds: 2));
       expect((await c.stats())['frames'], greaterThan(0));
-      expect(c.headParameters.keys, containsAll(['headX', 'headY', 'headZ']));
-      final headEvidence = <String, dynamic>{};
-      // Read back the real Cubism parameter values after frames, not just UI state.
-      for (final axis in ['headX', 'headY', 'headZ']) {
-        final slider = find.byKey(Key(axis));
-        await tester.ensureVisible(slider);
-        await tester.pump();
-        final rect = tester.getRect(slider);
-        await tester.dragFrom(rect.center, Offset(rect.width * .3, 0));
-        await tester.pump(const Duration(milliseconds: 400));
-        expect(state.head[axis], greaterThan(.2));
-        var native = Map<String, dynamic>.from(
-          ((await c.stats())['headParameters'] as Map)[axis] as Map,
-        );
-        expect(native['manual'], isTrue);
+      final poseEvidence = <String, dynamic>{};
+      for (final model in ['Haru', 'Mark']) {
+        await state.loadModel(model);
+        final parameters = c.parameters;
+        final display = jsonDecode(
+          await rootBundle.loadString('assets/live2d/$model/$model.cdi3.json'),
+        ) as Map;
         expect(
-          native['value'],
-          closeTo(
-            (native['default'] as num) +
-                state.head[axis]! *
-                    ((native['max'] as num) - (native['default'] as num)),
-            .05,
+          parameters.keys,
+          containsAll(
+            (display['Parameters'] as List).map((entry) => entry['Id']),
           ),
         );
-        // Clamp input against the model's actual limits in the renderer.
-        await c.command(axis, number: -2);
-        await tester.pump(const Duration(milliseconds: 300));
-        native = Map<String, dynamic>.from(
-          ((await c.stats())['headParameters'] as Map)[axis] as Map,
+        expect((await c.stats())['manualPose'], isFalse);
+        final exercised = <String>[];
+        for (final p in parameters.values) {
+          expect(p.defaultValue, inInclusiveRange(p.min, p.max));
+          for (final value in [p.min, p.max, p.defaultValue]) {
+            final result = await c.setPose({p.id: value});
+            expect(
+              result['parameters'][p.id],
+              closeTo(value, .0001),
+              reason: '$model ${p.id}',
+            );
+          }
+          exercised.add(p.id);
+        }
+        final before = (await c.stats())['parameters'];
+        await expectLater(
+          c.setPose({'ParamAngleX': 15, 'MissingParameter': 1}),
+          throwsA(isA<PlatformException>()),
         );
-        expect(native['value'], closeTo(native['min'] as num, .05));
-        headEvidence[axis] = native;
-      }
-      await tester.tap(find.byKey(const Key('reset-pose')));
-      await tester.pump(const Duration(milliseconds: 400));
-      final drag = find.byKey(const Key('head-drag'));
-      await tester.dragFrom(tester.getCenter(drag), const Offset(65, -40));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(state.head['headX'], greaterThan(0));
-      expect(state.head['headY'], greaterThan(0));
-      expect(state.head['headZ'], 0);
-      headEvidence['drag'] = (await c.stats())['headParameters'];
-      await tester.ensureVisible(find.byKey(const Key('drag-follow')));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('drag-follow')));
-      await tester.pump();
-      expect(state.dragFollow, isFalse);
-      final frozen = Map<String, double>.from(state.head);
-      await tester.dragFrom(tester.getCenter(drag), const Offset(-65, 40));
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(state.head, frozen);
-      await tester.tap(find.byKey(const Key('reset-pose')));
-      await tester.pump(const Duration(milliseconds: 400));
-      for (final axis in state.head.keys) {
-        final native =
-            ((await c.stats())['headParameters'] as Map)[axis] as Map;
-        expect(native['value'], closeTo(native['default'] as num, .05));
-        expect(state.head[axis], 0);
-      }
-      expect(state.zoom, 1);
-      expect(state.full, isTrue);
-      await state.loadModel('Mark');
-      for (final entry in ((await c.stats())['headParameters'] as Map).values) {
-        expect((entry as Map)['manual'], isFalse);
+        expect((await c.stats())['parameters'], before);
+        final combo = <String, double>{
+          for (final id in [
+            'ParamAngleX',
+            'ParamBodyAngleZ',
+            model == 'Haru' ? 'ParamArmRA' : 'ParamArmR',
+            model == 'Haru' ? 'ParamHandAngleR' : 'ParamLeftLeg',
+          ])
+            id: parameters[id]!.max,
+        };
+        await c.setPose(combo);
+        await tester.pump(const Duration(milliseconds: 600));
+        var stats = await c.stats();
+        for (final entry in combo.entries) {
+          expect(stats['parameters'][entry.key], closeTo(entry.value, .0001));
+        }
+        expect(stats['manualPose'], isTrue);
+        if (model == 'Haru') {
+          expect(c.poseParts.map((parts) => parts.length), [2, 2]);
+          await c.setPose({}, parts: {0: 1, 1: 1});
+          await tester.pump(const Duration(milliseconds: 300));
+          expect((await c.stats())['partSelections'], [1, 1]);
+        }
+        poseEvidence[model] = {'parameters': exercised, 'combined': combo};
       }
       await state.loadModel('Haru');
-      expect(state.head.values, everyElement(0));
+      await tester.tap(find.byKey(const Key('reset-pose')));
+      await tester.pump(const Duration(milliseconds: 350));
+      final head = find.byKey(const Key('ParamAngleX'));
+      await tester.ensureVisible(head);
+      await tester.pump();
+      await tester.dragFrom(tester.getCenter(head), const Offset(74, 0));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect((await c.stats())['parameters']['ParamAngleX'], greaterThan(5));
+      final drag = find.byKey(const Key('head-drag'));
+      await tester.dragFrom(tester.getCenter(drag), const Offset(65, -40));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect((await c.stats())['parameters']['ParamAngleY'], greaterThan(0));
+
+      final groupMenu = find.byKey(const Key('parameter-group'));
+      await tester.ensureVisible(groupMenu);
+      await tester.pump();
+      await tester.tap(groupMenu, warnIfMissed: true);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('手臂').last);
+      await tester.pumpAndSettle();
+      final arm = find.byKey(const Key('ParamArmRA'));
+      await tester.ensureVisible(arm);
+      await tester.pump();
+      final armRect = tester.getRect(arm);
+      await tester.tapAt(Offset(armRect.right - 32, armRect.center.dy));
+      await tester.pump(const Duration(milliseconds: 350));
+      final armParam = c.parameters['ParamArmRA']!;
+      expect(
+        (await c.stats())['parameters']['ParamArmRA'],
+        isNot(closeTo(armParam.defaultValue, .01)),
+      );
+      await tester.ensureVisible(find.byKey(const Key('reset-ParamArmRA')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('reset-ParamArmRA')));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(
+        (await c.stats())['parameters']['ParamArmRA'],
+        closeTo(armParam.defaultValue, .0001),
+      );
+
+      final leftArm = c.parameters['ParamArmLA']!;
+      await state.editPose({
+        armParam.id: armParam.max,
+        leftArm.id: leftArm.max,
+        'ParamAngleX': 19,
+      });
+      await tester.ensureVisible(find.byKey(const Key('reset-group')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('reset-group')));
+      await tester.pump(const Duration(milliseconds: 350));
+      var values = (await c.stats())['parameters'] as Map;
+      expect(values[armParam.id], closeTo(armParam.defaultValue, .0001));
+      expect(values[leftArm.id], closeTo(leftArm.defaultValue, .0001));
+      expect(values['ParamAngleX'], 19);
+      await tester.tap(find.byKey(const Key('reset-pose')));
+      await tester.pump(const Duration(milliseconds: 350));
+      values = (await c.stats())['parameters'] as Map;
+      for (final p in c.parameters.values) {
+        expect(values[p.id], closeTo(p.defaultValue, .0001));
+      }
+      expect(state.full, isTrue);
+      expect(state.zoom, 1);
+      await tester.tap(find.byKey(const Key('panel-动作')));
+      await tester.pump();
+      final motion = c.motions.first;
+      await tester.tap(find.byKey(Key('motion-$motion')));
+      await tester.pump(const Duration(milliseconds: 450));
+      expect((await c.stats())['manualPose'], isFalse);
+      expect(state.manualPose, isFalse);
+      expect((await c.stats())['parameters'], isNot(values));
+
       for (final expression in List<String>.from(c.expressions)) {
         await c.command('expression', value: expression);
         await tester.pump(const Duration(milliseconds: 100));
@@ -165,6 +227,10 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         expect((await c.stats())['frames'], greaterThan(frames as num));
       }
+      expect(find.byKey(const Key('live2d-input')), findsNothing);
+      await tester.tap(find.byKey(const Key('pure-avatar')));
+      await tester.pump();
+      expect(find.byKey(const Key('live2d-input')), findsOneWidget);
       await tester.tap(find.byKey(const Key('history')));
       await tester.pump();
       expect(find.byKey(const Key('close-history')), findsOneWidget);
@@ -184,7 +250,7 @@ void main() {
         'contextRecreations': 20,
         'expressions': 8,
         'faults': 4,
-        'headControls': headEvidence,
+        'poseControls': poseEvidence,
         'audioMouthSamples': audioMouth,
         'samples': samples,
         'final': await c.stats(),
