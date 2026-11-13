@@ -4,6 +4,8 @@
 
 ## 入口
 
+C 线待执行决策：[ADR-0003 双 Demo 评估](decisions/0003-avatar-live2d-video-demo.md)、[可行性复核](research/avatar-live2d-video-review-20261113.md)、[实施与验收计划](research/avatar-dual-demo-plan-20261113.md)。最终路线尚未选定，实际 Demo 进展按验收记录更新。
+
 | 文档 | 用途 | 更新时机 |
 | --- | --- | --- |
 | [state.md](state.md) | 当前阶段、待办、风险、下一步 | 每周或阶段变化时 |

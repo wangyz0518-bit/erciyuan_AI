@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | [0001](0001-mobile-stack.md) | 移动端技术栈选型 | 已接受（Flutter + Dart） | 2026-11-12 |
 | [0002](0002-three-platform-scope.md) | 三端范围确认 | 已接受：首版 Android/iOS，原生鸿蒙后续适配 | 2026-11-11 |
+| [0003](0003-avatar-live2d-video-demo.md) | Live2D 与 AI 视频双 Demo 评估 | 提议，待执行及验收 | 2026-11-13 |
 
 ## 状态说明
 
