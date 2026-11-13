@@ -63,6 +63,18 @@ class StreamTests(unittest.TestCase):
             voice.generate("你好", "平静", 21, lambda _: None)
         self.assertTrue(socket.closed)
 
+    def test_cloud_error_keeps_code_but_hides_private_message(self):
+        voice, socket = self.cloud([])
+        socket.recv = lambda: json.dumps({"header": {"event": "task-failed",
+            "task_id": socket.sent[-1]["header"]["task_id"], "error_code": "InternalError",
+            "error_message": "internal failure Authorization: Bearer secret voice-id private"}})
+        with self.assertRaises(c.ExperimentError) as caught:
+            voice.generate("你好", "平静", 21, lambda _: None)
+        self.assertIn("code=InternalError", str(caught.exception))
+        self.assertNotIn("secret", str(caught.exception))
+        self.assertNotIn("private", str(caught.exception))
+        self.assertTrue(socket.closed)
+
     def test_wrong_task_cannot_be_mixed_into_current_audio(self):
         voice, socket = self.cloud([])
         socket.recv = lambda: json.dumps({"header": {"event": "task-started", "task_id": "wrong-task"}})
@@ -112,6 +124,22 @@ class BoundaryTests(unittest.TestCase):
 
     def test_exception_logs_do_not_include_secrets(self):
         self.assertNotIn("secret-key", c.safe_error(RuntimeError("Authorization: Bearer secret-key")))
+
+    def test_summary_excludes_reconnected_cold_requests_and_preserves_failed_attempt(self):
+        records = [dict(position=1, backend="flash", wav="a.wav", connection_reused=False,
+                        first_audio_seconds=10, provider_characters=20),
+                   dict(position=2, backend="flash", wav="b.wav", connection_reused=True,
+                        first_audio_seconds=1, provider_characters=30),
+                   dict(position=3, backend="flash", error="failed"),
+                   dict(position=4, backend="flash", wav="c.wav", connection_reused=False,
+                        first_audio_seconds=20, provider_characters=10)]
+        result = c.summarize(records, None)
+        self.assertEqual(result["attempted"], 4)
+        self.assertEqual(result["successful"], 3)
+        self.assertEqual(result["warm_count"], 1)
+        self.assertEqual(result["warm"]["first_audio_seconds"]["p95"], 1)
+        self.assertEqual(result["provider_usage_reported_count"], 3)
+        self.assertEqual(result["provider_metered_characters"], 60)
 
     def test_billing_handles_han_and_punctuation(self):
         self.assertEqual(c.billable_characters("中A文123"), 8)

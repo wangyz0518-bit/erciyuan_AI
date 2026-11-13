@@ -36,6 +36,16 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\codex\erciyuan_AI\.w
 ./experiments/voice_poc/configure_cloud.ps1 -Status
 ```
 
+验证 Key 能否访问音色服务（只查询本实验前缀的音色，不合成、不创建，不显示 Key 或音色 ID）：
+
+```powershell
+./experiments/voice_poc/invoke_comparison.ps1 -Cloud check-cloud
+```
+
+返回 `cloud_voice_service_access: ok` 表示鉴权与音色查询成功；两款模型的合成权限仍以各自实际请求为准。本机代理曾导致百炼 TLS/连接失败，封装会仅为当前子进程的百炼官方域名设置 `NO_PROXY`，结束后恢复原值；保持 HTTPS 校验，不修改系统代理。加密文件读取会去掉文件末尾换行，兼容 Windows PowerShell 保存格式。
+
+若合成返回 `AccessDenied.Unpurchased`，请由主账号在北京区检查服务开通和目标模型使用资格；不要反复改 Key 或盲目重试。该码与密钥无效、免费额度用尽有不同含义，见[官方错误说明](https://help.aliyun.com/zh/model-studio/error-code)。本轮 Flash 曾在成功 7 条后出现访问失败，用户检查开通后才继续补测，原始失败记录保留。
+
 ## 费用与依赖
 
 本轮 32 条台词共 880 个计费字符（汉字按 2 个字符，标点按 1 个字符）。按 2026-11-13 北京区原价，Plus 一轮约 0.132 元，Flash 一轮约 0.0704 元；两款各跑三轮合计约 0.6072 元，未扣免费额度。CosyVoice 创建复刻音色免费。额外文本与重跑按实际字符另计。[官方价格](https://help.aliyun.com/zh/model-studio/model-pricing)
@@ -109,8 +119,9 @@ Qwen 另需本地权重和 `qwen-tts==0.1.1`，其依赖包括 `transformers==4.
 
 ```powershell
 & .voice-local/cpu-venv/Scripts/python.exe -m unittest discover -s experiments/voice_poc -p test_comparison.py -v
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File experiments/voice_poc/test_local_config.ps1
 ```
 
-测试覆盖调用前预算检查、凭据日志处理、任务确认后发文本、错误停机、连接复用及 PCM 分片边界；使用假 WebSocket，不调用付费服务。云端真实验证状态以报告为准。
+测试覆盖调用前预算检查、凭据日志处理、任务确认后发文本、错误停机、连接复用及 PCM 分片边界；使用假 WebSocket，不调用付费服务。PowerShell 检查用临时目录和假 Key 验证 DPAPI 文件到子进程环境的完整路径、默认域名直连配置，不读取或覆盖实际 Key。云端真实验证状态见[对比报告](../reports/desktop-voice-comparison-20261113.md)。
 
 协议依据：[客户端事件](https://help.aliyun.com/zh/model-studio/cosyvoice-client-events)、[服务端事件](https://help.aliyun.com/zh/model-studio/cosyvoice-server-events)、[音色 HTTP API](https://help.aliyun.com/zh/model-studio/voice-clone-design-http-api)。

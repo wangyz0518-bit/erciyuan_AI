@@ -14,6 +14,7 @@ $voiceOldWorkspace = $env:DASHSCOPE_WORKSPACE_ID
 $voiceOldPythonPath = $env:PYTHONPATH
 $voiceOldOffline = $env:HF_HUB_OFFLINE
 $voiceOldTransformersOffline = $env:TRANSFORMERS_OFFLINE
+$voiceOldNoProxy = $env:NO_PROXY
 try {
     if ($Cloud) {
         $voiceKeyPath = Join-Path $voiceRoot '.voice-local/dashscope-key.dpapi'
@@ -21,7 +22,8 @@ try {
         if ((Test-Path -LiteralPath $voiceKeyPath) -and (Test-Path -LiteralPath $voiceConfigPath)) {
             $voiceConfig = Get-Content -LiteralPath $voiceConfigPath -Raw | ConvertFrom-Json
             if ($voiceConfig.region -ne 'cn-beijing') { throw 'This experiment uses cn-beijing only.' }
-            $voiceSecret = Get-Content -LiteralPath $voiceKeyPath -Raw | ConvertTo-SecureString
+            $voiceCipher = (Get-Content -LiteralPath $voiceKeyPath -Raw).Trim()
+            $voiceSecret = ConvertTo-SecureString -String $voiceCipher
             try { $env:DASHSCOPE_API_KEY = [Net.NetworkCredential]::new('', $voiceSecret).Password }
             finally { $voiceSecret.Dispose() }
             $env:DASHSCOPE_WORKSPACE_ID = $voiceConfig.workspace_id
@@ -29,6 +31,11 @@ try {
         if (-not $env:DASHSCOPE_API_KEY) {
             throw 'Run configure_cloud.ps1 first, or configure DASHSCOPE_API_KEY.'
         }
+        # The workstation proxy breaks TLS to this domestic service. Scope the
+        # direct route to this child process and the chosen official API host only.
+        $voiceApiHost = 'dashscope.aliyuncs.com'
+        if ($env:DASHSCOPE_WORKSPACE_ID) { $voiceApiHost = $env:DASHSCOPE_WORKSPACE_ID + '.cn-beijing.maas.aliyuncs.com' }
+        $env:NO_PROXY = (@($voiceOldNoProxy, $voiceApiHost) | Where-Object { $_ }) -join ','
     }
     if ($CudaOverlay) {
         # Existing workstation: CUDA wheels are separate from Qwen's CPU dependency environment.
@@ -47,5 +54,6 @@ try {
     $env:PYTHONPATH = $voiceOldPythonPath
     $env:HF_HUB_OFFLINE = $voiceOldOffline
     $env:TRANSFORMERS_OFFLINE = $voiceOldTransformersOffline
+    $env:NO_PROXY = $voiceOldNoProxy
 }
 exit $voiceExitCode

@@ -159,7 +159,18 @@ class CloudVoice:
                     raise ExperimentError("Unexpected task ID in server response.")
                 kind = header.get("event")
                 if kind == "task-failed":
-                    raise ExperimentError("Cloud task failed; no automatic retry. Check access, quota and voice binding.")
+                    code = str(header.get("error_code", "unknown"))
+                    if (not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", code)
+                            or any(value and value in code for value in (self.key, self.voice, self.workspace))):
+                        code = "omitted"
+                    # Classify the message without logging its potentially private contents.
+                    message = str(header.get("error_message", "")).lower()
+                    category = next((label for term, label in (
+                        ("quota", "quota"), ("rate limit", "rate_limit"), ("throttl", "rate_limit"),
+                        ("timeout", "timeout"), ("timed out", "timeout"), ("voice", "voice_binding"),
+                        ("instruction", "instruction"), ("unauthorized", "authorization"),
+                        ("internal", "service_internal")) if term in message), "unspecified")
+                    raise ExperimentError(f"Cloud task failed (code={code}, category={category}); no automatic retry.")
                 usage = event.get("payload", {}).get("usage", {}).get("characters", usage)
                 if kind == "task-started":
                     if acknowledged:
@@ -379,9 +390,17 @@ def enroll(args):
             raise ExperimentError("Voice deployment is still pending; rerun enrollment to query existing IDs.")
 
 
+def check_cloud(_):
+    key, workspace = credentials()
+    output = enrollment_request(key, workspace, {"action": "list_voice", "prefix": "dvoicepoc",
+                                                "page_index": 0, "page_size": 100})
+    print(json.dumps({"cloud_voice_service_access": "ok", "returned_fields": sorted(output.keys()),
+                      "experiment_voice_count": len(output.get("voices", output.get("voice_list", [])))}))
+
+
 def summarize(records, load_seconds):
     success = [r for r in records if "wav" in r]
-    warm = [r for r in success if r["position"] > 1]
+    warm = [r for r in success if r.get("connection_reused", r["position"] > 1)]
     result = {"attempted": len(records), "successful": len(success), "model_load_seconds": load_seconds,
               "first_request": success[0] if success and success[0]["position"] == 1 else None,
               "warm_count": len(warm), "human_scores": "pending", "full_chat_latency": "not_measured",
@@ -390,6 +409,14 @@ def summarize(records, load_seconds):
         vals = [r[key] for r in warm if r.get(key) is not None]
         result["warm"][key] = {"count": len(vals), "p50": quantile(vals, .5), "p95": quantile(vals, .95)}
     result["estimated_cost_cny"] = sum(r.get("estimated_cost_cny", 0) for r in records)
+    metered = [r for r in records if isinstance(r.get("provider_characters"), int)]
+    result["provider_usage_reported_count"] = len(metered)
+    result["provider_metered_characters"] = sum(r["provider_characters"] for r in metered) if metered else None
+    result["provider_usage_cost_estimate_cny"] = sum(
+        r["provider_characters"] / 10000 * PRICES.get(r["backend"], 0) for r in metered
+    ) if metered else None
+    result["playback_starved_seconds_total"] = sum(r.get("playback_starved_seconds") or 0 for r in records)
+    result["portaudio_underflows_total"] = sum(r.get("portaudio_underflows") or 0 for r in records)
     return result
 
 
@@ -442,6 +469,7 @@ def run(args):
                     player = Playback(args.play, args.audio_device)
                     player.start_clock()
                     pcm, metrics = engine.generate(case["text"], STYLES[case["style"]], seed, player.feed)
+                    record.update(metrics)  # Retain service usage even if subsequent playback fails.
                     metrics.update(player.complete())
                     name = f"{position:03d}.wav"
                     write_wav(args.output / name, pcm)
@@ -528,6 +556,8 @@ def main():
         import sounddevice as sd
         print(sd.query_devices())
     p.set_defaults(handler=devices)
+    p = sub.add_parser("check-cloud")
+    p.set_defaults(handler=check_cloud)
     args = parser.parse_args()
     if args.command == "run" and (args.repeats < 1 or args.limit is not None and args.limit < 1 or not math.isfinite(args.max_cost_cny) or args.max_cost_cny <= 0):
         parser.error("repeats, limit and max-cost-cny must be positive finite values")
