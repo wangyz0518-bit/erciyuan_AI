@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('prepare','analyze','test','build','run','acceptance','idle-acceptance','soak','regression')]
+  [ValidateSet('prepare','analyze','test','build','run','acceptance','idle-acceptance','demo-build','demo-run','demo-acceptance','soak','regression')]
   [string]$Action='run',
   [string]$DevRoot='D:\dev',
   [string]$Device='emulator-5580',
@@ -77,6 +77,9 @@ try {
       run { & flutter run --flavor live2d -t lib/main_live2d.dart -d $Device }
       acceptance { Invoke-AndroidSuite 'live2d_test.dart' 'live2d-acceptance.json' }
       idle-acceptance { Invoke-AndroidSuite 'dragon_idle_test.dart' 'dragon-idle-acceptance.json' }
+      demo-build { & flutter build apk --debug --flavor live2d -t lib/main_avatar_demos.dart --target-platform android-x64,android-arm64 }
+      demo-run { & flutter run --flavor live2d -t lib/main_avatar_demos.dart -d $Device }
+      demo-acceptance { Invoke-AndroidSuite 'avatar_demos_test.dart' 'avatar-demos-smoke.json' }
       soak { Invoke-AndroidSuite 'live2d_soak_test.dart' 'live2d-soak.json' }
       regression { Invoke-AndroidSuite 'live2d_regression_test.dart' 'acceptance-results.json' }
     }

@@ -4,6 +4,8 @@
 
 ## 入口
 
+C 线双路线 Demo：[运行指南](guides/avatar-demos-20261113.md)、[技术验收](reports/avatar-demos-smoke-20261113.md)、[待执行决策 PR #20](https://github.com/wangyz0518-bit/erciyuan_AI/pull/20)。官方模型与播放器底座已验证，当前角色正式模型及 AI 动作视频待补。
+
 C 线 Live2D 试验：[运行指南](guides/live2d-flutter-poc-20261112.md)、[验收记录](reports/live2d-flutter-poc-20261112.md)。
 
 C 线第二步到第三步的离线联调：[人物资源包契约 v0.1 草案](接口/avatar-package-contract-20261113.md)、[制作方任务书](接口/avatar-package-producer-brief-20261113.md)。当前外部 ZIP 导入及 manifest 解析尚未实现。
