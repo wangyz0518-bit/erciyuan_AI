@@ -1,6 +1,6 @@
 # 发给人物包制作方的联调任务书
 
-> 状态：草案，配合人物资源包契约 v0.1 评审
+> 状态：v0.1 离线联调任务书；Android 接收器已有参考包验证
 > 日期：2026-11-13
 > 负责人：待定
 > 关联：C、A、#10
@@ -39,4 +39,4 @@
 - [示例 manifest](examples/avatar-package-0.1/manifest.json)
 - [示例 model3.json](examples/avatar-package-0.1/model/character.model3.json)
 
-接收方的外部 ZIP 导入器仍待实现；首个目标是让标准包和导入器配合跑通，错误要明确区分包问题与播放器问题。
+接收方的 Android ZIP 导入器已使用 Mark 标准包验证，见 [运行指南](../guides/avatar-package-preview-20261114.md)。你方交付仍需分别通过结构、SDK、画面和 App 检查；不能用参考包通过代替你方模型验收。

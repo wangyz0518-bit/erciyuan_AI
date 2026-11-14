@@ -9,6 +9,7 @@
 #include <CubismModelSettingJson.hpp>
 #include <Model/CubismUserModel.hpp>
 #include <Model/CubismModel.hpp>
+#include <Model/CubismMoc.hpp>
 #include <Math/CubismModelMatrix.hpp>
 #include <Motion/CubismMotion.hpp>
 #include <Motion/CubismMotionManager.hpp>
@@ -28,6 +29,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <set>
+#include <limits>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -73,6 +77,12 @@ class Model final : public CubismUserModel {
  std::vector<GLuint> textures;
  std::string idle;
  bool manualPose = false;
+ bool packageMode = false;
+ std::string playing;
+ CubismMotionQueueEntryHandle playingHandle = InvalidMotionQueueEntryHandleValue;
+ std::vector<float> partDefaults;
+ std::vector<CubismIdHandle> opacityIds;
+ float centerX=0,centerY=0,boundsWidth=1,boundsHeight=1;
  public:
  ~Model() override {
    _motionManager->StopAllMotions(); _expressionManager->StopAllMotions();
@@ -81,11 +91,44 @@ class Model final : public CubismUserModel {
    DeleteRenderer();
    if(!textures.empty()) glDeleteTextures(textures.size(),textures.data());
  }
- void load(const std::string& path,int w,int h) {
+ void load(const std::string& path,int w,int h,const std::string& root="",
+           const std::vector<std::string>& requiredParameters={},const std::vector<std::string>& requiredParts={},
+           const std::map<std::string,std::string>& normalizedJson={},const std::vector<std::string>& opacityParts={}) {
+   packageMode=!root.empty();
+   auto read=[&](const std::string& name) {
+     if(!packageMode) return ::read(name);
+     char* resolved=realpath(name.c_str(),nullptr);
+     if(!resolved) throw std::runtime_error("Package resource missing");
+     std::string canonical(resolved); free(resolved);
+     if(canonical.rfind(root+"/",0)!=0) throw std::runtime_error("Package path escapes root");
+     auto normalized=normalizedJson.find(canonical);
+     if(normalized!=normalizedJson.end()) return std::vector<unsigned char>(normalized->second.begin(),normalized->second.end());
+     std::ifstream f(canonical,std::ios::binary|std::ios::ate);
+     auto n=f.tellg();
+     if(n<=0 || n>64*1024*1024) throw std::runtime_error("Package file size invalid");
+     std::vector<unsigned char> b(static_cast<size_t>(n)); f.seekg(0);
+     if(!f.read(reinterpret_cast<char*>(b.data()),n)) throw std::runtime_error("Package read incomplete");
+     return b;
+   };
    auto json=read(path); settings=std::make_unique<CubismModelSettingJson>(json.data(),json.size());
    std::string dir=path.substr(0,path.find_last_of('/')+1);
-   auto moc=read(dir+settings->GetModelFileName()); LoadModel(moc.data(),moc.size(),true);
+   auto moc=read(dir+settings->GetModelFileName());
+   auto version=CubismMoc::GetMocVersionFromBuffer(moc.data(),moc.size());
+   if(!version || version>CubismMoc::GetLatestMocVersion()) throw std::runtime_error("MOC3 version unsupported");
+   LoadModel(moc.data(),moc.size(),true);
    if(!_model) throw std::runtime_error("MOC3 consistency check failed");
+   std::set<std::string> realParameters,realParts;
+   for(int i=0;i<_model->GetParameterCount();i++) realParameters.insert(_model->GetParameterId(i)->GetString().GetRawString());
+   for(int i=0;i<_model->GetPartCount();i++) {
+     realParts.insert(_model->GetPartId(i)->GetString().GetRawString());
+     partDefaults.push_back(_model->GetPartOpacity(i));
+   }
+   for(const auto& id:requiredParameters) if(!realParameters.count(id)) throw std::runtime_error("Unknown MOC parameter: "+id);
+   for(const auto& id:requiredParts) if(!realParts.count(id)) throw std::runtime_error("Unknown MOC part: "+id);
+   for(const auto& name:opacityParts) {
+     auto id=CubismFramework::GetIdManager()->GetId(name.c_str());opacityIds.push_back(id);
+     _model->SetParameterValue(id,_model->GetPartOpacity(_model->GetPartIndex(id)));
+   }
    auto optional=[&](const char* file,auto fn) { if(file && *file) {auto b=read(dir+file);fn(b);} };
    optional(settings->GetPhysicsFileName(),[&](auto& b){LoadPhysics(b.data(),b.size());});
    optional(settings->GetPoseFileName(),[&](auto& b){LoadPose(b.data(),b.size());});
@@ -115,6 +158,8 @@ class Model final : public CubismUserModel {
    _model->SaveParameters(); CreateRenderer(w,h);
    for(int i=0;i<settings->GetTextureCount();++i) {
      auto b=read(dir+settings->GetTextureFileName(i)); int tw,th,ch;
+     if(!stbi_info_from_memory(b.data(),b.size(),&tw,&th,&ch) || tw<=0 || th<=0 ||
+         (packageMode && (tw>2048 || th>2048))) throw std::runtime_error("Invalid texture dimensions");
      auto pixels=stbi_load_from_memory(b.data(),b.size(),&tw,&th,&ch,4);
      if(!pixels) throw std::runtime_error("Invalid texture");
      GLuint t; glGenTextures(1,&t); textures.push_back(t); glBindTexture(GL_TEXTURE_2D,t);
@@ -126,6 +171,20 @@ class Model final : public CubismUserModel {
      GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->BindTexture(i,t);
    }
    GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->IsPremultipliedAlpha(false);
+   if(packageMode) {
+     _model->Update();
+     float left=std::numeric_limits<float>::max(),bottom=left,right=-left,top=-left;
+     for(int d=0;d<_model->GetDrawableCount();d++) {
+       if(_model->GetDrawableOpacity(d)<=0) continue;
+       const float* vertices=_model->GetDrawableVertices(d);
+       for(int v=0;v<_model->GetDrawableVertexCount(d);v++) {
+         left=std::min(left,vertices[2*v]);right=std::max(right,vertices[2*v]);
+         bottom=std::min(bottom,vertices[2*v+1]);top=std::max(top,vertices[2*v+1]);
+       }
+     }
+     if(!(right>left && top>bottom)) throw std::runtime_error("Model has no visible geometry");
+     centerX=(left+right)/2;centerY=(bottom+top)/2;boundsWidth=right-left;boundsHeight=top-bottom;
+   }
  }
  void expression(const std::string& id) {
    auto it=expressions.find(id); if(it==expressions.end()) throw std::runtime_error("Unsupported expression: "+id);
@@ -134,8 +193,18 @@ class Model final : public CubismUserModel {
  }
  void motion(const std::string& id) {
    auto it=motions.find(id); if(it==motions.end()) throw std::runtime_error("Unsupported motion: "+id);
+   if(packageMode && !playing.empty()) throw std::runtime_error("busy: action is already playing");
    resumeAutomaticPose();
-   _motionManager->StartMotionPriority(it->second,false,3);
+   playingHandle=_motionManager->StartMotionPriority(it->second,false,3);
+   playing=id;
+ }
+ std::string action() const { return playing; }
+ void reset() {
+   manualPose=true; resumeAutomaticPose(); playing.clear();
+   for(int i=0;i<_model->GetPartCount();i++) _model->SetPartOpacity(i,partDefaults[i]);
+   for(auto id:opacityIds) _model->SetParameterValue(id,partDefaults[_model->GetPartIndex(id)]);
+   _model->SetModelOpacity(1.f);
+   if(_pose) _pose->Reset(_model);
  }
  CubismModel& parameters() { return *_model; }
 
@@ -165,11 +234,13 @@ class Model final : public CubismUserModel {
 
  void updateAutomatic(float dt, float mouth) {
    _model->LoadParameters();
+   if(!playing.empty() && _motionManager->IsFinished(playingHandle)) playing.clear();
    if (_motionManager->IsFinished() && !idle.empty()) {
      _motionManager->StartMotionPriority(motions.at(idle), false, 1);
    }
    const bool moved = _motionManager->UpdateMotion(_model, dt);
    _model->SaveParameters();
+   if(!playing.empty() && _motionManager->IsFinished(playingHandle)) playing.clear();
    if (!moved && _eyeBlink) _eyeBlink->UpdateParameters(_model, dt);
    _expressionManager->UpdateMotion(_model, dt);
    if (_physics) _physics->Evaluate(_model, dt);
@@ -182,9 +253,18 @@ class Model final : public CubismUserModel {
    if (!manualPose) updateAutomatic(dt, mouth);
    // Cubism pose drives part visibility (e.g. which Haru arm is drawn).
    if(_pose) _pose->UpdateParameters(_model,dt);
+   // R5 writes PartOpacity curves into virtual parameter IDs; apply these to real parts.
+   for(auto id:opacityIds) _model->SetPartOpacity(id,_model->GetParameterValue(id));
    _model->Update();
-   _modelMatrix->SetHeight(2.0f);
-   CubismMatrix44 m; m.Translate(x,y); m.Scale(zoom*float(h)/w,zoom); m.MultiplyByMatrix(_modelMatrix);
+   CubismMatrix44 m;
+   if(packageMode) {
+     // Fit visible rest geometry once, leaving room for authored movements; no camera pumping.
+     float sy=std::min(1.65f/boundsHeight,1.65f*float(w)/h/boundsWidth),sx=sy*float(h)/w;
+     m.Scale(sx,sy);m.Translate(-centerX*sx,-centerY*sy);
+   } else {
+     _modelMatrix->SetHeight(2.0f);
+     m.Translate(x,y);m.Scale(zoom*float(h)/w,zoom);m.MultiplyByMatrix(_modelMatrix);
+   }
    GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->SetMvpMatrix(&m);
    GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->DrawModel();
  }
@@ -244,6 +324,22 @@ extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeLoad)(JNIEnv* e,jclass,jlong 
  try { auto s=reinterpret_cast<Session*>(handle); auto m=std::make_unique<Model>();m->load(str(e,path),s->w,s->h);s->model=std::move(m); }
  catch(const std::exception& x){error(e,x);}
 }
+extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeLoadPackage)(JNIEnv* e,jclass,jlong handle,jstring root,jstring path,jobjectArray parameters,jobjectArray parts,jobjectArray opacityParts,jobjectArray paths,jobjectArray json) {
+ try {
+   auto strings=[&](jobjectArray a) { std::vector<std::string> result;
+     for(int i=0;i<e->GetArrayLength(a);i++) {auto s=static_cast<jstring>(e->GetObjectArrayElement(a,i));result.push_back(str(e,s));e->DeleteLocalRef(s);} return result; };
+   auto s=reinterpret_cast<Session*>(handle); auto m=std::make_unique<Model>();
+   auto names=strings(paths),data=strings(json); std::map<std::string,std::string> normalized;
+   for(size_t i=0;i<names.size();i++) normalized.emplace(str(e,root)+"/"+names[i],data.at(i));
+   m->load(str(e,path),s->w,s->h,str(e,root),strings(parameters),strings(parts),normalized,strings(opacityParts));
+   s->model=std::move(m); s->zoom=1; s->x=0; s->y=0; s->mouth=0;
+   s->previous=std::chrono::steady_clock::now();
+ } catch(const std::exception& x){error(e,x);}
+}
+extern "C" JNIEXPORT jstring JNICALL JNI_METHOD(nativeAction)(JNIEnv* e,jclass,jlong h) {
+ auto& m=reinterpret_cast<Session*>(h)->model;
+ return e->NewStringUTF(m?m->action().c_str():"");
+}
 extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeCommand)(JNIEnv* e,jclass,jlong handle,jstring action,jstring value,jfloat number) {
  try {auto s=reinterpret_cast<Session*>(handle);auto a=str(e,action);
    if(a=="unload")s->model.reset();
@@ -251,8 +347,10 @@ extern "C" JNIEXPORT void JNICALL JNI_METHOD(nativeCommand)(JNIEnv* e,jclass,jlo
    else if(a=="zoom")s->zoom=std::clamp(float(number),.4f,3.f);
    else if(a=="x")s->x=std::clamp(float(number),-2.f,2.f);
    else if(a=="y")s->y=std::clamp(float(number),-2.f,2.f);
+   else if(a=="clock")s->previous=std::chrono::steady_clock::now();
    else if(!s->model)throw std::runtime_error("Model not loaded");
    else if(a=="automaticPose")s->model->resumeAutomaticPose();
+   else if(a=="reset")s->model->reset();
    else if(a=="expression")s->model->expression(str(e,value));
    else if(a=="motion")s->model->motion(str(e,value));
    else throw std::runtime_error("Unknown command");

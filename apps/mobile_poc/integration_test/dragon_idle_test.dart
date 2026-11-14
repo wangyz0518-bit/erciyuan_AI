@@ -9,7 +9,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:companion_poc/dragon_idle_page.dart';
-import 'package:companion_poc/main_live2d.dart' as app;
+import 'package:companion_poc/main_dragon_idle.dart' as app;
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();

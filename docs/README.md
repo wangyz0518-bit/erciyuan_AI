@@ -8,7 +8,7 @@ C 线双路线 Demo：[运行指南](guides/avatar-demos-20261113.md)、[技术�
 
 C 线 Live2D 试验：[运行指南](guides/live2d-flutter-poc-20261112.md)、[验收记录](reports/live2d-flutter-poc-20261112.md)。
 
-C 线第二步到第三步的离线联调：[人物资源包契约 v0.1 草案](接口/avatar-package-contract-20261113.md)、[制作方任务书](接口/avatar-package-producer-brief-20261113.md)。当前外部 ZIP 导入及 manifest 解析尚未实现。
+C 线第二步到第三步的离线联调：[人物资源包契约 v0.1](接口/avatar-package-contract-20261113.md)、[制作方任务书](接口/avatar-package-producer-brief-20261113.md)、[ZIP 体验器指南](guides/avatar-package-preview-20261114.md)、[验收记录](reports/avatar-package-acceptance-20261114.md)。Android 独立入口已实现外部 ZIP 导入、校验和动作播放，当前使用官方 Mark 参考包；生成服务器与同事模型待联调。
 
 | 文档 | 用途 | 更新时机 |
 | --- | --- | --- |

@@ -47,8 +47,16 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
   private String[][] poseParts = new String[0][];
   private int loads, unloads, surfaceRebuilds;
   private Map<String,Object> capabilities = new HashMap<>();
+  private AvatarPackageStore packageStore;
+  private AvatarPackage currentPackage;
+  private static final class PackageFailure extends Exception {
+    final String code;
+    PackageFailure(String code,String message) { super(message);this.code=code; }
+  }
   private static native long nativeCreate(AssetManager assets, Surface surface);
   private static native void nativeLoad(long handle, String path);
+  private static native void nativeLoadPackage(long handle, String root, String path, String[] parameters, String[] parts, String[] opacityParts, String[] jsonPaths, String[] jsonData);
+  private static native String nativeAction(long handle);
   private static native void nativeCommand(long handle, String action, String value, float number);
   private static native void nativeFrame(long handle);
   private static native void nativeDestroy(long handle);
@@ -121,6 +129,7 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
 
   @Override public void onAttachedToEngine(FlutterPluginBinding b) {
     binding=b; channel=new MethodChannel(b.getBinaryMessenger(),"erciyuan/live2d");channel.setMethodCallHandler(this);
+    packageStore=new AvatarPackageStore(b.getApplicationContext());
   }
   private final Runnable tick = new Runnable() {
     @Override public void run() {
@@ -129,12 +138,14 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
       catch(Exception e) {frameError=e.getMessage();active=false;}
     }
   };
-  private void attachSurface(Surface surface) {
+  private void attachSurface(Surface surface) throws Exception {
     if(disposed)return;
     destroyNative();
     handle=nativeCreate(binding.getApplicationContext().getAssets(),surface);
     surfaceRebuilds++;
-    if(path!=null)nativeLoad(handle,path);
+    if(path!=null) {
+      if(currentPackage!=null) loadNativePackage(currentPackage); else nativeLoad(handle,path);
+    }
     nativeCommand(handle,"mouth","",mouth);nativeCommand(handle,"zoom","",zoom);
     nativeCommand(handle,"x","",offsetX);nativeCommand(handle,"y","",offsetY);
     if (path != null && savedPose != null) {
@@ -170,6 +181,7 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
       try {
         disposed = true;
         path = null;
+        currentPackage = null;
         manualPose = false;
         savedPose = null;
         savedParts = null;
@@ -211,6 +223,19 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
     }
   }
   @Override public void onMethodCall(MethodCall call, MethodChannel.Result result) {
+    if(call.method.equals("capture")) {
+      if(producer==null) { result.error("capture_failed","Surface unavailable",null); return; }
+      var bitmap=android.graphics.Bitmap.createBitmap(360,640,android.graphics.Bitmap.Config.ARGB_8888);
+      android.view.PixelCopy.request(producer.getSurface(),bitmap,code->{
+        try {
+          if(code!=android.view.PixelCopy.SUCCESS) throw new IllegalStateException("PixelCopy: "+code);
+          var file=new java.io.File(binding.getApplicationContext().getCacheDir(),"avatar-preview.png");
+          try(var out=new java.io.FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out); }
+          result.success(file.getPath());
+        }catch(Exception e){ result.error("capture_failed",e.getMessage(),null); }
+        finally { bitmap.recycle(); }
+      },main); return;
+    }
     if(call.method.equals("create")) {
       if(producer!=null || !owner.compareAndSet(false,true)){result.error("busy","Only one Live2D view is supported",null);return;}
       thread=new HandlerThread("Live2D-render");thread.start();render=new Handler(thread.getLooper());
@@ -244,6 +269,52 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
         Object response=null;
         if(disposed)throw new IllegalStateException("View disposed");
         switch(call.method){
+          case "packageList": response=packageStore.list(); break;
+          case "packageImport":
+          case "packageOpen":
+          case "packageRestore": {
+            AvatarPackage candidate=null;
+            try {
+              if(call.method.equals("packageImport")) candidate=packageStore.prepare(call.argument("path"));
+              else {
+                String key=call.method.equals("packageRestore")?packageStore.last():call.argument("key");
+                if(key.isEmpty()) break;
+                candidate=packageStore.open(key);
+              }
+            } catch(Exception e) { throw new PackageFailure("package_structure","结构校验失败："+e.getMessage()); }
+            if(handle==0) throw new IllegalStateException("Surface unavailable");
+            long t=SystemClock.elapsedRealtime();
+            try { loadNativePackage(candidate); }
+            catch(Exception e) { packageStore.discard(candidate); throw new PackageFailure("package_sdk","SDK 校验失败："+e.getMessage()); }
+            try { packageStore.commit(candidate); }
+            catch(Exception e) {
+              if(currentPackage!=null) loadNativePackage(currentPackage);
+              else if(path!=null) nativeLoad(handle,path);
+              else nativeCommand(handle,"unload","",0);
+              throw e;
+            }
+            currentPackage=candidate; path=candidate.file(candidate.manifest.getString("entry")).getPath();
+            parameterIds=nativeParameterIds(handle); manualPose=false; savedPose=null; savedParts=null; poseParts=new String[0][];
+            zoom=1; offsetX=0; offsetY=0; mouth=0;
+            capabilities=new HashMap<>(); capabilities.put("parameters",parameterInfo());
+            loads++; lastLoadMs=SystemClock.elapsedRealtime()-t; frameError=null;
+            response=packageStore.describe(candidate); break;
+          }
+          case "packageAction": {
+            if(currentPackage==null || handle==0) throw new IllegalStateException("请先导入人物包");
+            if(!active) throw new IllegalStateException("请先继续播放");
+            String id=call.argument("id");
+            if(id.equals("idle") || !currentPackage.manifest.getJSONObject("actions").has(id)) throw new IllegalArgumentException("未声明动作: "+id);
+            if(!nativeAction(handle).isEmpty()) throw new PackageFailure("package_busy","请等待当前动作完成");
+            nativeCommand(handle,"motion",currentPackage.actionKey(id),0); break;
+          }
+          case "packageExpression": {
+            if(currentPackage==null || handle==0) throw new IllegalStateException("请先导入人物包");
+            JSONObject ex=currentPackage.manifest.optJSONObject("expressions"); String id=call.argument("id");
+            if(ex==null || !ex.has(id)) throw new IllegalArgumentException("未声明表情: "+id);
+            if(!nativeAction(handle).isEmpty()) throw new IllegalStateException("busy: 请等待动作完成");
+            nativeCommand(handle,"expression",ex.getJSONObject(id).getString("name"),0); break;
+          }
           case "load": {
             String key=binding.getFlutterAssets().getAssetFilePathByName(call.argument("asset"));
             Map<String,Object> info=validate(key);
@@ -251,6 +322,7 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
             if(handle==0)throw new IllegalStateException("Surface unavailable");
             long t=SystemClock.elapsedRealtime();
             nativeLoad(handle,key);
+            currentPackage=null;
             parameterIds = nativeParameterIds(handle);
             manualPose = false;
             savedPose = null;
@@ -264,6 +336,7 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
             response=info;break;
           }
           case "unload":
+            currentPackage=null;
             path=null;capabilities=new HashMap<>();mouth=0;unloads++;
             parameterIds = new String[0];
             manualPose = false;
@@ -274,12 +347,15 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
           case "active":
             active=Boolean.TRUE.equals(call.argument("value"));mouth=0;
             if(handle!=0)nativeCommand(handle,"mouth","",0);
+            if(handle!=0)nativeCommand(handle,"clock","",0);
             render.removeCallbacks(tick);if(active && handle!=0)render.post(tick);break;
           case "pose":
+            if(currentPackage!=null) throw new IllegalArgumentException("人物包不开放关节控制");
             response = setPose(call.argument("values"), call.argument("parts"));
             break;
           case "command": {
             String action=call.argument("action");String value=call.argument("value");Number number=call.argument("number");
+            if(currentPackage!=null && !action.equals("reset")) throw new IllegalArgumentException("人物包仅接受语义动作和重置");
             float n=number==null?0:number.floatValue();
             if(!Float.isFinite(n))throw new IllegalArgumentException("Parameter must be finite");
             if(action.equals("mouth"))mouth=Math.max(0,Math.min(1,n));
@@ -300,13 +376,20 @@ public final class Live2dPlugin implements FlutterPlugin, MethodChannel.MethodCa
             s.put("mouth",mouth);s.put("error",frameError);s.put("capabilities",capabilities);
             s.putAll(poseState());
             s.put("manualPose", manualPose);
+            s.put("playingMotion",handle==0?"":nativeAction(handle));
+            s.put("packageKey",currentPackage==null?"":packageStore.key(currentPackage));
             response=s;break;
           }
           default: main.post(result::notImplemented);return;
         }
         final Object answer=response;main.post(()->result.success(answer));
-      }catch(Exception e){main.post(()->result.error("live2d_error",e.getMessage(),null));}
+      }catch(Exception e){main.post(()->result.error(e instanceof PackageFailure?((PackageFailure)e).code:"live2d_error",e.getMessage(),null));}
     });
+  }
+  private void loadNativePackage(AvatarPackage p) throws Exception {
+    String[] jsonPaths=p.sdkPaths();
+    nativeLoadPackage(handle,p.root.getCanonicalPath(),p.file(p.manifest.getString("entry")).getPath(),
+      p.parameters.toArray(new String[0]),p.parts.toArray(new String[0]),p.opacityParts.toArray(new String[0]),jsonPaths,p.sdkJson(jsonPaths));
   }
   private void checkFile(String dir,String file) throws Exception {
     if(file.isEmpty()||file.startsWith("/")||file.contains("..")||file.contains(":"))throw new IllegalArgumentException("Invalid asset reference");

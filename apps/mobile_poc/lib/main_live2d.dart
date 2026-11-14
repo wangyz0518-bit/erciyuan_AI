@@ -1,11 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'live2d_preview_page.dart';
-import 'dragon_idle_page.dart';
+import 'avatar_package_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const DragonIdlePreviewApp());
+  runApp(const AvatarPackageApp());
 }
 
 class Live2dPreviewApp extends StatelessWidget {

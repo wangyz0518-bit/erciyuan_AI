@@ -6,6 +6,7 @@
 
 | 文档 | 范围与状态 |
 | --- | --- |
+| [v0.1 人物包链路](avatar-package-acceptance-20261114.md) | 外部包、SDK 校验、动作与失败回滚；Android 模拟器 |
 | [双路线 Demo 技术验收](avatar-demos-smoke-20261113.md) | 模型渲染与视频解码调度通过；AI 视觉与真机未验证 |
 | [Live2D Flutter 接入](live2d-flutter-poc-20261112.md) | C 线原生对照与 Flutter 纹理接入结果 |
 | [android-poc-report-20261112.md](android-poc-report-20261112.md) | 第一批七项 Android 模拟器验证；区分通过、部分通过和未验证项 |
