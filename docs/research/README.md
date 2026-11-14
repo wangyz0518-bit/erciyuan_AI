@@ -2,6 +2,10 @@
 
 | 文档 | 主题 | 日期 | 状态 | 主要结论 |
 | --- | --- | --- | --- | --- |
+| [avatar-ai-live2d-review-20261114.md](avatar-ai-live2d-review-20261114.md) | AI 素材 + Live2D 当前路线 | 2026-11-14 | 草案 | 同种运行模型，重点验证素材与绑定制作 |
+| [dragon-layer-materials-20261114.md](dragon-layer-materials-20261114.md) | 当前角色分层清单 | 2026-11-14 | 草案 | 四层技术试验及完整呼吸／挥手／腿部素材要求 |
+| [avatar-live2d-video-review-20261113.md](avatar-live2d-video-review-20261113.md) | 人物模型与视频动作可行性复核 | 2026-11-13 | 草案 | 两条路线可试验，关键制作与衔接能力待测 |
+| [avatar-dual-demo-plan-20261113.md](avatar-dual-demo-plan-20261113.md) | 原模型／视频双 Demo 计划 | 2026-11-13 | 历史参考 | 第二方案已于 11 月 14 日调整，见新路线 |
 | [mobile-stack-research-20261111.md](mobile-stack-research-20261111.md) | 移动端框架技术调研 | 2026-11-11 | 供参考 | Android/iOS 前提下建议 Flutter 优先 |
 | [mobile-stack-review-20261111.md](mobile-stack-review-20261111.md) | 三端需求复核 | 2026-11-11 | 待评审 | 含原生鸿蒙时建议 uni-app 优先，Flutter 备选 |
 
