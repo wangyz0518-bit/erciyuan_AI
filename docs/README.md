@@ -4,7 +4,7 @@
 
 ## 入口
 
-C 线待执行决策：[ADR-0003 双 Demo 评估](decisions/0003-avatar-live2d-video-demo.md)、[可行性复核](research/avatar-live2d-video-review-20261113.md)、[实施与验收计划](research/avatar-dual-demo-plan-20261113.md)。最终路线尚未选定，实际 Demo 进展按验收记录更新。
+C 线待执行决策：[ADR-0003](decisions/0003-avatar-live2d-video-demo.md)。2026-11-14 第二方案调整为 [AI 素材 → Live2D](research/avatar-ai-live2d-review-20261114.md)，见[当前角色分层清单](research/dragon-layer-materials-20261114.md)。视频路线保留历史，当前自定义模型制作与验收仍待完成。
 
 | 文档 | 用途 | 更新时机 |
 | --- | --- | --- |

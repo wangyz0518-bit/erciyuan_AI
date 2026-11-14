@@ -1,0 +1,28 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>龙角角色 · 分层素材检查</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:16px/1.7 system-ui,sans-serif;color:#282235;background:#f4f1f8}
+main{max-width:1120px;margin:auto;padding:24px}h1{font-size:26px;margin:0}p{margin:8px 0 20px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px}
+.stage{position:relative;aspect-ratio:1287/1222;background:#ded6e9;border-radius:16px;overflow:hidden}
+.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.stage.explode img:nth-child(1){transform:translateX(-8%)}.stage.explode img:nth-child(2){transform:translateX(8%)}.stage.explode img:nth-child(3){transform:translateX(10%)}.stage.explode img:nth-child(4){opacity:.6}
+aside{background:white;border-radius:16px;padding:20px}label{display:block;margin:12px 0}button,select{font:inherit;padding:6px 12px;margin:6px 0;cursor:pointer}
+small{display:block;color:#665a73}.flag{background:#fff0ce;border-radius:8px;padding:10px}
+@media(max-width:700px){.layout{grid-template-columns:1fr}}
+</style><main><h1>当前角色 · AI 分层素材检查</h1>
+<p>真实生成的四层 PNG，检查层序、透明边缘与对齐。<strong>这是素材预览，还不是 Live2D 模型。</strong></p>
+<div class="layout"><div class="stage" id="stage">
+<img id="wing-left" src="assets/wing-left.png" alt="左翼"><img id="wing-right" src="assets/wing-right.png" alt="右翼"><img id="tail" src="assets/tail.png" alt="尾巴"><img id="body" src="assets/body.png" alt="主体">
+</div><aside><strong>逐层检查</strong><div id="toggles"></div>
+<label>背景<select id="bg"><option value="#ded6e9">淡紫</option><option value="#22222c">深灰</option><option value="#ffffff">白色</option></select></label>
+<button id="explode">分开展示</button><button id="reset">重置</button>
+<p class="flag">已生成 PNG 和四层 PSD。Cubism 导入、绑定、MOC3 导出及 App 动作验证分别记录，不能由此预览推断完成。</p>
+<small>当前主体尚未拆分眼口、胸腹、手臂、腿和裙摆。没有独立呼吸、挥手或腿部动作。</small>
+<a href="README.md">制作说明</a>
+</aside></div></main>
+<script>
+const names={'body':'主体','wing-left':'画面左翼','wing-right':'画面右翼','tail':'尾巴'};
+for(const [id,name] of Object.entries(names)){const label=document.createElement('label'),box=document.createElement('input');box.type='checkbox';box.checked=true;box.onchange=()=>document.getElementById(id).hidden=!box.checked;label.append(box,document.createTextNode(' '+name));document.getElementById('toggles').append(label);}
+document.getElementById('bg').onchange=e=>document.getElementById('stage').style.background=e.target.value;
+document.getElementById('explode').onclick=()=>document.getElementById('stage').classList.toggle('explode');
+document.getElementById('reset').onclick=()=>location.reload();
+</script></html>
