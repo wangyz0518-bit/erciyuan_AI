@@ -47,6 +47,6 @@ for(let k=0;k<children.length;k++) {
 }
 const result={date:'2026-11-14',width,height,layerOrder:order,checks,psdBytes:psd.length,
   psdRoundTrip:'four layer names and all RGBA pixels preserved',
-  cubismImport:'not verified',modelExport:'not completed',appPlayback:'not completed'};
+  scope:'PSD round-trip only; Cubism/runtime results are recorded separately in README.md'};
 fs.writeFileSync(path.join(dir,'build','preflight.json'),JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify(result,null,2));

@@ -5,6 +5,8 @@
 > 负责人：待定
 > 关联：ADR-0003、C 线、A 页面装配
 
+> 执行更新：四层模型已完成真实 Cubism 绑定及 MOC3 导出，并在 Windows Viewer 循环播放。动作直接编写 motion3.json，未制作 CAN3；完整身体动作及 App 接入仍待执行。见[实际验收](../reports/dragon-live2d-minimal-20261114.md)。
+
 ## 当前方向
 
 用户于 2026-11-14 确认将第二种方案改为“AI 生成角色素材 → 分层整理与补画 → Cubism 绑定及动作制作 → 导出 Live2D 模型 → Flutter App”。不再把 AI 视频片段作为第二方案的当前交付目标。

@@ -4,7 +4,7 @@
 
 ## 入口
 
-C 线待执行决策：[ADR-0003](decisions/0003-avatar-live2d-video-demo.md)。2026-11-14 第二方案调整为 [AI 素材 → Live2D](research/avatar-ai-live2d-review-20261114.md)，见[当前角色分层清单](research/dragon-layer-materials-20261114.md)。视频路线保留历史，当前自定义模型制作与验收仍待完成。
+C 线待执行决策：[ADR-0003](decisions/0003-avatar-live2d-video-demo.md)。2026-11-14 第二方案调整为 [AI 素材 → Live2D](research/avatar-ai-live2d-review-20261114.md)，见[当前角色分层清单](research/dragon-layer-materials-20261114.md)。四层角色已完成[真实模型与翼尾待机最小验证](reports/dragon-live2d-minimal-20261114.md)；完整身体动作和 App 自定义模型接入仍待执行。视频路线保留历史。
 
 | 文档 | 用途 | 更新时机 |
 | --- | --- | --- |
@@ -12,6 +12,7 @@ C 线待执行决策：[ADR-0003](decisions/0003-avatar-live2d-video-demo.md)。
 | [process/](process/README.md) | 团队安排、协作流程、文档规范 | 按需 |
 | [research/](research/README.md) | 调研、选型、技术评估 | 按需 |
 | [decisions/](decisions/README.md) | 架构与选型决策记录 | 每次决策 |
+| [reports/](reports/README.md) | 实际验证结果与能力边界 | 每次验收 |
 | [guides/](guides/README.md) | 配置、开发、排障，含 [Windows 安卓开发环境搭建与验证](guides/windows-android-setup-20261112.md) | 按需 |
 | [接口/](接口/README.md) | 接口契约草案（暂缓整理） | 接口变更时 |
 
@@ -28,5 +29,4 @@ C 线待执行决策：[ADR-0003](decisions/0003-avatar-live2d-video-demo.md)。
 | --- | --- |
 | `architecture.md` | 技术栈确定后 |
 | `api/` | 接口进入实现阶段，从 `接口/` 迁入 |
-| `reports/` | 第一阶段验收时 |
 | `archive/` | 出现第一份过期文档时 |
