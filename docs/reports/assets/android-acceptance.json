@@ -1,0 +1,9 @@
+{
+  "twenty_ui_rounds": "passed; Chinese/emoji/multiline entered through Flutter test input, not a native IME",
+  "dedupe_and_retry": "passed; retry reused user message",
+  "late_reply_after_cancel": "passed after waiting beyond six-second delay",
+  "ten_role_switches_while_waiting": "passed",
+  "avatar_states_and_fallback": "passed; generated placeholder drawing, no image generation",
+  "audio_play_stop_switch_page_role": "passed through real Android player; host audible output requires separate check",
+  "sqlite_close_reopen_100_rows": "passed; real process and emulator restart checked separately"
+}

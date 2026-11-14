@@ -4,6 +4,12 @@
 
 ## 入口
 
+C 线双路线 Demo：[运行指南](guides/avatar-demos-20261113.md)、[技术验收](reports/avatar-demos-smoke-20261113.md)、[待执行决策 PR #20](https://github.com/wangyz0518-bit/erciyuan_AI/pull/20)。官方模型与播放器底座已验证，当前角色正式模型及 AI 动作视频待补。
+
+C 线 Live2D 试验：[运行指南](guides/live2d-flutter-poc-20261112.md)、[验收记录](reports/live2d-flutter-poc-20261112.md)。
+
+C 线第二步到第三步的离线联调：[人物资源包契约 v0.1](接口/avatar-package-contract-20261113.md)、[制作方任务书](接口/avatar-package-producer-brief-20261113.md)、[ZIP 体验器指南](guides/avatar-package-preview-20261114.md)、[验收记录](reports/avatar-package-acceptance-20261114.md)。Android 独立入口已实现外部 ZIP 导入、校验和动作播放，当前使用官方 Mark 参考包；生成服务器与同事模型待联调。
+
 | 文档 | 用途 | 更新时机 |
 | --- | --- | --- |
 | [state.md](state.md) | 当前阶段、待办、风险、下一步 | 每周或阶段变化时 |
@@ -11,6 +17,7 @@
 | [research/](research/README.md) | 调研、选型、技术评估 | 按需 |
 | [decisions/](decisions/README.md) | 架构与选型决策记录 | 每次决策 |
 | [guides/](guides/README.md) | 配置、开发、排障，含 [Windows 安卓开发环境搭建与验证](guides/windows-android-setup-20261112.md) | 按需 |
+| [reports/](reports/README.md) | 实际验证结果、问题与证据边界 | 每轮验证后 |
 | [接口/](接口/README.md) | 接口契约草案（暂缓整理） | 接口变更时 |
 
 ## 约定
@@ -26,5 +33,4 @@
 | --- | --- |
 | `architecture.md` | 技术栈确定后 |
 | `api/` | 接口进入实现阶段，从 `接口/` 迁入 |
-| `reports/` | 第一阶段验收时 |
 | `archive/` | 出现第一份过期文档时 |

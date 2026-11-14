@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-本仓库处于规划与团队协作准备阶段。目前包含开发计划、配图和文档生成工具，尚无产品代码或可运行的应用。计划中的功能、测试数量和验收条件均为目标，不代表已经实现。
+本仓库包含开发计划和 `apps/mobile_poc` 本地能力验证工程。验证版提供模拟聊天、角色占位展示、SQLite 存储及录音播放；真实 AI 服务和双端真机验收尚未完成。当前进展、运行方法和验证记录见 [文档索引](docs/README.md)。
 
 第一阶段先完成手机文字聊天骨架、可恢复的角色和对话记录，并分别验证形象、声音能力。完整语音联动、普通用户角色创建、完整记忆和用量管理在后续阶段推进。
 
@@ -34,11 +34,12 @@ git clone https://github.com/wangyz0518-bit/erciyuan_AI.git
 cd erciyuan_AI
 ```
 
-当前不需要启动应用。若要重新生成 Word 计划，参考 [文档工具说明](planning/README.md#重新生成文档)。
+启动 Flutter 验证版请参考 [文档索引](docs/README.md) 中的操作指南。若要重新生成 Word 计划，参考 [文档工具说明](planning/README.md#重新生成文档)。
 
 ## 目录
 
 - `AGENTS.md`：AI 协作规则与项目约束。
+- `apps/mobile_poc/`：Flutter 本地验证工程、自动检查和安卓集成测试。
 - `docs/`：文档索引入口，详见 `docs/README.md`。
 - `docs/state.md`：当前阶段、待办、风险。
 - `docs/process/`：团队安排、协作流程与文档规范。
@@ -52,4 +53,4 @@ cd erciyuan_AI
 - `planning/build_*.py`：文档生成脚本。
 - `planning/inspect_pdf.py`：PDF 排版检查工具。
 
-本地排版检查产物、环境配置和密钥不纳入 Git。Flutter 工程目录随工程初始化建立。
+本地排版检查产物、环境配置、录音和密钥不纳入 Git。验证版的模拟能力与真实能力须按测试记录区分。

@@ -38,4 +38,4 @@ git push -u origin docs/interface-v1
 
 检查 `git status` 和 `git diff --cached`，确认只包含本次需要共享的文件。API 密钥、令牌、`.env`、私人录音、真实聊天记录和未经团队确认的个人资料不提交；示例配置只使用占位值。
 
-文档工具变更运行相关脚本检查；产品实现后按所选技术栈补充相应的验证步骤。目前没有产品测试或 CI。
+文档工具变更运行相关脚本检查；Flutter PoC 的分析、单元测试和模拟器验收命令见 `docs/guides/flutter-poc-guide-20261112.md`。目前尚未配置 CI。

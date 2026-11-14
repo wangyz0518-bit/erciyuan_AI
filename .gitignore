@@ -20,6 +20,12 @@ __pycache__/
 
 # Dependency and build outputs
 node_modules/
+/.local/
+/.worktrees/
+/packages/live2d_avatar/android/.cxx/
+/packages/live2d_avatar/android/src/main/assets/live2d_shaders/
+/apps/mobile_poc/assets/live2d/
+/apps/mobile_poc/android/.kotlin/
 dist/
 build/
 coverage/
