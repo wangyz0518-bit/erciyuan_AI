@@ -6,6 +6,7 @@
 
 | 文档 | 范围与状态 |
 | --- | --- |
+| [model-gateway-20261115.md](model-gateway-20261115.md) | 思考模型主接口与声音接口；区分真实调用、替身测试和人工待确认 |
 | [immersive-chat-flutter-20261112.md](immersive-chat-flutter-20261112.md) | 沉浸聊天界面、录音试听与通话演示；本轮 Android 验收 |
 | [android-poc-report-20261112.md](android-poc-report-20261112.md) | 第一批七项 Android 模拟器验证；区分通过、部分通过和未验证项 |
 

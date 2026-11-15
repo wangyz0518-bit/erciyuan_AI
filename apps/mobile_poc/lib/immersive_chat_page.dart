@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import 'audio_controller.dart';
 import 'chat_controller.dart';
 import 'poc_tools_page.dart';
+import 'reply_speech_controller.dart';
 import 'widgets/character_scene.dart';
 import 'widgets/chat_sidebar.dart';
 import 'widgets/chat_messages.dart';
@@ -32,6 +33,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
   bool panelOpen = false, toolsOpen = false;
   final callClock = Stopwatch();
   Timer? callTimer;
+  ReplySpeechController? speech;
   ChatController get chat => widget.chat;
   AudioController get audio => widget.audio;
   @override
@@ -41,6 +43,20 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     chat.addListener(refresh);
     audio.addListener(refresh);
     input.addListener(refresh);
+    if (chat.gateway != null) {
+      speech = ReplySpeechController(chat.gateway!, audio)
+        ..addListener(refresh);
+      chat.onReplyComplete = (message, requestId) {
+        if (mounted &&
+            foreground &&
+            !toolsOpen &&
+            !calling &&
+            !panelOpen &&
+            message.characterId == chat.selected) {
+          unawaited(speech!.speak(requestId, message.characterId));
+        }
+      };
+    }
   }
 
   void refresh() {
@@ -65,6 +81,9 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     input.dispose();
     focus.dispose();
     callTimer?.cancel();
+    chat.onReplyComplete = null;
+    speech?.removeListener(refresh);
+    speech?.dispose();
     unawaited(audio.stopAll());
     super.dispose();
   }
@@ -91,6 +110,9 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
   Future<void> send() async {
     if (changingRole) return;
     final text = input.text, role = chat.selected;
+    // Invalidate late speech synchronously, but reserve chat.busy immediately.
+    // Waiting for the native player here creates a gap before submission starts.
+    unawaited(audio.stopAll());
     await chat.send(
       text,
       onSaved: () {
@@ -234,9 +256,13 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
               unawaited(openTools());
             },
           ),
-          const ListTile(
-            title: Text('离线验证版'),
-            subtitle: Text('回复为模拟内容；录音仅供试听，通话为交互演示。'),
+          ListTile(
+            title: Text(chat.gateway == null ? '离线验证版' : '模型接口验证版'),
+            subtitle: Text(
+              chat.gateway == null
+                  ? '回复为模拟内容；录音仅供试听，通话为交互演示。'
+                  : '文字通过后端生成，回复完成后朗读。录音仅本地试听，通话为演示。',
+            ),
           ),
         ],
       ],
@@ -353,7 +379,13 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                                     ),
                                   ),
                                   Text(
-                                    chat.busy ? '正在回应 · 模拟回复' : 'AI 角色 · 离线体验',
+                                    chat.gateway == null
+                                        ? (chat.busy
+                                              ? '正在回应 · 模拟回复'
+                                              : 'AI 角色 · 离线体验')
+                                        : (chat.busy
+                                              ? '正在回应…'
+                                              : 'AI 角色 · 在线对话'),
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Color(0xFFE0C9C3),
@@ -593,6 +625,44 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                                                 ),
                                               ),
                                             const SizedBox(height: 8),
+                                            if (speech != null &&
+                                                speech!.status.isNotEmpty)
+                                              Row(
+                                                key: const Key('reply-speech'),
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      speech!.failed
+                                                          ? speech!.status
+                                                          : speech!.busy
+                                                          ? '正在生成语音…'
+                                                          : audio.playing
+                                                          ? '正在朗读'
+                                                          : '朗读结束',
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  if (speech!.failed)
+                                                    TextButton(
+                                                      key: const Key(
+                                                        'retry-speech',
+                                                      ),
+                                                      onPressed: speech!.retry,
+                                                      child: const Text('重试朗读'),
+                                                    )
+                                                  else if (speech!.busy ||
+                                                      audio.playing)
+                                                    TextButton(
+                                                      key: const Key(
+                                                        'stop-speech',
+                                                      ),
+                                                      onPressed: audio.stopAll,
+                                                      child: const Text('停止朗读'),
+                                                    ),
+                                                ],
+                                              ),
                                             ChatComposer(
                                               textMode: textMode,
                                               input: input,

@@ -8,7 +8,7 @@
 
 ## 当前阶段
 
-仓库包含规划文档及 `apps/mobile_poc` 本地能力验证工程。真实 AI 服务尚未接入；模拟器验证不能代替 Android/iOS 真机验收。
+仓库包含规划文档、`apps/mobile_poc` Flutter 验证工程及 `services/model_gateway` 本机模型网关。本分支支持 DeepSeek 回复与 CosyVoice Flash 朗读，保留离线模拟模式；模拟器验证不能代替 Android/iOS 真机验收。
 
 第一阶段目标：
 
@@ -34,6 +34,8 @@
 - `planning/assets/`：规划配图；聊天界面图为概念示意，不是运行截图。
 
 Flutter PoC 工程位于 `apps/mobile_poc`，分层与运行方法见 [运行指南](docs/guides/flutter-poc-guide-20261112.md)。继续由 [#10](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10) 跟踪双端验证。
+
+模型网关使用 Python/FastAPI，运行见 [模型接口指南](docs/guides/model-gateway-20261115.md)，本版接口以 [v0 契约](docs/接口/model-gateway-v0.md) 为准。供应商密钥只在后端，本机配置/音频/请求缓存存于 Git 忽略的 `.model-local/`。该服务仅供单用户本机联调，不直接公开部署。后端离线测试在 `services/model_gateway` 执行 `python -m pytest -q`。
 
 ## 命令
 

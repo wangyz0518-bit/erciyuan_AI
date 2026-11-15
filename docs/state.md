@@ -1,12 +1,12 @@
 # 当前状态
 
 > 状态：有效
-> 更新：2026-11-12
+> 更新：2026-11-15
 > 维护：团队共同更新，阶段变化时优先更新本文件
 
 ## 阶段
 
-第一批本地能力验证。`apps/mobile_poc` 已建立 Flutter 工程；当前验证使用 Android 模拟器、模拟回复、原型插画与占位角色。真实服务与 Android/iOS 真机尚未完成，详见 [本批记录](reports/android-poc-report-20261112.md) 和 [沉浸聊天验收](reports/immersive-chat-flutter-20261112.md)。
+本地能力验证及模型接口联调。`apps/mobile_poc` 保留离线模拟模式，新任务分支增加 DeepSeek 回复与 CosyVoice Flash 朗读，先在 Android 模拟器验证。Android/iOS 真机尚未完成，详见 [本批记录](reports/android-poc-report-20261112.md)、[沉浸聊天验收](reports/immersive-chat-flutter-20261112.md) 和 [模型接口验收](reports/model-gateway-20261115.md)。
 
 ## 已完成
 
@@ -18,6 +18,8 @@
 - 三个 PoC 页面及本地存储、模拟回复、角色展示、录音播放实现；构建和检查命令见 [运行指南](guides/flutter-poc-guide-20261112.md)。
 
 ## 进行中
+
+- 独立分支 `codex/deepseek-cosyvoice-gateway`：本机 Python/FastAPI 网关、DeepSeek 完整回复后调用 CosyVoice Flash、声音失败单独重试；录音转文字仅占位。手机 SQLite 表不变，密钥在服务端，尚非生产或多用户服务。
 
 - 独立分支 `codex/immersive-chat-flutter` 接入 PR #15/v4 沉浸聊天设计，保留 PR #13 聊天与数据库能力。录音采用“松开试听、不保存聊天消息”，通话仅演示；结果见[本轮验收](reports/immersive-chat-flutter-20261112.md)。PR #13/#15 仍待评审，未合并。
 - 已执行 [#10 Flutter 双端 PoC 与工程初始化](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10) 的第一批七项模拟器检查。拼音选词发送、人声录制回放及六轮重启恢复已复测。此前的冷启动异常未复现，原因仍未查明。双端真机结果待补。

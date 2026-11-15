@@ -6,11 +6,15 @@ import 'audio_controller.dart';
 import 'immersive_chat_page.dart';
 import 'chat_controller.dart';
 import 'data.dart';
+import 'model_gateway.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    final chat = ChatController(await LocalStore.open());
+    final chat = ChatController(
+      await LocalStore.open(),
+      gateway: ModelGateway.configured(),
+    );
     await chat.init();
     runApp(CompanionApp(chat: chat, audio: AudioController()));
   } catch (_) {

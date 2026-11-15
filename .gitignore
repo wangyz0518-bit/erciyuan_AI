@@ -10,6 +10,7 @@
 *.key
 credentials.json
 secrets.json
+.model-local/
 
 # Python environments and caches
 .venv/

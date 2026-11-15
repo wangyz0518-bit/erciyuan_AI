@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'data.dart';
+import 'model_gateway.dart';
 
 enum ReplyMode { normal, failure, delayed }
 
@@ -10,9 +11,13 @@ class ChatController extends ChangeNotifier {
   ChatController(
     this.store, {
     this.chunkDelay = const Duration(milliseconds: 75),
+    this.gateway,
   });
   final LocalStore store;
   final Duration chunkDelay;
+  final ModelGateway? gateway;
+  void Function(Message message, String requestId)? onReplyComplete;
+  String? _requestId;
   List<Character> characters = [];
   List<Message> messages = [];
   String selected = 'xing';
@@ -48,6 +53,33 @@ class ChatController extends ChangeNotifier {
     final token = ++_generation;
     final role = selected;
     final currentMode = mode;
+    final answered = messages
+        .where(
+          (m) =>
+              m.author == 'assistant' &&
+              m.status == 'complete' &&
+              m.replyTo != null,
+        )
+        .map((m) => m.replyTo)
+        .toSet();
+    final context = messages
+        .where(
+          (m) =>
+              m.status == 'complete' &&
+              m.text.isNotEmpty &&
+              (m.author == 'assistant' || answered.contains(m.id)),
+        )
+        .toList();
+    final history = <Map<String, String>>[];
+    var historyLength = 0;
+    for (final m in context.reversed) {
+      if (retry != null && m.id >= retry.id) continue;
+      if (history.length >= 20 || historyLength + m.text.length > 24000) break;
+      history.insert(0, {'role': m.author, 'content': m.text});
+      historyLength += m.text.length;
+    }
+    final requestId = gateway == null ? null : ModelGateway.requestId();
+    _requestId = requestId;
     final user =
         retry ??
         Message(
@@ -90,22 +122,41 @@ class ChatController extends ChangeNotifier {
       }
       if (token != _generation) return true;
       if (currentMode == ReplyMode.failure) throw StateError('模拟服务暂时不可用，请重试');
-      final name = characters.firstWhere((c) => c.id == role).name;
-      final preview = String.fromCharCodes(text.runes.take(35));
-      final response = '我是$name，收到你的消息：“$preview”。这是本地模拟回复，我们可以继续聊聊。';
-      for (final rune in response.runes) {
-        await Future<void>.delayed(chunkDelay);
-        if (token != _generation) return true;
-        reply.text += String.fromCharCode(rune);
-        notifyListeners();
+      if (gateway != null) {
+        await for (final delta in gateway!.reply(
+          requestId: requestId!,
+          character: role,
+          content: text,
+          history: history,
+        )) {
+          if (token != _generation) return true;
+          reply.text += delta;
+          notifyListeners();
+        }
+      } else {
+        final name = characters.firstWhere((c) => c.id == role).name;
+        final preview = String.fromCharCodes(text.runes.take(35));
+        final response = '我是$name，收到你的消息：“$preview”。这是本地模拟回复，我们可以继续聊聊。';
+        for (final rune in response.runes) {
+          await Future<void>.delayed(chunkDelay);
+          if (token != _generation) return true;
+          reply.text += String.fromCharCode(rune);
+          notifyListeners();
+        }
       }
+      if (token != _generation) return true;
       reply.status = 'complete';
       await store.save(reply);
+      if (token == _generation && requestId != null) {
+        onReplyComplete?.call(reply, requestId);
+      }
     } catch (e) {
       if (token == _generation) {
         reply.status = 'failed';
         error = currentMode == ReplyMode.failure
             ? '模拟服务暂时不可用，请重试'
+            : e is GatewayException
+            ? '回复服务暂不可用（${e.code}），可重试'
             : '保存或回复失败，请重试';
         try {
           await store.save(reply);
@@ -118,6 +169,7 @@ class ChatController extends ChangeNotifier {
         busy = false;
         _active = null;
         _initialSave = null;
+        _requestId = null;
         notifyListeners();
       }
     }
@@ -153,6 +205,9 @@ class ChatController extends ChangeNotifier {
     final initialSave = _initialSave;
     if (pending == null || initialSave == null) return Future<void>.value();
     ++_generation;
+    final requestId = _requestId;
+    _requestId = null;
+    if (requestId != null) unawaited(gateway!.cancel(requestId));
     return _cancellation = _cancelReply(pending, initialSave);
   }
 

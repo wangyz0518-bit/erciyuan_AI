@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-本仓库包含开发计划和 `apps/mobile_poc` 本地能力验证工程。验证版提供模拟聊天、角色占位展示、SQLite 存储及录音播放；真实 AI 服务和双端真机验收尚未完成。当前进展、运行方法和验证记录见 [文档索引](docs/README.md)。
+本仓库包含开发计划、`apps/mobile_poc` Flutter 验证工程和 `services/model_gateway` 本机模型网关。本分支支持 DeepSeek 生成回复、CosyVoice Flash 在文字完成后朗读，保留离线模拟聊天、SQLite 存储及本地录音试听。Android 模拟器与真实模型链路分项验收，双端真机尚未完成。当前进展见 [文档索引](docs/README.md)，接入方法见 [模型网关指南](docs/guides/model-gateway-20261115.md)。
 
 第一阶段先完成手机文字聊天骨架、可恢复的角色和对话记录，并分别验证形象、声音能力。完整语音联动、普通用户角色创建、完整记忆和用量管理在后续阶段推进。
 
@@ -23,7 +23,7 @@
 | C | 形象制作与驱动 | 待团队分配 |
 | D | 声音处理 | 待团队分配 |
 
-服务端技术方案、服务供应商、部署方式和成员分工尚待确定。工作线划分不等于需要部署四套独立服务。
+当前本机联调采用 Python/FastAPI、DeepSeek 与 CosyVoice Flash；正式部署方式和成员分工尚待确定。工作线划分不等于需要部署四套独立服务。
 
 ## 获取项目
 
@@ -40,13 +40,14 @@ cd erciyuan_AI
 
 - `AGENTS.md`：AI 协作规则与项目约束。
 - `apps/mobile_poc/`：Flutter 本地验证工程、自动检查和安卓集成测试。
+- `services/model_gateway/`：模型调用后端、配置样例和离线协议测试。
 - `docs/`：文档索引入口，详见 `docs/README.md`。
 - `docs/state.md`：当前阶段、待办、风险。
 - `docs/process/`：团队安排、协作流程与文档规范。
 - `docs/research/`：移动端选型调研与复核。
 - `docs/decisions/`：技术选型与架构决策记录。
 - `docs/guides/`：配置与操作指南。
-- `docs/接口/`：接口契约草案，暂缓整理，后续迁到 `docs/api/`。
+- `docs/接口/`：完整 v1 草案及已确认范围的模型网关 v0 契约。
 - `.github/`：Issue 与 Pull Request 模板。
 - `planning/output/`：四份正式 Word 计划，保留原文件及版本。
 - `planning/assets/`：规划配图；其中聊天界面图为概念示意，不是运行截图。

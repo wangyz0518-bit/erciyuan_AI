@@ -15,6 +15,7 @@ class AudioController extends ChangeNotifier {
   String status = '按住录音，松开试听；仅临时保存在本机。';
   String? recordingPath;
   String? _temporaryPath;
+  String? _speechPath;
   int recordingBytes = 0;
   double rms = 0;
   int seconds = 0;
@@ -26,6 +27,7 @@ class AudioController extends ChangeNotifier {
   Future<void> _tail = Future<void>.value();
   late final StreamSubscription<PlayerState> _subscription;
   bool get working => _pending > 0;
+  int get operationEpoch => _epoch;
 
   AudioController() {
     _subscription = player.onPlayerStateChanged.listen((s) {
@@ -38,6 +40,8 @@ class AudioController extends ChangeNotifier {
         final dir = await getTemporaryDirectory();
         _temporaryPath = '${dir.path}/poc-recording.wav';
         await _discard();
+        _speechPath = '${dir.path}/poc-generated-speech.wav';
+        await _discardSpeech();
       }),
     );
   }
@@ -79,6 +83,7 @@ class AudioController extends ChangeNotifier {
     final epoch = ++_epoch;
     return _enqueue(() async {
       await player.stop();
+      await _discardSpeech();
       await _discard();
       seconds = 0;
       final allowed = await recorder.hasPermission();
@@ -153,6 +158,7 @@ class AudioController extends ChangeNotifier {
       await player.stop();
       playing = false;
       if (discardRecording) await _discard();
+      await _discardSpeech();
       status = _permissionDenied ? '麦克风权限未允许，仍可切换键盘打字。' : '已停止。录音不会生成聊天消息。';
     });
   }
@@ -161,6 +167,8 @@ class AudioController extends ChangeNotifier {
     if (working || recording || _closed) return Future<void>.value();
     final epoch = ++_epoch;
     return _enqueue(() async {
+      await player.stop();
+      await _discardSpeech();
       String? file = recordingPath;
       if (testTone) {
         final dir = await getTemporaryDirectory();
@@ -180,6 +188,32 @@ class AudioController extends ChangeNotifier {
       status = testTone ? '正在播放本地测试音' : '正在试听，尚未发送';
     });
   }
+
+  Future<void> _discardSpeech() async {
+    final path = _speechPath;
+    _speechPath = null;
+    if (path != null && await File(path).exists()) await File(path).delete();
+  }
+
+  Future<void> playGenerated(Uint8List bytes, {required int expectedEpoch}) =>
+      _enqueue(() async {
+        if (_epoch != expectedEpoch) return;
+        final dir = await getTemporaryDirectory();
+        if (_epoch != expectedEpoch) return;
+        _speechPath = '${dir.path}/poc-generated-speech.wav';
+        await File(_speechPath!).writeAsBytes(bytes);
+        if (_epoch != expectedEpoch) {
+          await _discardSpeech();
+          return;
+        }
+        await player.play(DeviceFileSource(_speechPath!));
+        if (_epoch != expectedEpoch) {
+          await player.stop();
+          await _discardSpeech();
+          return;
+        }
+        status = '正在朗读角色回复';
+      });
 
   Future<void> close() async {
     await stopAll();

@@ -157,9 +157,11 @@ class _PocToolsPageState extends State<PocToolsPage>
               width: double.infinity,
               color: const Color(0xFFECE7F5),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-              child: const Text(
-                '离线验证版 · 回复为模拟内容',
-                style: TextStyle(fontSize: 12),
+              child: Text(
+                chat.gateway == null
+                    ? '离线验证版 · 回复为模拟内容'
+                    : '在线接口验证 · 正常模式调用真实后端',
+                style: const TextStyle(fontSize: 12),
               ),
             ),
             Expanded(
