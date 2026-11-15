@@ -54,6 +54,8 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
             !panelOpen &&
             message.characterId == chat.selected) {
           unawaited(speech!.speak(requestId, message.characterId));
+        } else {
+          unawaited(chat.gateway!.cancelSpeech(requestId));
         }
       };
     }

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('analyze','test','acceptance','suite','gateway','soak','build','run')]
+    [ValidateSet('analyze','test','acceptance','suite','gateway','stream-fault','stream-benchmark','stream-live','stream-regression','soak','build','run')]
     [string]$Action = 'run',
     [string]$DevRoot = 'D:\dev',
     [string]$Device = 'emulator-5554',
@@ -35,6 +35,10 @@ try {
         acceptance { & flutter test integration_test/acceptance_test.dart -d $Device --reporter expanded }
         suite { & flutter test integration_test/device_suite.dart -d $Device --reporter expanded }
         gateway { & flutter test integration_test/gateway_test.dart -d $Device --reporter expanded @defines }
+        stream-fault { & flutter test integration_test/streaming_fault_test.dart -d $Device --reporter expanded }
+        stream-benchmark { & flutter test integration_test/streaming_latency_test.dart -d $Device --reporter expanded @defines }
+        stream-live { & flutter test integration_test/streaming_live_test.dart -d $Device --reporter expanded @defines }
+        stream-regression { & flutter test integration_test/streaming_regression_test.dart -d $Device --reporter expanded @defines }
         soak { & flutter test integration_test/soak_test.dart -d $Device --reporter expanded }
         build { & flutter build apk --debug @defines }
         run { & flutter run -d $Device @defines }

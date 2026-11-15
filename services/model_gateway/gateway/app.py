@@ -14,6 +14,8 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from .providers import PERSONAS, ProviderError, Providers, Settings
+from .speech_pool import SpeechPool
+from .streaming import StreamingService
 
 
 class HistoryItem(BaseModel):
@@ -84,13 +86,14 @@ class Job:
         self.changed.set()
 
 
-def create_app(settings=None, providers=None):
+def create_app(settings=None, providers=None, speech_pool=None):
     settings = settings or Settings.env()
     if settings.mode not in ('mock', 'live') or len(settings.token) < 24:
         raise RuntimeError('Set GATEWAY_MODE=live/mock and a GATEWAY_TOKEN of at least 24 characters.')
     providers = providers or Providers(settings)
     ledger = Ledger(settings.data_dir)
     jobs: dict[str, Job] = {}
+    streaming = StreamingService(settings, providers, speech_pool or SpeechPool(settings), ChatInput)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -99,10 +102,15 @@ def create_app(settings=None, providers=None):
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        await streaming.close()
+        if hasattr(providers, 'close'):
+            await providers.close()
         ledger.db.close()
 
     app = FastAPI(title='Companion model gateway (local development)', version='0.1.0', lifespan=lifespan)
     app.state.ledger = ledger
+    app.state.streaming = streaming
+    app.add_api_websocket_route('/v2/conversations/{conversation_id}/stream', streaming.endpoint)
 
     async def auth(authorization: str = Header(default='')):
         if not hmac.compare_digest(authorization, 'Bearer ' + settings.token):
@@ -119,7 +127,7 @@ def create_app(settings=None, providers=None):
 
     @app.get('/health')
     async def health():
-        return {'status': 'ok', 'mode': settings.mode, 'asr': 'not_implemented',
+        return {'status': 'ok', 'mode': settings.mode, 'protocols': [1, 2], 'asr': 'not_implemented',
                 'chat_configured': bool(settings.deepseek_key),
                 'voice_configured': bool(settings.dashscope_key and settings.voice)}
 

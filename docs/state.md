@@ -19,6 +19,8 @@
 
 ## 进行中
 
+- 独立分支 `codex/server-orchestrated-streaming-voice`：服务器在完整文字后自动调用 CosyVoice，Android 流式 PCM 播放和连接复用。48 条固定台词测试、两角色真实聊天和存储/取消回归通过；热连接文字完成至设备出声 P50 0.803s、P95 1.014s。电音/断词听感仍待人工确认，iOS 流式与真机未验收。详见[本轮记录](reports/streaming-voice-20261115.md)；PR 不合并。
+
 - 独立分支 `codex/deepseek-cosyvoice-gateway`：本机 Python/FastAPI 网关、DeepSeek 完整回复后调用 CosyVoice Flash、声音失败单独重试；录音转文字仅占位。手机 SQLite 表不变，密钥在服务端，尚非生产或多用户服务。
 
 - 独立分支 `codex/immersive-chat-flutter` 接入 PR #15/v4 沉浸聊天设计，保留 PR #13 聊天与数据库能力。录音采用“松开试听、不保存聊天消息”，通话仅演示；结果见[本轮验收](reports/immersive-chat-flutter-20261112.md)。PR #13/#15 仍待评审，未合并。

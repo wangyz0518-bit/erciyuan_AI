@@ -48,6 +48,7 @@ class ChatController extends ChangeNotifier {
   }) async {
     text = text.trim();
     if (text.isEmpty || busy || switching) return false;
+    final requestClock = Stopwatch()..start();
     busy = true; // Reserve synchronously, before the first database await.
     error = null;
     final token = ++_generation;
@@ -79,6 +80,7 @@ class ChatController extends ChangeNotifier {
       historyLength += m.text.length;
     }
     final requestId = gateway == null ? null : ModelGateway.requestId();
+    if (requestId != null) gateway!.prepareTurn(requestId, requestClock);
     _requestId = requestId;
     final user =
         retry ??
@@ -123,6 +125,7 @@ class ChatController extends ChangeNotifier {
       if (token != _generation) return true;
       if (currentMode == ReplyMode.failure) throw StateError('模拟服务暂时不可用，请重试');
       if (gateway != null) {
+        gateway!.voiceEnabled = onReplyComplete != null;
         await for (final delta in gateway!.reply(
           requestId: requestId!,
           character: role,
@@ -151,6 +154,7 @@ class ChatController extends ChangeNotifier {
         onReplyComplete?.call(reply, requestId);
       }
     } catch (e) {
+      if (requestId != null) unawaited(gateway!.cancel(requestId));
       if (token == _generation) {
         reply.status = 'failed';
         error = currentMode == ReplyMode.failure
@@ -165,6 +169,7 @@ class ChatController extends ChangeNotifier {
         }
       }
     } finally {
+      if (requestId != null) gateway!.forgetTurn(requestId);
       if (token == _generation) {
         busy = false;
         _active = null;
@@ -252,5 +257,13 @@ class ChatController extends ChangeNotifier {
       return false;
     }
     return send(user.text, retry: user);
+  }
+
+  @override
+  void dispose() {
+    ++_generation;
+    onReplyComplete = null;
+    if (gateway != null) unawaited(gateway!.close());
+    super.dispose();
   }
 }

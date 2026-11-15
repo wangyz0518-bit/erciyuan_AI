@@ -4,6 +4,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'streaming_gateway.dart';
+
 class GatewayException implements Exception {
   const GatewayException(this.code);
   final String code;
@@ -12,8 +14,14 @@ class GatewayException implements Exception {
 }
 
 class ModelGateway {
-  ModelGateway(this.baseUrl, this.token);
+  ModelGateway(this.baseUrl, this.token, {this.useV2 = false});
   final String baseUrl, token;
+  final bool useV2;
+  bool voiceEnabled = true;
+  late final StreamingGateway streaming = StreamingGateway(baseUrl, token);
+  final _turnClocks = <String, Stopwatch>{};
+  void prepareTurn(String id, Stopwatch clock) => _turnClocks[id] = clock;
+  void forgetTurn(String id) => _turnClocks.remove(id);
   final _clients = <String, HttpClient>{};
   static String requestId() => List.generate(
     24,
@@ -30,7 +38,15 @@ class ModelGateway {
             ['127.0.0.1', 'localhost', '10.0.2.2'].contains(uri.host))) {
       throw const GatewayException('HTTPS_REQUIRED');
     }
-    return ModelGateway(url, token);
+    const protocol = String.fromEnvironment(
+      'MODEL_GATEWAY_PROTOCOL',
+      defaultValue: 'v2',
+    );
+    return ModelGateway(
+      url,
+      token,
+      useV2: protocol == 'v2' && Platform.isAndroid,
+    );
   }
 
   Future<HttpClientResponse> _post(
@@ -61,6 +77,17 @@ class ModelGateway {
     required String content,
     required List<Map<String, String>> history,
   }) async* {
+    if (useV2) {
+      yield* streaming.reply(
+        requestId: requestId,
+        character: character,
+        content: content,
+        history: history,
+        voice: voiceEnabled,
+        clock: _turnClocks.remove(requestId),
+      );
+      return;
+    }
     final client = HttpClient();
     _clients[requestId] = client;
     var completed = false;
@@ -147,6 +174,10 @@ class ModelGateway {
   }
 
   Future<void> cancel(String id) async {
+    if (useV2) {
+      streaming.cancel(id, wholeTurn: true);
+      return;
+    }
     _clients.remove(id)?.close(force: true);
     final client = HttpClient();
     try {
@@ -158,5 +189,17 @@ class ModelGateway {
     } finally {
       client.close(force: true);
     }
+  }
+
+  Future<void> cancelSpeech(String id) async {
+    if (useV2) {
+      streaming.cancel(id);
+    } else {
+      await cancel(id);
+    }
+  }
+
+  Future<void> close() async {
+    if (useV2) await streaming.close();
   }
 }

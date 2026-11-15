@@ -5,6 +5,7 @@ import os
 import uuid
 import wave
 from dataclasses import dataclass
+from contextlib import asynccontextmanager
 
 import httpx
 from websockets.asyncio.client import connect
@@ -55,6 +56,19 @@ PERSONAS = {
 class Providers:
     def __init__(self, settings: Settings):
         self.settings = settings
+        self._http = None
+
+    @asynccontextmanager
+    async def http_client(self):
+        if self._http is None:
+            self._http = httpx.AsyncClient(timeout=httpx.Timeout(30, connect=10),
+                limits=httpx.Limits(max_connections=4, max_keepalive_connections=4, keepalive_expiry=45))
+        yield self._http
+
+    async def close(self):
+        if self._http is not None:
+            await self._http.aclose()
+            self._http = None
 
     async def reply(self, character: str, history: list[dict], content: str):
         s = self.settings
@@ -70,7 +84,7 @@ class Providers:
         payload = {'model': s.deepseek_model, 'messages': messages, 'stream': True,
                    'max_tokens': 2048, 'thinking': {'type': 'enabled' if s.thinking else 'disabled'}}
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=10)) as client:
+            async with self.http_client() as client:
                 async with client.stream('POST', 'https://api.deepseek.com/chat/completions',
                                          headers={'Authorization': f'Bearer {s.deepseek_key}'}, json=payload) as response:
                     if response.status_code != 200:

@@ -10,6 +10,8 @@
 
 仓库包含规划文档、`apps/mobile_poc` Flutter 验证工程及 `services/model_gateway` 本机模型网关。本分支支持 DeepSeek 回复与 CosyVoice Flash 朗读，保留离线模拟模式；模拟器验证不能代替 Android/iOS 真机验收。
 
+本任务增加 [服务器统一调度 v2](docs/接口/model-gateway-stream-v2.md) 与 Android PCM 流式播放，旧 v1 保留供 iOS/回退使用。流式验证入口见 [指南](docs/guides/streaming-voice-20261115.md)。
+
 第一阶段目标：
 
 - 手机文字聊天骨架。

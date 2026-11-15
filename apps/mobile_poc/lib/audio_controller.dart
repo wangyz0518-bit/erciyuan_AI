@@ -7,9 +7,13 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'pcm_player.dart';
+
 class AudioController extends ChangeNotifier {
   final recorder = AudioRecorder();
   final player = AudioPlayer();
+  final pcm = PcmPlayer();
+  final streamMetrics = <String, Object?>{};
   bool recording = false;
   bool playing = false;
   String status = '按住录音，松开试听；仅临时保存在本机。';
@@ -30,7 +34,16 @@ class AudioController extends ChangeNotifier {
   int get operationEpoch => _epoch;
 
   AudioController() {
+    pcm.onEvent = (event) {
+      if (event['event'] == 'playing') {
+        playing = true;
+        status = '正在朗读角色回复';
+      }
+      streamMetrics.addAll(event);
+      _notify();
+    };
     _subscription = player.onPlayerStateChanged.listen((s) {
+      if (pcm.active != null) return;
       playing = s == PlayerState.playing;
       _notify();
     });
@@ -82,6 +95,7 @@ class AudioController extends ChangeNotifier {
     if (working || recording || _closed) return Future<void>.value();
     final epoch = ++_epoch;
     return _enqueue(() async {
+      await pcm.stop();
       await player.stop();
       await _discardSpeech();
       await _discard();
@@ -151,6 +165,7 @@ class AudioController extends ChangeNotifier {
 
   Future<void> stopAll({bool discardRecording = true}) {
     ++_epoch;
+    unawaited(pcm.stop());
     _timer?.cancel();
     return _enqueue(() async {
       if (recording) await recorder.cancel();
@@ -167,6 +182,7 @@ class AudioController extends ChangeNotifier {
     if (working || recording || _closed) return Future<void>.value();
     final epoch = ++_epoch;
     return _enqueue(() async {
+      await pcm.stop();
       await player.stop();
       await _discardSpeech();
       String? file = recordingPath;
@@ -222,6 +238,28 @@ class AudioController extends ChangeNotifier {
     await recorder.dispose();
     await player.dispose();
     dispose();
+  }
+
+  Future<void> startPcm(String id, int expectedEpoch) async {
+    if (_epoch != expectedEpoch || _closed) return;
+    streamMetrics.clear();
+    await pcm.start(id);
+    if (_epoch != expectedEpoch || _closed) await pcm.stop();
+  }
+
+  Future<void> appendPcm(String id, Uint8List bytes, int expectedEpoch) async {
+    if (_epoch != expectedEpoch || _closed) return;
+    await pcm.append(id, bytes);
+  }
+
+  Future<void> endPcm(String id, int expectedEpoch) async {
+    if (_epoch != expectedEpoch || _closed) return;
+    final result = await pcm.end(id);
+    if (_epoch != expectedEpoch || _closed) return;
+    streamMetrics.addAll(result);
+    playing = false;
+    status = '朗读结束';
+    _notify();
   }
 }
 

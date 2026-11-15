@@ -12,7 +12,7 @@
 | [decisions/](decisions/README.md) | 架构与选型决策记录 | 每次决策 |
 | [guides/](guides/README.md) | 配置、开发、排障，含 [Windows 安卓开发环境搭建与验证](guides/windows-android-setup-20261112.md) | 按需 |
 | [reports/](reports/README.md) | 实际验证结果、问题与证据边界，含 [沉浸聊天验收](reports/immersive-chat-flutter-20261112.md) | 每轮验证后 |
-| [接口/](接口/README.md) | 完整 v1 草案与已确认范围的 [模型网关 v0](接口/model-gateway-v0.md) | 接口变更时 |
+| [接口/](接口/README.md) | 完整 v1 草案、[模型网关 v0](接口/model-gateway-v0.md) 与 [流式调度 v2](接口/model-gateway-stream-v2.md) | 接口变更时 |
 
 ## 约定
 

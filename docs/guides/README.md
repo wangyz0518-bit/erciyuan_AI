@@ -2,6 +2,7 @@
 
 | 文档 | 用途 |
 | --- | --- |
+| [streaming-voice-20261115.md](streaming-voice-20261115.md) | 服务器统一调度、Android PCM 播放、冷/热连接复测与 iOS 回退 |
 | [model-gateway-20261115.md](model-gateway-20261115.md) | DeepSeek + CosyVoice Flash 后端、密钥与 Android/iOS 联调 |
 | [configuration.md](configuration.md) | 配置项、密钥管理与本地配置原则 |
 | [flutter-poc-guide-20261112.md](flutter-poc-guide-20261112.md) | Flutter 本地验证版运行、检查、构建与平台边界（评审中） |

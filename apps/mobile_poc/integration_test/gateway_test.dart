@@ -118,7 +118,7 @@ void main() {
     },
   );
   testWidgets(
-    'configured gateway: real HTTP chat then WAV playback and SQLite reopen',
+    'configured gateway: chat and playback through selected protocol, SQLite reopen',
     (tester) async {
       final gateway = ModelGateway.configured();
       expect(
