@@ -118,13 +118,16 @@ class Providers:
         except httpx.HTTPError:
             raise ProviderError('MODEL_UNAVAILABLE') from None
 
-    async def speech(self, text: str, character: str, expression: str) -> bytes:
+    async def speech_for_voice(self, text, voice):
+        return await self.speech(text,'xing','calm',voice_override=voice)
+
+    async def speech(self, text: str, character: str, expression: str, voice_override=None) -> bytes:
         s = self.settings
         if s.mode == 'mock':
             # Silent WAV deliberately identifies transport-only tests, not real TTS.
             await asyncio.sleep(.15)
             return wav(bytes(24000 * 2))
-        voice = (s.voice_yue or s.voice) if character == 'yue' else s.voice
+        voice = voice_override or ((s.voice_yue or s.voice) if character == 'yue' else s.voice)
         if not s.dashscope_key or not voice:
             raise ProviderError('VOICE_NOT_CONFIGURED')
         import re
@@ -146,7 +149,7 @@ class Providers:
                                    'model': s.voice_model, 'input': {}, 'parameters': {
                                        'text_type': 'PlainText', 'voice': voice, 'format': 'pcm',
                                        'sample_rate': 24000, 'rate': 1.0, 'pitch': 1.0,
-                                       'instruction': styles[expression]}})
+                                       **({'instruction': styles[expression]} if not voice_override else {})}})
             chunks = bytearray()
             started = False
             async for item in ws:

@@ -12,6 +12,8 @@ from tkinter import ttk
 
 from client import Client, load_config
 from player import default_output, output_devices
+from voice_client import VoiceClient
+from voice_panel import VoicePanel
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCAL = ROOT / '.model-local' / 'windows-voice-lab'
@@ -23,6 +25,7 @@ class Worker:
         self.loop = asyncio.new_event_loop()
         url, token = load_config(config)
         self.client = Client(url, token, data, notify=self.post)
+        self.voice = VoiceClient(url,token)
         self.thread = threading.Thread(target=self.loop.run_forever, daemon=True)
         self.thread.start()
         self.submit(self.client.health())
@@ -45,12 +48,17 @@ class Worker:
         future.add_done_callback(finished)
         return future
 
+    async def close(self):
+        await self.voice.close()
+        await self.client.close()
+
 
 class Window:
     def __init__(self, root, worker):
         self.root, self.worker = root, worker
         self.state = None
         self.closing = False
+        self.voice_panel = None
         self.rendered = None
         root.title('星语 · Windows 流式声音测试')
         root.geometry('1080x780')
@@ -92,6 +100,8 @@ class Window:
             self.device.current(next((i for i, d in enumerate(self.devices) if d[0] == chosen), 0))
         self.check = ttk.Button(toolbar, text='检查连接', command=lambda: self.worker.submit(self.worker.client.health()))
         self.check.pack(side='right', padx=(10, 0))
+        self.voices_button=ttk.Button(toolbar,text='自定义声音',command=self.open_voices)
+        self.voices_button.pack(side='right',padx=(8,0))
 
         footer = ttk.Frame(outer)
         footer.pack(side='bottom', fill='x')
@@ -158,12 +168,20 @@ class Window:
         self.role.configure(state='disabled' if busy else 'readonly')
         self.device.configure(state='disabled' if busy else 'readonly')
         self.check.configure(state='disabled' if busy else 'normal')
+        self.voices_button.configure(state='disabled' if busy else 'normal')
         self.retry_voice.configure(state='normal' if not busy and last and last['text_state'] == 'complete' else 'disabled')
         self.retry_text.configure(state='normal' if not busy and last and last['text_state'] != 'complete' else 'disabled')
         self.export.configure(state='normal' if not busy and self.state and self.state['metrics'] else 'disabled')
 
     def select_role(self, event=None):
         self.worker.submit(self.worker.client.select('xing' if self.role.current() == 0 else 'yue'))
+
+    def open_voices(self):
+        if not self.state or self.state['busy'] or self.voice_panel:return
+        if not self.devices:
+            self.status.set('请连接播放设备后重新打开窗口。');return
+        def closed():self.voice_panel=None
+        self.voice_panel=VoicePanel(self.root,self.worker,self.state['role'],self.devices[self.device.current()][0],closed)
 
     def send(self, voice_retry=False, text_retry=False):
         if str(self.send_button['state']) == 'disabled':
@@ -251,9 +269,13 @@ class Window:
     def close(self):
         if self.closing:
             return
+        if self.voice_panel:
+            self.voice_panel.close()
+            self.root.after(100,self.close)
+            return
         self.closing = True
         self.status.set('正在停止声音并关闭连接…')
-        future = self.worker.submit(self.worker.client.close())
+        future = self.worker.submit(self.worker.close())
         def wait():
             if future.done():
                 self.worker.loop.call_soon_threadsafe(self.worker.loop.stop)

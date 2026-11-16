@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .providers import PERSONAS, ProviderError, Providers, Settings
 from .speech_pool import SpeechPool
 from .streaming import StreamingService
+from .voice_profiles import VoiceProfiles, register as register_voices
 
 
 class HistoryItem(BaseModel):
@@ -86,7 +87,7 @@ class Job:
         self.changed.set()
 
 
-def create_app(settings=None, providers=None, speech_pool=None):
+def create_app(settings=None, providers=None, speech_pool=None, enrollment=None):
     settings = settings or Settings.env()
     if settings.mode not in ('mock', 'live') or len(settings.token) < 24:
         raise RuntimeError('Set GATEWAY_MODE=live/mock and a GATEWAY_TOKEN of at least 24 characters.')
@@ -94,14 +95,19 @@ def create_app(settings=None, providers=None, speech_pool=None):
     ledger = Ledger(settings.data_dir)
     jobs: dict[str, Job] = {}
     streaming = StreamingService(settings, providers, speech_pool or SpeechPool(settings), ChatInput)
+    voice_profiles=VoiceProfiles(settings,streaming.pool,enrollment)
+    streaming.voice_profiles=voice_profiles
+    voice_profiles.chat_busy=lambda: bool(streaming.tasks) or any(j.task and not j.task.done() for j in jobs.values())
 
     @asynccontextmanager
     async def lifespan(app):
+        await voice_profiles.start()
         yield
         tasks = [j.task for j in jobs.values() if j.task and not j.task.done()]
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        await voice_profiles.close()
         await streaming.close()
         if hasattr(providers, 'close'):
             await providers.close()
@@ -110,11 +116,14 @@ def create_app(settings=None, providers=None, speech_pool=None):
     app = FastAPI(title='Companion model gateway (local development)', version='0.1.0', lifespan=lifespan)
     app.state.ledger = ledger
     app.state.streaming = streaming
+    app.state.voice_profiles=voice_profiles
     app.add_api_websocket_route('/v2/conversations/{conversation_id}/stream', streaming.endpoint)
 
     async def auth(authorization: str = Header(default='')):
         if not hmac.compare_digest(authorization, 'Bearer ' + settings.token):
             raise HTTPException(401, 'UNAUTHORIZED')
+
+    register_voices(app,voice_profiles,auth)
 
     @app.exception_handler(HTTPException)
     async def http_error(request, exc):
@@ -207,8 +216,10 @@ def create_app(settings=None, providers=None, speech_pool=None):
 
     async def run_speech(data, text, job):
         try:
+            selected=voice_profiles.selected(data.character_id,data.request_id)
             async with asyncio.timeout(90):
-                audio = await providers.speech(text, data.character_id, data.expression)
+                audio = (await providers.speech_for_voice(text,selected['provider_id']) if selected
+                         else await providers.speech(text, data.character_id, data.expression))
             ledger.finish(data.request_id, 'completed', audio=audio)
         except asyncio.CancelledError:
             ledger.finish(data.request_id, 'cancelled', code='CANCELLED')

@@ -11,7 +11,7 @@ if (-not (Test-Path -LiteralPath $Config)) {throw 'Start services/model_gateway/
 $local=Join-Path $repo '.model-local/windows-voice-lab'
 New-Item -ItemType Directory -Force -Path $local | Out-Null
 $arguments=@('"'+(Join-Path $PSScriptRoot 'app.py')+'"','--config','"'+[IO.Path]::GetFullPath($Config)+'"')
-if ($Data) {$arguments+=@('--data','"'+[IO.Path]::GetFullPath($Data)+'"')}
+if ($Data) {$arguments+=@('--data',('"{0}"' -f [IO.Path]::GetFullPath($Data)))}
 # Only a local gateway address/token is read by this client. Provider keys stay server-side.
 $process=Start-Process -FilePath $Python -ArgumentList $arguments -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -PassThru
 Write-Output "Windows voice test window started (PID $($process.Id))."

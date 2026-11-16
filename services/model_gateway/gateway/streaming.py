@@ -87,6 +87,7 @@ class StreamingService:
         self.settings, self.providers, self.pool = settings, providers, pool
         self.store = TurnStore(settings.data_dir)
         self.tasks = {}
+        self.voice_profiles = None
         class SendInput(chat_input):
             speech: VoiceOption = Field(default_factory=VoiceOption)
         self.input = SendInput
@@ -141,6 +142,8 @@ class StreamingService:
             seq = 0
             first = True
             try:
+                selected=self.voice_profiles.selected(role,sid) if self.voice_profiles and cached is None else None
+                if selected:metrics['voice_profile_id']=selected['id']
                 async with asyncio.timeout(90):
                     async def audio():
                         if cached is not None:
@@ -148,7 +151,8 @@ class StreamingService:
                             for i in range(0,len(cached),9600):
                                 yield cached[i:i+9600]
                         else:
-                            upstream = self.pool.stream(text,role,'calm',metrics)
+                            upstream = (self.pool.stream_for_voice(text,selected['provider_id'],metrics) if selected
+                                        else self.pool.stream(text,role,'calm',metrics))
                             try:
                                 async for part in upstream:
                                     yield part

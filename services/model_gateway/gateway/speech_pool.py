@@ -26,7 +26,13 @@ class SpeechPool:
         if socket:
             await socket.close()
 
-    async def stream(self, text, character, expression, metrics):
+    async def stream_for_voice(self, text, voice, metrics):
+        generator=self.stream(text,'xing','calm',metrics,voice_override=voice)
+        try:
+            async for part in generator:yield part
+        finally:await generator.aclose()
+
+    async def stream(self, text, character, expression, metrics, voice_override=None):
         start = time.monotonic()
         try:
             await asyncio.wait_for(self.lock.acquire(), 2)
@@ -44,7 +50,7 @@ class SpeechPool:
                     await asyncio.sleep(.03)
                 clean = True
                 return
-            voice = (s.voice_yue or s.voice) if character == 'yue' else s.voice
+            voice = voice_override or ((s.voice_yue or s.voice) if character == 'yue' else s.voice)
             if not s.dashscope_key or not voice:
                 raise ProviderError('VOICE_NOT_CONFIGURED')
             if s.workspace and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9-]{0,127}', s.workspace):
@@ -68,10 +74,11 @@ class SpeechPool:
             async def send(action, payload):
                 await self.socket.send(json.dumps({'header': {'action': action, 'task_id': task, 'streaming': 'duplex'},
                                                    'payload': payload}, ensure_ascii=False))
-            await send('run-task', {'task_group': 'audio', 'task': 'tts', 'function': 'SpeechSynthesizer',
-                'model': s.voice_model, 'input': {}, 'parameters': {'text_type': 'PlainText',
+            parameters={'text_type': 'PlainText',
                 'voice': voice, 'format': 'pcm', 'sample_rate': 24000, 'rate': 1., 'pitch': 1.,
-                'instruction': styles[expression]}})
+                **({'instruction': styles[expression]} if not voice_override else {})}
+            await send('run-task', {'task_group': 'audio', 'task': 'tts', 'function': 'SpeechSynthesizer',
+                'model': s.voice_model, 'input': {}, 'parameters': parameters})
             ready, total, remainder = False, 0, b''
             while True:
                 item = await asyncio.wait_for(self.socket.recv(), 30)

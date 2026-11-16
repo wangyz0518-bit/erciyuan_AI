@@ -16,6 +16,8 @@
 
 ## 约定
 
+本轮 Windows 录音复刻：[操作指南](guides/recording-voice-cloning-20261116.md)、[接口](接口/recording-voice-profiles-v0.md)、[验收报告](reports/recording-voice-cloning-20261116.md)。真实合成参考闭环已验证，人工听感待确认，PR 不合并。
+
 - 每份文档开头写状态头，格式见 [process/documentation.md](process/documentation.md)。
 - 调研报告只陈述事实、选项和证据，不写“已决定”。
 - 最终选择写入 `decisions/`，并在调研报告中链接对应 ADR。

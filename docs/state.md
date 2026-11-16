@@ -19,6 +19,8 @@
 
 ## 进行中
 
+- 独立分支 `codex/recording-voice-cloning`：Windows 上传已有合成录音、CosyVoice Flash 复刻、试听、保存、应用角色、恢复默认与重开恢复已真实验证。20 轮热连接完整文字到设备出声 P50 0.939s、P95 0.954s；36 项网关与 9 项原聊天测试通过。只做录音基准，不做文字描述；人工相似度/电音听感、真实用户录音、Android/iOS 自定义声音 UI 待验收。详见[本轮记录](reports/recording-voice-cloning-20261116.md)；PR 保持草稿，不合并。
+
 - 独立分支 `codex/server-orchestrated-streaming-voice`：服务器在完整文字后自动调用 CosyVoice，Android 流式 PCM 播放和连接复用。48 条固定台词测试、两角色真实聊天和存储/取消回归通过；热连接文字完成至设备出声 P50 0.803s、P95 1.014s。2026-11-16 用户确认第一轮代表样本连续、无电音或明显变速；完整样本、断词/音量、iOS 流式与真机未逐项验收。详见[本轮记录](reports/streaming-voice-20261115.md)；PR #22 保持草稿、不合并。
 
 - 独立分支 `codex/deepseek-cosyvoice-gateway`：本机 Python/FastAPI 网关、DeepSeek 完整回复后调用 CosyVoice Flash、声音失败单独重试；录音转文字仅占位。手机 SQLite 表不变，密钥在服务端，尚非生产或多用户服务。

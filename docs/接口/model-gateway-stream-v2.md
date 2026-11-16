@@ -65,6 +65,8 @@ request_id / speech_id：16–100 位 ASCII 字母、数字、下划线或横线
 
 ## 延迟口径
 
+2026-11-16 兼容扩展：角色应用已保存复刻音色时，`audio.started` / `audio.completed` 可包含 `voice_profile_id`。聊天请求不需要新增参数；同 speech_id 的缓存仍重放原音频，主动重试的新 speech_id 使用当前角色选择。详见[录音复刻与绑定契约](recording-voice-profiles-v0.md)。
+
 连接指标 `reused`、`connection_serial`、`connection_setup_ms`、`first_packet_ms` 来自服务端单调时钟。first_packet_ms 从声音任务开始算起，包含排队/连接建立；不是用户已经听见。
 
 Android 以 AudioTrack 时间戳（不可得时用 playback head 估算）定位第一个幅值超过 200 的 PCM 样本。App `ttsToOutputMs` 从收到完整文字到该样本的设备输出位置；`sendToOutputMs` 从 ChatController 接受发送开始，包含初始本地保存、连接和主模型等待。`underruns` 记录设备缓冲不足次数，并拆分 beforeDrain / duringDrain。Dart 与原生开始时刻通过方法通道近似对齐，非声学回录；指标不包含 Windows/远程桌面输出链路到人耳的延迟，也不能单凭零 underrun 断言无电音。
