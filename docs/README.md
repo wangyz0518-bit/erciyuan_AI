@@ -16,6 +16,8 @@
 
 ## 约定
 
+最新独立声音实验：[录音基准＋文字微调](reports/voice-reference-tuning-20261116.md)，正式聊天接口未改，音色保持待人工试听。
+
 - 每份文档开头写状态头，格式见 [process/documentation.md](process/documentation.md)。
 - 调研报告只陈述事实、选项和证据，不写“已决定”。
 - 最终选择写入 `decisions/`，并在调研报告中链接对应 ADR。
