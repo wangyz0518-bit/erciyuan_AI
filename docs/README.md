@@ -16,7 +16,7 @@
 
 ## 约定
 
-最新独立声音实验：[录音基准＋文字微调](reports/voice-reference-tuning-20261116.md)，正式聊天接口未改，音色保持待人工试听。
+最新独立声音实验：[录音基准＋文字微调](reports/voice-reference-tuning-20261116.md)，用户反馈变化可辨但效果不佳；文字定制暂缓，优先录音复刻，正式聊天接口未改。
 
 - 每份文档开头写状态头，格式见 [process/documentation.md](process/documentation.md)。
 - 调研报告只陈述事实、选项和证据，不写“已决定”。
