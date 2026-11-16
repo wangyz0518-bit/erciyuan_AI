@@ -2,7 +2,8 @@ param(
     [ValidateSet('live','mock')][string]$Mode='live',
     [int]$Port=8787,
     [string]$Python='D:\dev\model-gateway-venv\Scripts\python.exe',
-    [string]$VoiceConfigRoot=''
+    [string]$VoiceConfigRoot='',
+    [switch]$UseExistingProxy
 )
 $ErrorActionPreference='Stop'
 $repoRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -45,7 +46,16 @@ $env:GATEWAY_DATA_DIR=Join-Path $localRoot "gateway-$Mode"
 @{MODEL_GATEWAY_URL="http://127.0.0.1:$Port";MODEL_GATEWAY_TOKEN=$env:GATEWAY_TOKEN} |
     ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $localRoot "mobile-$Mode.json")
 # Process-local route only, preserving the workstation's system proxy.
-$env:NO_PROXY=(@($env:NO_PROXY,'api.deepseek.com','127.0.0.1','localhost') | Where-Object {$_}) -join ','
+$bypass=@($env:NO_PROXY -split ',' | Where-Object {$_})
+if ($UseExistingProxy) {
+    if (-not $env:HTTPS_PROXY) { throw 'UseExistingProxy requires an existing HTTPS_PROXY environment variable.' }
+    $env:GATEWAY_VOICE_PROXY=$env:HTTPS_PROXY
+    $bypass=@($bypass | Where-Object {$_.Trim() -notmatch '(^|\.)deepseek\.com$' -and $_.Trim() -ne '*'})
+} else {
+    $bypass += 'api.deepseek.com'
+    Remove-Item Env:GATEWAY_VOICE_PROXY -ErrorAction SilentlyContinue
+}
+$env:NO_PROXY=(@($bypass)+@('127.0.0.1','localhost')) -join ','
 Push-Location $PSScriptRoot
 try { & $Python -m uvicorn gateway.app:create_app --factory --host 127.0.0.1 --port $Port --no-access-log }
 finally { Pop-Location }

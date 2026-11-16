@@ -173,7 +173,8 @@ def test_auth_role_validation_and_cancel_before_completion(tmp_path):
             assert pool.calls==0
 
 
-def test_provider_connection_reuse_expiry_and_cancel_discard():
+@pytest.mark.parametrize('proxy', [None, 'http://127.0.0.1:9999'])
+def test_provider_connection_reuse_expiry_and_cancel_discard(proxy):
     class Socket:
         def __init__(self): self.frames=asyncio.Queue(); self.closed=False
         async def close(self): self.closed=True
@@ -187,8 +188,9 @@ def test_provider_connection_reuse_expiry_and_cancel_discard():
     async def scenario():
         sockets=[]
         async def connector(*args,**kwargs):
+            assert kwargs['proxy'] == proxy
             sock=Socket();sockets.append(sock);return sock
-        pool=SpeechPool(Settings(dashscope_key='fake',voice='fake'),connector)
+        pool=SpeechPool(Settings(dashscope_key='fake',voice='fake',voice_proxy=proxy),connector)
         first={};second={}
         _=[x async for x in pool.stream('hi','xing','calm',first)]
         _=[x async for x in pool.stream('hi','xing','calm',second)]

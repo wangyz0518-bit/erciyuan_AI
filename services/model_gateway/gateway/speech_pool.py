@@ -56,7 +56,7 @@ class SpeechPool:
                 host = f'{s.workspace}.cn-beijing.maas.aliyuncs.com' if s.workspace else 'dashscope.aliyuncs.com'
                 self.socket = await self.connector(f'wss://{host}/api-ws/v1/inference',
                     additional_headers={'Authorization': f'Bearer {s.dashscope_key}'},
-                    open_timeout=10, close_timeout=1, max_size=4*1024*1024, proxy=None)
+                    open_timeout=10, close_timeout=1, max_size=4*1024*1024, proxy=s.voice_proxy)
                 self.serial += 1
             metrics.update(reused=reused, connection_serial=self.serial,
                            connection_setup_ms=round((time.monotonic()-start)*1000, 2))

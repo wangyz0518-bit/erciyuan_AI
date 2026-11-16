@@ -30,6 +30,7 @@ class Settings:
     voice: str = ''
     voice_yue: str = ''
     voice_model: str = 'cosyvoice-v3.5-flash'
+    voice_proxy: str | None = None
 
     @classmethod
     def env(cls):
@@ -44,6 +45,7 @@ class Settings:
             workspace=os.getenv('DASHSCOPE_WORKSPACE_ID', ''),
             voice=os.getenv('COSYVOICE_VOICE_ID', ''),
             voice_yue=os.getenv('COSYVOICE_YUE_VOICE_ID', ''),
+            voice_proxy=os.getenv('GATEWAY_VOICE_PROXY') or None,
         )
 
 
@@ -136,7 +138,7 @@ class Providers:
                   'curious': '用普通话自然表达疑惑，保持日常语速。'}
         async with connect(f'wss://{host}/api-ws/v1/inference',
                            additional_headers={'Authorization': f'Bearer {s.dashscope_key}'},
-                           open_timeout=15, max_size=4 * 1024 * 1024, proxy=None) as ws:
+                           open_timeout=15, max_size=4 * 1024 * 1024, proxy=s.voice_proxy) as ws:
             async def send(action, payload):
                 await ws.send(json.dumps({'header': {'action': action, 'task_id': task, 'streaming': 'duplex'},
                                           'payload': payload}, ensure_ascii=False))
