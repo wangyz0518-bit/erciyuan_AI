@@ -1,7 +1,7 @@
 # 当前状态
 
 > 状态：有效
-> 更新：2026-11-15
+> 更新：2026-11-16
 > 维护：团队共同更新，阶段变化时优先更新本文件
 
 ## 阶段
@@ -19,7 +19,7 @@
 
 ## 进行中
 
-- 独立分支 `codex/server-orchestrated-streaming-voice`：服务器在完整文字后自动调用 CosyVoice，Android 流式 PCM 播放和连接复用。48 条固定台词测试、两角色真实聊天和存储/取消回归通过；热连接文字完成至设备出声 P50 0.803s、P95 1.014s。电音/断词听感仍待人工确认，iOS 流式与真机未验收。详见[本轮记录](reports/streaming-voice-20261115.md)；PR 不合并。
+- 独立分支 `codex/server-orchestrated-streaming-voice`：服务器在完整文字后自动调用 CosyVoice，Android 流式 PCM 播放和连接复用。48 条固定台词测试、两角色真实聊天和存储/取消回归通过；热连接文字完成至设备出声 P50 0.803s、P95 1.014s。2026-11-16 用户确认第一轮代表样本连续、无电音或明显变速；完整样本、断词/音量、iOS 流式与真机未逐项验收。详见[本轮记录](reports/streaming-voice-20261115.md)；PR #22 保持草稿、不合并。
 
 - 独立分支 `codex/deepseek-cosyvoice-gateway`：本机 Python/FastAPI 网关、DeepSeek 完整回复后调用 CosyVoice Flash、声音失败单独重试；录音转文字仅占位。手机 SQLite 表不变，密钥在服务端，尚非生产或多用户服务。
 
