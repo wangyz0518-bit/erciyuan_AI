@@ -11,12 +11,14 @@ from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from .providers import PERSONAS, ProviderError, Providers, Settings
 from .speech_pool import SpeechPool
 from .streaming import StreamingService
 from .voice_profiles import VoiceProfiles, register as register_voices
+from .conversations import ConversationService, register as register_conversations
 
 
 class HistoryItem(BaseModel):
@@ -87,7 +89,7 @@ class Job:
         self.changed.set()
 
 
-def create_app(settings=None, providers=None, speech_pool=None, enrollment=None):
+def create_app(settings=None, providers=None, speech_pool=None, enrollment=None, asr=None):
     settings = settings or Settings.env()
     if settings.mode not in ('mock', 'live') or len(settings.token) < 24:
         raise RuntimeError('Set GATEWAY_MODE=live/mock and a GATEWAY_TOKEN of at least 24 characters.')
@@ -97,7 +99,8 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None)
     streaming = StreamingService(settings, providers, speech_pool or SpeechPool(settings), ChatInput)
     voice_profiles=VoiceProfiles(settings,streaming.pool,enrollment)
     streaming.voice_profiles=voice_profiles
-    voice_profiles.chat_busy=lambda: bool(streaming.tasks) or any(j.task and not j.task.done() for j in jobs.values())
+    conversations = ConversationService(settings, providers, streaming.pool, voice_profiles, asr)
+    voice_profiles.chat_busy=lambda: bool(conversations.owner) or bool(streaming.tasks) or any(j.task and not j.task.done() for j in jobs.values())
 
     @asynccontextmanager
     async def lifespan(app):
@@ -107,6 +110,7 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None)
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        await conversations.close()
         await voice_profiles.close()
         await streaming.close()
         if hasattr(providers, 'close'):
@@ -117,6 +121,7 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None)
     app.state.ledger = ledger
     app.state.streaming = streaming
     app.state.voice_profiles=voice_profiles
+    app.state.conversations=conversations
     app.add_api_websocket_route('/v2/conversations/{conversation_id}/stream', streaming.endpoint)
 
     async def auth(authorization: str = Header(default='')):
@@ -124,6 +129,10 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None)
             raise HTTPException(401, 'UNAUTHORIZED')
 
     register_voices(app,voice_profiles,auth)
+    register_conversations(app,conversations,auth)
+    repo_root = Path(__file__).resolve().parents[3]
+    app.mount('/conversation-lab', StaticFiles(directory=repo_root/'apps/windows_conversation_lab', html=True), name='conversation-lab')
+    app.mount('/conversation-assets', StaticFiles(directory=repo_root/'.model-local/conversation-assets', check_dir=False), name='conversation-assets')
 
     @app.exception_handler(HTTPException)
     async def http_error(request, exc):
@@ -136,7 +145,9 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None)
 
     @app.get('/health')
     async def health():
-        return {'status': 'ok', 'mode': settings.mode, 'protocols': [1, 2], 'asr': 'not_implemented',
+        return {'status': 'ok', 'mode': settings.mode, 'protocols': [1, 2, 3], 'asr': 'qwen_realtime',
+                'speech_route': 'proxy' if settings.voice_proxy else 'direct',
+                'asr_configured': bool(settings.dashscope_key),
                 'chat_configured': bool(settings.deepseek_key),
                 'voice_configured': bool(settings.dashscope_key and settings.voice)}
 

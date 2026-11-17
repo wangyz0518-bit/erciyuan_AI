@@ -30,6 +30,7 @@ class Settings:
     voice: str = ''
     voice_yue: str = ''
     voice_model: str = 'cosyvoice-v3.5-flash'
+    asr_model: str = 'qwen3-asr-flash-realtime'
     voice_proxy: str | None = None
 
     @classmethod
@@ -45,6 +46,7 @@ class Settings:
             workspace=os.getenv('DASHSCOPE_WORKSPACE_ID', ''),
             voice=os.getenv('COSYVOICE_VOICE_ID', ''),
             voice_yue=os.getenv('COSYVOICE_YUE_VOICE_ID', ''),
+            asr_model=os.getenv('QWEN_ASR_MODEL', 'qwen3-asr-flash-realtime'),
             voice_proxy=os.getenv('GATEWAY_VOICE_PROXY') or None,
         )
 
@@ -178,11 +180,11 @@ class Providers:
             raise ProviderError('VOICE_INCOMPLETE')
 
 
-def wav(pcm: bytes) -> bytes:
+def wav(pcm: bytes, rate: int = 24000) -> bytes:
     output = io.BytesIO()
     with wave.open(output, 'wb') as f:
         f.setnchannels(1)
         f.setsampwidth(2)
-        f.setframerate(24000)
+        f.setframerate(rate)
         f.writeframes(pcm)
     return output.getvalue()

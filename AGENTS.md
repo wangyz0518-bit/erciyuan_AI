@@ -12,6 +12,8 @@
 
 本任务增加 [服务器统一调度 v2](docs/接口/model-gateway-stream-v2.md) 与 Android PCM 流式播放，旧 v1 保留供 iOS/回退使用。流式验证入口见 [指南](docs/guides/streaming-voice-20261115.md)。
 
+本分支进一步增加 [会话 v3](docs/接口/model-gateway-conversation-v3.md) 与 `apps/windows_conversation_lab`：三种输入、Qwen 实时 ASR 和可打断输出。先按 [Windows 指南](docs/guides/windows-conversation-20261118.md) 验证，再接 Android；真人麦克风/外放和 Android 接入不能标成已完成。浏览器状态与 PCM 检查在仓库根运行 `node --test apps/windows_conversation_lab/tests/*.test.cjs`。
+
 第一阶段目标：
 
 - 手机文字聊天骨架。

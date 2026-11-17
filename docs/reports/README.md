@@ -6,6 +6,7 @@
 
 | 文档 | 范围与状态 |
 | --- | --- |
+| [windows-conversation-20261118.md](windows-conversation-20261118.md) | 三种输入、真实合成参考 ASR 闭环和打断协议；真人收音/外放与 Android 待验证 |
 | [recording-voice-cloning-20261116.md](recording-voice-cloning-20261116.md) | Windows 真实录音复刻闭环、20 轮热连接延迟、保存恢复；听感待确认 |
 | [streaming-voice-20261115.md](streaming-voice-20261115.md) | 服务器统一调度、Android PCM 流式播放、48 条冷/热对比、真实聊天及待确认听感 |
 | [model-gateway-20261115.md](model-gateway-20261115.md) | 思考模型主接口与声音接口；区分真实调用、替身测试和人工待确认 |

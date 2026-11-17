@@ -16,6 +16,8 @@
 
 ## 约定
 
+Windows 连续语音测试：[操作指南](guides/windows-conversation-20261118.md)、[v3 契约](接口/model-gateway-conversation-v3.md)、[阶段验证](reports/windows-conversation-20261118.md)。三种输入共用角色上下文；真实合成参考闭环与真人收音/外放验收分别记录，Android 接入等待 Windows 验证。
+
 本轮 Windows 录音复刻：[操作指南](guides/recording-voice-cloning-20261116.md)、[接口](接口/recording-voice-profiles-v0.md)、[验收报告](reports/recording-voice-cloning-20261116.md)。真实合成参考闭环已验证，人工听感待确认，PR 不合并。
 
 - 每份文档开头写状态头，格式见 [process/documentation.md](process/documentation.md)。

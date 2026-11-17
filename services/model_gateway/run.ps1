@@ -3,6 +3,7 @@ param(
     [int]$Port=8787,
     [string]$Python='D:\dev\model-gateway-venv\Scripts\python.exe',
     [string]$VoiceConfigRoot='',
+    [string]$KeyRoot='',
     [switch]$UseExistingProxy
 )
 $ErrorActionPreference='Stop'
@@ -10,13 +11,14 @@ $repoRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $localRoot=Join-Path $repoRoot '.model-local'
 New-Item -ItemType Directory -Force -Path $localRoot | Out-Null
 if (-not $VoiceConfigRoot) { $VoiceConfigRoot=Join-Path $repoRoot '.worktrees/d-voice-desktop/.voice-local' }
+if (-not $KeyRoot) { $KeyRoot=$localRoot }
 function Read-LocalKey([string]$path) {
     $secret=ConvertTo-SecureString ((Get-Content -LiteralPath $path -Raw).Trim())
     try { return [Net.NetworkCredential]::new('', $secret).Password }
     finally { $secret.Dispose() }
 }
 if ($Mode -eq 'live') {
-    $deepseekPath=Join-Path $localRoot 'deepseek-key.dpapi'
+    $deepseekPath=Join-Path $KeyRoot 'deepseek-key.dpapi'
     if(Test-Path -LiteralPath $deepseekPath) { $env:DEEPSEEK_API_KEY=Read-LocalKey $deepseekPath }
     $dashPath=Join-Path $VoiceConfigRoot 'dashscope-key.dpapi'
     if(Test-Path -LiteralPath $dashPath) { $env:DASHSCOPE_API_KEY=Read-LocalKey $dashPath }

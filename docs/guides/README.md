@@ -2,6 +2,7 @@
 
 | 文档 | 用途 |
 | --- | --- |
+| [windows-conversation-20261118.md](windows-conversation-20261118.md) | Windows 三种输入、连续通话、打断、启动配置与人工验收门槛 |
 | [recording-voice-cloning-20261116.md](recording-voice-cloning-20261116.md) | Windows 录音上传、复刻、试听、角色应用与独立测试库 |
 | [streaming-voice-20261115.md](streaming-voice-20261115.md) | 服务器统一调度、Android PCM 播放、冷/热连接复测与 iOS 回退 |
 | [model-gateway-20261115.md](model-gateway-20261115.md) | DeepSeek + CosyVoice Flash 后端、密钥与 Android/iOS 联调 |
