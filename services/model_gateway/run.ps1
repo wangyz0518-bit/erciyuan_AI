@@ -4,11 +4,13 @@ param(
     [string]$Python='D:\dev\model-gateway-venv\Scripts\python.exe',
     [string]$VoiceConfigRoot='',
     [string]$KeyRoot='',
+    [string]$LocalRoot='',
     [switch]$UseExistingProxy
 )
 $ErrorActionPreference='Stop'
 $repoRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$localRoot=Join-Path $repoRoot '.model-local'
+if(-not $LocalRoot){$LocalRoot=Join-Path $repoRoot '.model-local'}
+$localRoot=[IO.Path]::GetFullPath($LocalRoot)
 New-Item -ItemType Directory -Force -Path $localRoot | Out-Null
 if (-not $VoiceConfigRoot) { $VoiceConfigRoot=Join-Path $repoRoot '.worktrees/d-voice-desktop/.voice-local' }
 if (-not $KeyRoot) { $KeyRoot=$localRoot }

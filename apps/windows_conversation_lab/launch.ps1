@@ -3,6 +3,7 @@ param(
     [int]$Port=8788,
     [ValidateSet('auto','direct','proxy')][string]$Route='auto',
     [string]$Python='',
+    [string]$RuntimeRoot='',
     [switch]$NoBrowser
 )
 $ErrorActionPreference='Stop'
@@ -14,7 +15,8 @@ if($LASTEXITCODE -ne 0){throw 'Cannot locate project configuration.'}
 $mainRoot=Split-Path -Parent $gitCommon
 $keyRoot=Join-Path $mainRoot '.model-local'
 $voiceRoot=Join-Path $mainRoot '.worktrees/d-voice-desktop/.voice-local'
-$runtimeRoot=Join-Path $repoRoot '.model-local'
+if(-not $RuntimeRoot){$RuntimeRoot=Join-Path $repoRoot '.model-local'}
+$runtimeRoot=[IO.Path]::GetFullPath($RuntimeRoot)
 $useProxy=($Route -eq 'proxy') -or ($Route -eq 'auto' -and [bool]$env:HTTPS_PROXY)
 if($Route -eq 'proxy' -and -not $env:HTTPS_PROXY){throw 'Proxy route requires HTTPS_PROXY in this process.'}
 $expectedRoute=if($useProxy){'proxy'}else{'direct'}
@@ -30,6 +32,18 @@ try{
     if(Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue){throw 'Port is occupied; choose another port.'}
 }
 if(-not $ready){
+    # Changing ports must not start another process over the same databases.
+    $pidFile=Join-Path $runtimeRoot 'conversation-server.pid'
+    if(Test-Path -LiteralPath $pidFile){
+        $recordedProcessId=0
+        if([int]::TryParse((Get-Content -LiteralPath $pidFile -Raw).Trim(),[ref]$recordedProcessId)){
+            $existingProcess=Get-CimInstance Win32_Process -Filter "ProcessId=$recordedProcessId" -ErrorAction SilentlyContinue
+            $serverScript=Join-Path $repoRoot 'services/model_gateway/run.ps1'
+            if($existingProcess -and $existingProcess.CommandLine -and $existingProcess.CommandLine.IndexOf($serverScript,[StringComparison]::OrdinalIgnoreCase) -ge 0){
+                throw 'This runtime directory already has a running gateway. Use its port, or choose a separate -RuntimeRoot and port.'
+            }
+        }
+    }
     if($Mode -eq 'live'){
         & $Python (Join-Path $PSScriptRoot 'import_voices.py') (Join-Path $keyRoot 'gateway-live/voice_profiles.sqlite') (Join-Path $runtimeRoot 'gateway-live')
         if($LASTEXITCODE -ne 0){throw 'Voice catalog import failed.'}
@@ -37,7 +51,8 @@ if(-not $ready){
     New-Item -ItemType Directory -Force -Path $runtimeRoot | Out-Null
     $script=Join-Path $repoRoot 'services/model_gateway/run.ps1'
     $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$script+'"'),'-Mode',$Mode,'-Port',$Port,
-        '-Python',('"'+$Python+'"'),'-KeyRoot',('"'+$keyRoot+'"'),'-VoiceConfigRoot',('"'+$voiceRoot+'"'))
+        '-Python',('"'+$Python+'"'),'-KeyRoot',('"'+$keyRoot+'"'),'-VoiceConfigRoot',('"'+$voiceRoot+'"'),
+        '-LocalRoot',('"'+$runtimeRoot+'"'))
     if($useProxy){$arguments+='-UseExistingProxy'}
     $shellExecutable=(Get-Process -Id $PID).Path
     $process=Start-Process $shellExecutable -ArgumentList $arguments -WindowStyle Hidden -PassThru `

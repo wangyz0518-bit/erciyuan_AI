@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
-const state={socket:null,connected:false,role:'xing',session:null,rows:new Map(),
+const state={socket:null,connected:false,connectionError:null,role:'xing',session:null,rows:new Map(),
   reply:null,input:null,pending:null,ignored:new Set(),mic:null,micPreparing:null,stream:null,context:null,player:null,
-  audioPreparing:null,replay:null,replayUrl:null,heartbeat:null,cancelMic:null,connectionEpoch:0,submitting:false,
+  audioPreparing:null,replay:null,replayUrl:null,replayButton:null,replayEpoch:0,heartbeat:null,cancelMic:null,connectionEpoch:0,submitting:false,
   calling:false,muted:false,holding:false,cancelHold:false,holdY:0,ring:[],micEpoch:0,
   played:0,seq:0,offset:0,metrics:{},voiceRevision:0};
 const initialToken=new URLSearchParams(location.hash.slice(1)).get('token');
@@ -13,13 +13,21 @@ function send(packet){
   if(!state.connected||state.socket?.readyState!==WebSocket.OPEN)throw new Error('连接已断开，请重新连接。');
   state.socket.send(JSON.stringify(packet));
 }
+function trySend(packet){
+  // A closing transport must never prevent local stop/cleanup. New user
+  // submissions still use send() so delivery failures remain visible.
+  if(!state.connected||state.socket?.readyState!==WebSocket.OPEN)return false;
+  try{send(packet);return true;}catch{return false;}
+}
 async function request(path,options={}){
   const r=await fetch(path,{...options,headers:{Authorization:'Bearer '+$('token').value,...options.headers}});
   if(!r.ok)throw new Error((await r.json()).error?.code||'请求失败');
   return r;
 }
 function stopReplay(){
+  state.replayEpoch++;
   state.replay?.pause();state.replay=null;
+  if(state.replayButton)state.replayButton.textContent='回听语音';state.replayButton=null;
   if(state.replayUrl)URL.revokeObjectURL(state.replayUrl);state.replayUrl=null;
 }
 function render(){
@@ -31,13 +39,21 @@ function render(){
     if(row.has_recording){
       const play=document.createElement('button');play.textContent='回听语音';
       play.onclick=async()=>{
+        let epoch,audio;
         try{
+          if(state.replayButton===play){stopReplay();return;}
           if(state.calling||state.holding)throw new Error('请先结束通话或录音。');
           interrupt();
+          epoch=state.replayEpoch;
           const blob=await (await request('/v3/recordings/'+encodeURIComponent(row.id))).blob();
-          const url=URL.createObjectURL(blob), audio=document.createElement('audio');audio.controls=true;audio.src=url;
-          state.replay=audio;state.replayUrl=url;audio.onended=stopReplay;play.replaceWith(audio);await audio.play();
-        }catch(e){status(e.message);}
+          if(epoch!==state.replayEpoch||state.calling||state.holding)return;
+          const url=URL.createObjectURL(blob);audio=document.createElement('audio');audio.src=url;
+          state.replay=audio;state.replayUrl=url;state.replayButton=play;play.textContent='停止回听';
+          audio.onended=()=>{if(state.replay===audio)stopReplay();};await audio.play();
+        }catch(e){
+          if(epoch!==undefined&&epoch!==state.replayEpoch)return;
+          if(audio&&state.replay===audio)stopReplay();status(e.message);
+        }
       };box.append(play);
     }
     const reply=document.createElement('div');reply.className='assistant';reply.textContent=(state.role==='xing'?'小星':'小月')+' · '+(row.reply||'正在想…');box.append(reply);
@@ -59,29 +75,28 @@ function interrupt(){
   const rid=state.reply;stopLocal();
   if(rid){
     state.ignored.add(rid);state.reply=null;
-    if(state.connected){
-      send({command:'playback.progress',reply_id:rid,frames:state.played});
-      send({command:'turn.interrupt',reply_id:rid});
-    }
+    trySend({command:'playback.progress',reply_id:rid,frames:state.played});
+    trySend({command:'turn.interrupt',reply_id:rid});
     const row=state.rows.get(rid);if(row){row.audio_state='interrupted';if(row.state==='running')row.state='interrupted';render();}
   }
 }
 function abortInput(){
   const id=state.input?.id||state.pending;
   state.input=null;state.pending=null;
-  if(id){state.ignored.add(id);if(state.connected)send({command:'input.abort',input_id:id});}
+  if(id){state.ignored.add(id);trySend({command:'input.abort',input_id:id});}
   $('transcript').textContent='';
 }
 function beginInput(kind,preRoll=false){
   if(state.input||state.pending)abortInput();
   const id=crypto.randomUUID();
-  state.input={id,seq:0,samples:0,kind,started:performance.now()};
   send({command:'input.start',input_id:id,kind});
+  state.input={id,seq:0,samples:0,kind,started:performance.now()};
   if(preRoll)for(const frame of state.ring)pushAudio(frame);
   return id;
 }
 function pushAudio(frame){
   const input=state.input;if(!input)return;
+  if(!state.connected||state.socket?.readyState!==WebSocket.OPEN){captureFailed();return;}
   if(input.samples+frame.length>16000*30){
     commitInput();status('本段已达 30 秒，正在识别。请稍后继续。');return;
   }
@@ -90,13 +105,17 @@ function pushAudio(frame){
   const bytes=new ArrayBuffer(4+header.length+frame.length*2),view=new DataView(bytes);
   view.setUint32(0,header.length);new Uint8Array(bytes,4,header.length).set(header);
   for(let i=0;i<frame.length;i++)view.setInt16(4+header.length+i*2,Math.round(Math.max(-1,Math.min(1,frame[i]))*32767),true);
-  state.socket.send(bytes);input.samples+=frame.length;
+  try{state.socket.send(bytes);input.samples+=frame.length;}catch{captureFailed();}
+}
+function captureFailed(){
+  endCall().then(()=>status('连接已断开，录音和播放已停止。本段未自动重发。')).catch(e=>status(e.message));
 }
 function commitInput(){
   const input=state.input;if(!input)return;
+  if(!state.connected||state.socket?.readyState!==WebSocket.OPEN){captureFailed();return;}
   if(input.samples<3200){abortInput();status('录音太短，请再说一次。');return;}
   state.input=null;state.pending=input.id;
-  send({command:'input.commit',input_id:input.id});status('正在确认你说的话…');
+  try{send({command:'input.commit',input_id:input.id});status('正在确认你说的话…');}catch{captureFailed();}
 }
 async function setupAudio(){
   if(state.context){await state.context.resume();return;}
@@ -114,11 +133,11 @@ async function createAudio(){
   player.port.onmessage=({data:m})=>{
     if(m.id!==state.reply)return;
     if(m.type==='started'){state.metrics.firstRenderMs=performance.now()-state.metrics.replyStarted;metrics();status(state.calling?'正在说话，你可以直接插话。':'正在朗读…');}
-    if(m.type==='progress'){state.played=m.frames;if(state.connected)send({command:'playback.progress',reply_id:m.id,frames:m.frames});}
+    if(m.type==='progress'){state.played=m.frames;trySend({command:'playback.progress',reply_id:m.id,frames:m.frames});}
     if(m.type==='ended'){
       state.played=m.frames;state.metrics.underruns=m.underruns;metrics();
       // Render progress is an estimate of device output, not evidence of hearing.
-      setTimeout(()=>{if(m.id===state.reply&&state.connected)send({command:'playback.progress',reply_id:m.id,frames:m.frames,complete:true});},(context.baseLatency+(context.outputLatency||0))*1000);
+      setTimeout(()=>{if(m.id===state.reply)trySend({command:'playback.progress',reply_id:m.id,frames:m.frames,complete:true});},(context.baseLatency+(context.outputLatency||0))*1000);
     }
     if(m.type==='overflow'){interrupt();status('播放缓冲已满，已停止本轮，请重试。');}
   };
@@ -160,7 +179,7 @@ async function prepareMic(){
     },
     onSpeechStart:()=>{
       if(epoch!==state.micEpoch||!state.calling||state.muted)return;
-      pauseOutput(true);beginInput('call',true);status('在听，请继续…');
+      pauseOutput(true);try{beginInput('call',true);status('在听，请继续…');}catch{captureFailed();}
     },
     onSpeechRealStart:()=>{if(epoch===state.micEpoch&&state.calling&&!state.muted){interrupt();status('在听，请继续…');}},
     onVADMisfire:()=>{if(epoch===state.micEpoch&&state.calling){abortInput();pauseOutput(false);status('继续聆听…');}},
@@ -178,10 +197,10 @@ async function releaseMic(){
   state.stream?.getTracks().forEach(t=>t.stop());state.stream=null;state.ring=[];
   if(mic)await mic.destroy();$('microphone').textContent='启用麦克风';
 }
-async function endCall(release=true){
+async function endCall(release=true,announce=true){
   state.calling=false;state.holding=false;state.muted=false;
   abortInput();interrupt();$('hold').classList.remove('recording');$('call').textContent='连续通话';$('mute').disabled=true;$('mute').textContent='静音麦克风';
-  if(release)await releaseMic();status('已结束通话。');
+  if(release)await releaseMic();if(announce)status('已结束通话。');
 }
 async function disconnect(){
   clearInterval(state.heartbeat);state.heartbeat=null;
@@ -201,14 +220,20 @@ async function connect(){
   const epoch=++state.connectionEpoch;
   if(state.socket)await disconnect();
   if(epoch!==state.connectionEpoch)return;
-  state.connected=false;state.session=null;state.reply=null;state.ignored.clear();
+  state.connected=false;state.connectionError=null;state.session=null;state.reply=null;state.ignored.clear();
   if($('token').value.length<24)throw new Error('请通过启动脚本打开，或填写本机访问令牌。');
   const socket=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/v3/conversations/${state.role}/stream`);
   socket.binaryType='arraybuffer';state.socket=socket;
-  socket.onopen=()=>socket.send(JSON.stringify({command:'session.start',token:$('token').value}));
-  socket.onmessage=({data})=>{if(socket!==state.socket)return;try{receive(data);}catch(e){status(e.message);endCall();socket.close();}};
-  socket.onclose=()=>{if(socket!==state.socket)return;clearInterval(state.heartbeat);state.heartbeat=null;state.connected=false;endCall();$('connection').textContent='已断开';status('连接已断开，录音与播放已停止。没有自动重发。');};
-  socket.onerror=()=>status('无法连接本机服务，请检查启动窗口。');
+  socket.onopen=()=>{if(socket===state.socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({command:'session.start',token:$('token').value}));};
+  socket.onmessage=({data})=>{if(socket!==state.socket)return;try{receive(data);}catch(e){state.connectionError=e.message;status(e.message);endCall(true,false).catch(()=>{});socket.close();}};
+  socket.onclose=()=>{
+    if(socket!==state.socket)return;
+    clearInterval(state.heartbeat);state.heartbeat=null;state.connected=false;
+    const message=state.connectionError||'连接已断开，录音与播放已停止。没有自动重发。';
+    $('connection').textContent='已断开';status(message);
+    return endCall(true,false).catch(e=>{if(socket===state.socket)status(message+' '+e.message);});
+  };
+  socket.onerror=()=>{if(socket===state.socket)status('无法连接本机服务，请检查启动窗口。');};
 }
 function receive(data){
   if(data instanceof ArrayBuffer){
@@ -227,10 +252,13 @@ function receive(data){
   if(m.event==='session.ready'){
     state.connected=true;state.session=m.session_id;state.rows=new Map(m.history.map(r=>[r.id,r]));render();
     $('connection').textContent=m.mode==='live'?'已连接 · 真实模型':'已连接 · 模拟模式（不能识别真实语音）';
-    clearInterval(state.heartbeat);state.heartbeat=setInterval(()=>{if(state.connected)send({command:'session.ping'});},30000);
+    clearInterval(state.heartbeat);state.heartbeat=setInterval(()=>trySend({command:'session.ping'}),30000);
     status('可以打字聊天；启用麦克风后可使用语音。');loadVoices().catch(e=>status(e.message));return;
   }
-  if(m.event==='session.failed'){status(m.code);return;}
+  if(m.event==='session.failed'){
+    state.connectionError=({SESSION_BUSY:'另一个聊天页面正在使用服务。请关闭旧页面，再点击连接。',UNAUTHORIZED:'本机访问令牌无效，请关闭此页面并通过启动脚本重新打开。'}[m.code]||'连接未建立：'+m.code);
+    status(state.connectionError);return;
+  }
   if(m.session_id!==state.session)return;
   if(m.reply_id&&state.ignored.has(m.reply_id))return;
   if(m.input_id&&state.ignored.has(m.input_id))return;
@@ -286,7 +314,9 @@ $('text').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preve
 $('hold').onpointerdown=e=>{
   if(!state.mic||!state.connected||state.calling){status('请先启用麦克风，并结束连续通话。');return;}
   e.preventDefault();$('hold').setPointerCapture(e.pointerId);interrupt();
-  state.holding=true;state.cancelHold=false;state.holdY=e.clientY;beginInput('hold');$('hold').classList.add('recording');status('正在录音，松开发送，向上拖动取消。');
+  try{
+    beginInput('hold');state.holding=true;state.cancelHold=false;state.holdY=e.clientY;$('hold').classList.add('recording');status('正在录音，松开发送，向上拖动取消。');
+  }catch{captureFailed();}
 };
 $('hold').onpointermove=e=>{if(state.holding){state.cancelHold=e.clientY<state.holdY-55;status(state.cancelHold?'松开取消发送':'正在录音，松开发送。');}};
 function releaseHold(cancel=false){if(!state.holding)return;state.holding=false;$('hold').classList.remove('recording');if(cancel||state.cancelHold){abortInput();status('已取消录音。');}else commitInput();}
