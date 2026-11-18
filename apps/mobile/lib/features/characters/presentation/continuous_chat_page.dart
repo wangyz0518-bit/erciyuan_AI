@@ -135,10 +135,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
             onSelected: _switchCharacter,
             itemBuilder: (_) => [
               for (final choice in widget.selection.characters)
-                PopupMenuItem(
-                  value: choice.scope,
-                  child: Text(choice.name),
-                ),
+                PopupMenuItem(value: choice.scope, child: Text(choice.name)),
             ],
           ),
         ],
@@ -169,7 +166,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
                         key: const ValueKey('persistent-message-list'),
                         controller: _scroll,
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                        itemCount: _chat.events.length +
+                        itemCount:
+                            _chat.events.length +
                             (_chat.streamedText.isNotEmpty ? 1 : 0),
                         itemBuilder: (_, i) {
                           if (i == _chat.events.length) {
@@ -251,14 +249,9 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
         const SizedBox(width: 6),
         Expanded(
           child: Text(
-            _chat.isMock
-                ? '离线 Mock 模式 · 回复仅供界面测试'
-                : '文字网关模式 · 服务端鉴权仅供受控开发',
+            _chat.isMock ? '离线 Mock 模式 · 回复仅供界面测试' : '文字网关模式 · 服务端鉴权仅供受控开发',
             key: const ValueKey('chat-mode'),
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFFF3E9FF),
-            ),
+            style: const TextStyle(fontSize: 12, color: Color(0xFFF3E9FF)),
           ),
         ),
         TextButton(
