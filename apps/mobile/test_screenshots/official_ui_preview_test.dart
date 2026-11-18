@@ -41,26 +41,26 @@ void main() {
     const moon = PersonScope(ownerId: 'preview', characterId: 'moon');
     await tester.runAsync(() async {
       for (final character in const [
-      Character(scope: star, name: '小星', description: '温柔而好奇的伙伴'),
-      Character(scope: moon, name: '小月', description: '善于倾听的伙伴'),
-    ]) {
-      await db.createCharacter(
-        character: character,
-        timelineId: 'preview-${character.scope.characterId}',
+        Character(scope: star, name: '小星', description: '温柔而好奇的伙伴'),
+        Character(scope: moon, name: '小月', description: '善于倾听的伙伴'),
+      ]) {
+        await db.createCharacter(
+          character: character,
+          timelineId: 'preview-${character.scope.characterId}',
+        );
+      }
+      await db.appendEvent(
+        scope: star,
+        eventId: 'preview-user',
+        speaker: 'user',
+        content: '今天的星空很好看。',
       );
-    }
-        await db.appendEvent(
-      scope: star,
-      eventId: 'preview-user',
-      speaker: 'user',
-      content: '今天的星空很好看。',
-    );
-    await db.appendEvent(
-      scope: star,
-      eventId: 'preview-assistant',
-      speaker: 'assistant',
-      content: '【离线 Mock】小星：我也想听听你看到的星空。',
-    );
+      await db.appendEvent(
+        scope: star,
+        eventId: 'preview-assistant',
+        speaker: 'assistant',
+        content: '【离线 Mock】小星：我也想听听你看到的星空。',
+      );
     });
     final selection = CharacterSelectionController(
       ownerId: 'preview',
