@@ -58,21 +58,33 @@ Windows 工作站遇到 Gradle loopback 临时目录问题时，可使用工程�
 
 ## 4. 自动化测试
 
-快速检查：
+### 快速检查
 
 - `flutter analyze`：Dart 静态分析。
-- `flutter test`：单元测试和 widget 测试。
+- `flutter test`：单元测试和 Widget 测试。
 
-需要真实 Android 环境的集成测试：
+### Android 模拟器集成测试
+
+需要真实 Android 模拟器：
 
 ```powershell
 flutter test integration_test/acceptance_test.dart -d <device-id> --reporter expanded
 flutter test integration_test/storage_failure_test.dart -d <device-id> --reporter expanded
 ```
 
-`integration_test/soak_test.dart` 是长时间连续操作测试，耗时较长，按需单独运行。集成测试可能重装测试应用并操作测试数据库，使用专用模拟器，不要在含有重要个人数据的安装环境中执行。
+GitHub Actions 的 Android Emulator Job 使用 Android API 36 / x86_64，自动执行上述两个集成测试文件，并在 Job 结束时上传模拟器 logcat（保留 7 天）。PR 和 main push 的快速检查通过后才会运行此 Job。
 
-自动化文本输入不能替代真实中文输入法选词验证；录音文件生成也不能替代人工试听确认。
+### 长时间连续测试
+
+`integration_test/soak_test.dart` 是长时间连续操作测试，耗时较长，按需单独运行，不作为每次 PR 的必需检查：
+
+```powershell
+flutter test integration_test/soak_test.dart -d <device-id> --reporter expanded
+```
+
+集成测试可能重装测试应用并操作测试数据库，使用专用模拟器，不要在含有重要个人数据的安装环境中执行。
+
+自动化文本输入不能替代真实中文输入法选词验证；模拟器播放状态不能替代人工试听确认；CI 集成测试不验证 Android 真机、iOS 或真实麦克风音质。
 
 ## 5. 验证边界
 
