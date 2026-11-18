@@ -16,7 +16,7 @@
 
 ## 移动端工程
 
-Flutter 工程位于 [apps/mobile_poc](apps/mobile_poc/)。当前是本地能力验证基线，包含 Android/iOS 工程目录、聊天/角色/录音播放 PoC 和自动化测试；真实 AI 服务尚未接入。
+Flutter 工程位于 [apps/mobile_poc/](apps/mobile_poc/README.md)。当前是本地能力验证基线，包含 Android/iOS 工程目录、聊天/角色/录音播放 PoC 和自动化测试；真实 AI 服务尚未接入。
 
 开发环境、命令和验证边界见 [Flutter 开发与验证指南](docs/guides/flutter-poc-guide-20261112.md)。Android 模拟器的历史验证结果见 [Android PoC 报告](docs/reports/android-poc-report-20261112.md)。
 
