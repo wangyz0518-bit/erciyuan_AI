@@ -56,6 +56,15 @@ void main() {
     await temp.delete(recursive: true);
   });
 
+  /// SQLite FFI completes on the real event loop, outside widget fake time.
+  Future<void> settleDatabase(WidgetTester tester) async {
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await tester.pumpAndSettle();
+  }
+
   Future<void> mount(WidgetTester tester) async {
     await tester.pumpWidget(
       CompanionApp(
@@ -74,7 +83,7 @@ void main() {
     expect(find.text('新建会话'), findsNothing);
     expect(find.byKey(const ValueKey('continue-timeline')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('continue-timeline')));
-    await tester.pumpAndSettle();
+    await settleDatabase(tester);
     expect(find.text('唯一持续时间线'), findsOneWidget);
     expect(find.byKey(const ValueKey('chat-mode')), findsOneWidget);
   });
@@ -84,15 +93,13 @@ void main() {
   ) async {
     await mount(tester);
     await tester.tap(find.byKey(const ValueKey('continue-timeline')));
-    await tester.pumpAndSettle();
+    await settleDatabase(tester);
     await tester.enterText(
       find.byKey(const ValueKey('character-draft')),
       '仅属于小星',
     );
     await tester.tap(find.byKey(const ValueKey('send-message')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pumpAndSettle();
+    await settleDatabase(tester);
 
     expect(
       (await database.rawEventsFor(scope: star)).map((event) => event.speaker),
@@ -102,7 +109,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('chat-switch-character')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('小月').last);
-    await tester.pumpAndSettle();
+    await settleDatabase(tester);
     expect(find.text('仅属于小星'), findsNothing);
     expect(await database.rawEventsFor(scope: moon), isEmpty);
     await tester.enterText(
@@ -127,7 +134,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('导出全部人物数据'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('export-all-person-data')));
-    await tester.pumpAndSettle();
+    await settleDatabase(tester);
     expect(find.byKey(const ValueKey('export-summary')), findsOneWidget);
     expect(find.textContaining('原始记录：1'), findsOneWidget);
   });
