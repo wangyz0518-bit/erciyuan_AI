@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../application/character_selection_controller.dart';
 import '../domain/character.dart';
@@ -53,9 +53,7 @@ class _TimelinePlaceholderPageState extends State<TimelinePlaceholderPage> {
               controller: _draft,
               onChanged: (text) =>
                   widget.controller.updateDraft(widget.scope, text),
-              decoration: const InputDecoration(
-                labelText: '人物专属草稿（内存 Mock）',
-              ),
+              decoration: const InputDecoration(labelText: '人物专属草稿（内存 Mock）'),
             ),
           ],
         ),
