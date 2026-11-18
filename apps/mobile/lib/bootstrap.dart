@@ -63,6 +63,7 @@ Future<CompanionApp> bootstrapCompanionApp({
     controller: CharacterSelectionController(
       ownerId: ownerId,
       catalog: _DatabaseCharacterCatalog(characters),
+      initialScope: await store.mostRecentCharacterForOwner(ownerId),
     ),
   );
 }
