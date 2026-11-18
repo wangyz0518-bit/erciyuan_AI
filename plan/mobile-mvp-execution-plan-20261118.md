@@ -1,6 +1,6 @@
 # Flutter AI 陪伴 MVP 专项执行计划
 
-> 状态：2026-11-18 已批准记忆优先顺序；#25/#14 已完成，#34 为当前任务；#31 暂缓
+> 状态：2026-11-18 已批准记忆优先顺序；#25/#14/#34 已完成，#35 执行计划待确认；#31 暂缓
 > 日期：2026-11-18
 > 当前起点：main `bdda1714f5a467b7f3028f981777f2405316a0bc`（后续以 GitHub 实时 HEAD 为准）
 > 范围：记忆优先 #34 → #35 → #36 → #47 → #38 → #39；其余 Issue 继续保留，不删除
@@ -13,7 +13,7 @@
 执行顺序：
 
 1. **已完成**：[Issue #25 协作基线](https://github.com/wangyz0518-bit/erciyuan_AI/issues/25)、[Issue #14 人物中心首页原型](https://github.com/wangyz0518-bit/erciyuan_AI/issues/14)。
-2. **记忆优先主线（已授权顺序）**：[Issue #34 架构](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) → [#35 最小正式工程](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) → [#36 人物时间线和导出](https://github.com/wangyz0518-bit/erciyuan_AI/issues/36) → [#47 离线可测试的三层记忆引擎](https://github.com/wangyz0518-bit/erciyuan_AI/issues/47) → [#38 AI/后端设计](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38) → [#39 真实文字模型接入与记忆联调](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39)。
+2. **记忆优先主线（已授权顺序；每项须单独批准）**：[Issue #34 架构](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) → [#35 最小正式工程](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) → [#36 人物时间线和导出](https://github.com/wangyz0518-bit/erciyuan_AI/issues/36) → [#47 离线可测试的三层记忆引擎](https://github.com/wangyz0518-bit/erciyuan_AI/issues/47) → [#38 AI/后端设计](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38) → [#39 真实文字模型接入与记忆联调](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39)。
 3. **暂缓**：[Issue #31 模拟器 CI](https://github.com/wangyz0518-bit/erciyuan_AI/issues/31)。其早期 PR #32 仍开放，计划 PR #49 仍为 Draft，均不在记忆主线期间修改/合并/关闭；回到 #31 前重新提交计划。
 4. **其他后续**：正式 UI #37、iOS #40、Android 真机 #41、音频 #42、ASR/TTS #43、形象 #44；保留原 Issue，按主线完成情况重新提交计划获确认后执行。
 
@@ -21,8 +21,8 @@
 
 ## 1.1 记忆优先的完成边界与依赖解耦
 
-- #34 只交付经自审的架构设计、模块/数据契约、部署边界与 PoC 迁移方案，不写正式工程业务代码。
-- #35 建立可运行最小 Flutter 正式工程（含可测试核心层）；#36 提供原始数据持久化与可导出结构。
+- #34 已通过 [PR #50](https://github.com/wangyz0518-bit/erciyuan_AI/pull/50) 完成设计交付；[ADR-0004](../docs/decisions/0004-person-centered-memory-architecture.md) 仍是提议，不代表项目发起人已批准正式工程选项。
+- #35 计划见 [issue-35-mobile-foundation-plan-20261118.md](issue-35-mobile-foundation-plan-20261118.md)，仍须项目发起人确认该计划及 ADR-0004 才能开始；#36 提供原始数据持久化与可导出结构。
 - #47 **先实现供应商无关的离线记忆内核**：使用可替换的本地确定性摘要器/Mock、时间线归档、来源索引、人物身份变更审核、上下文装配及自动化测试；不依赖真实模型服务就能验收这部分功能。真实模型效果和缓存命中率只记录为“待 #38/#39 联调”，不能宣称通过。
 - #38 在 #47 的接口边界上确定部署、供应商、鉴权/多用户隔离和可观测性；#39 对已实现的记忆内核接入真实 LLM 并实测检索质量、延迟、Token、缓存与费用。#39 的服务/控制器/测试可以先无完整 Flutter 聊天 UI；正式交互 UI 由后续 #37 承接，避免循环依赖。
 - **依赖图无环**：#34 → #35 → #36 → #47 → #38 → #39。#37 依赖 #35/#36（完整 AI 接入可在 #39 后做 UI 联调），不作为 #39 的前置条件。
@@ -381,7 +381,7 @@
 
 ## 8. 当前状态快照（2026-11-18）
 
-- #25、#14 已完成并关闭；#34 当前获准实施。
+- #25、#14、#34 已完成并关闭；#34 的 PR #50 已合并，#35 仅提交执行计划草案、尚未实施。
 - #31 处于暂缓状态；PR #32 开放且未合并，PR #49 为本执行账号的 Draft 计划，均保持不动。
 - A～K 为 Issue #34～#44；记忆 L 为 [#47](https://github.com/wangyz0518-bit/erciyuan_AI/issues/47)，其核心验收提前至 #38/#39 之前。
 - PR #15～#24 属于 `wangyz0518-bit`，全部只读参考，不作写操作。
