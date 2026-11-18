@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:erciyuan_mobile/app/companion_app.dart';
 import 'package:erciyuan_mobile/features/characters/application/character_selection_controller.dart';
 import 'package:erciyuan_mobile/features/characters/data/mock_character_catalog.dart';
@@ -34,7 +32,7 @@ void main() {
       var database = await PersonDatabase.open(databasePath: dbPath);
       addTearDown(() async {
         await database.close();
-        await File(dbPath).delete();
+        await deleteDatabase(dbPath);
       });
       const people = [
         Character(scope: star, name: '小星', description: '人物 A'),
