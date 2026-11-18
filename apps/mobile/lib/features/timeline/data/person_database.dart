@@ -397,8 +397,6 @@ final class PersonDatabase {
 
   /// Records a non-success terminal state. A later status lookup may resolve
   /// unknown to a confirmed failed/cancelled state; terminal states are stable.
-  /// Records a non-success terminal state. A later status lookup may resolve
-  /// unknown to a confirmed failed/cancelled state; terminal states are stable.
   Future<void> setGenerationStatus({
     required PersonScope scope,
     required String requestId,
