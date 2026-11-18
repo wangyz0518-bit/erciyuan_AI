@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../../audio/application/audio_session_controller.dart';
+import '../../audio/data/platform_audio_adapters.dart';
+import '../../audio/domain/audio_ports.dart';
 import '../../chat/application/continuous_chat_controller.dart';
 import '../../chat/data/model_gateway_adapter.dart';
 import '../../timeline/data/person_database.dart';
@@ -16,6 +19,7 @@ class ContinuousChatPage extends StatefulWidget {
     required this.database,
     required this.scope,
     this.gateway,
+    this.audioSession,
     super.key,
   });
 
@@ -24,13 +28,19 @@ class ContinuousChatPage extends StatefulWidget {
   final PersonScope scope;
   final ModelGatewayAdapter? gateway;
 
+  /// Optional injectable audio scope for widget/device tests.
+  final AudioSessionController? audioSession;
+
   @override
   State<ContinuousChatPage> createState() => _ContinuousChatPageState();
 }
 
-class _ContinuousChatPageState extends State<ContinuousChatPage> {
+class _ContinuousChatPageState extends State<ContinuousChatPage>
+    with WidgetsBindingObserver {
   late final ContinuousChatController _chat;
   late final TextEditingController _input;
+  late final AudioSessionController _audio;
+  bool _slideCancelled = false;
   final ScrollController _scroll = ScrollController();
 
   Character get _character => widget.selection.characters.firstWhere(
@@ -40,6 +50,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _audio = widget.audioSession ?? createDeviceAudioSession();
     _chat = ContinuousChatController(
       database: widget.database,
       scope: widget.scope,
@@ -75,7 +87,17 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      unawaited(_audio.discard());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_audio.close());
+    _audio.dispose();
     _chat.removeListener(_scrollWhenFollowing);
     _chat.dispose();
     _input.removeListener(_refreshInput);
@@ -88,6 +110,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
     if (scope == widget.scope) return;
     FocusScope.of(context).unfocus();
     widget.selection.selectCharacter(scope);
+    unawaited(_audio.discard());
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => ContinuousChatPage(
@@ -143,7 +166,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
       body: SafeArea(
         top: false,
         child: AnimatedBuilder(
-          animation: _chat,
+          animation: Listenable.merge([_chat, _audio]),
           builder: (context, _) => Column(
             children: [
               _CharacterScene(
@@ -227,6 +250,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
                     ],
                   ),
                 ),
+              _audioControls(),
               _composer(),
             ],
           ),
@@ -301,6 +325,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
           ),
         ),
         const SizedBox(width: 8),
+        _recordButton(),
+        const SizedBox(width: 6),
         IconButton.filled(
           key: const ValueKey('send-message'),
           tooltip: '发送文字消息',
@@ -310,6 +336,87 @@ class _ContinuousChatPageState extends State<ContinuousChatPage> {
           icon: const Icon(Icons.send_rounded),
         ),
       ],
+    ),
+  );
+  Widget _audioControls() {
+    if (_audio.state == AudioSessionState.idle ||
+        _audio.state == AudioSessionState.closed) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      key: const ValueKey('local-audio-status'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      color: const Color(0xFF32354C),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        children: [
+          Text(
+            _audio.status,
+            style: const TextStyle(fontSize: 11, color: Colors.white),
+          ),
+          if (_audio.hasClip && _audio.state != AudioSessionState.playing)
+            TextButton(
+              key: const ValueKey('preview-local-audio'),
+              onPressed: () => unawaited(_audio.play()),
+              child: const Text('试听'),
+            ),
+          if (_audio.state == AudioSessionState.playing)
+            TextButton(
+              key: const ValueKey('stop-local-audio'),
+              onPressed: () => unawaited(_audio.stopPlayback()),
+              child: const Text('停止'),
+            ),
+          if (_audio.hasClip ||
+              _audio.state == AudioSessionState.recording ||
+              _audio.state == AudioSessionState.requestingPermission)
+            TextButton(
+              key: const ValueKey('discard-local-audio'),
+              onPressed: () => unawaited(_audio.discard()),
+              child: const Text('删除/取消'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _recordButton() => Semantics(
+    button: true,
+    label: '按住录音，松开保存本地试听，向左滑出取消',
+    onTap: () {
+      if (_audio.state == AudioSessionState.recording) {
+        unawaited(_audio.finish());
+      } else {
+        unawaited(_audio.begin());
+      }
+    },
+    child: Listener(
+      onPointerDown: (_) {
+        _slideCancelled = false;
+        unawaited(_audio.begin());
+      },
+      onPointerMove: (event) {
+        if (event.localPosition.dx < -24 || event.localPosition.dy < -24) {
+          _slideCancelled = true;
+        }
+      },
+      onPointerUp: (_) =>
+          unawaited(_slideCancelled ? _audio.discard() : _audio.finish()),
+      onPointerCancel: (_) => unawaited(_audio.discard()),
+      child: Container(
+        key: const ValueKey('hold-to-record'),
+        width: 46,
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: _audio.state == AudioSessionState.recording
+              ? const Color(0xFF9E566D)
+              : const Color(0xFF434B67),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: const Icon(Icons.mic_none_outlined, color: Colors.white),
+      ),
     ),
   );
 }

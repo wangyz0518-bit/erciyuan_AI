@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>仅当你按住录音时使用麦克风，音频暂存在本机供试听，可随时取消或删除。</string>
 	<key>CFBundleDisplayName</key>
 	<string>erciyuan AI</string>
 	<key>CFBundleExecutable</key>
