@@ -51,33 +51,36 @@ void main() {
     );
   }
 
-  test('recent character comes from persisted history and stays owner-scoped', () async {
-    await seed();
-    expect(await store.mostRecentCharacterForOwner('owner-a'), isNull);
-    await store.appendEvent(
-      scope: moon,
-      eventId: 'last-moon',
-      speaker: 'user',
-      content: 'hello',
-      occurredAt: DateTime.utc(2026, 11, 18, 10),
-    );
-    await store.appendEvent(
-      scope: star,
-      eventId: 'last-star',
-      speaker: 'user',
-      content: 'later',
-      occurredAt: DateTime.utc(2026, 11, 18, 11),
-    );
-    await store.appendEvent(
-      scope: outsider,
-      eventId: 'outsider-latest',
-      speaker: 'user',
-      content: 'other owner',
-      occurredAt: DateTime.utc(2026, 11, 18, 12),
-    );
-    expect(await store.mostRecentCharacterForOwner('owner-a'), star);
-    expect(await store.mostRecentCharacterForOwner('owner-b'), outsider);
-  });
+  test(
+    'recent character comes from persisted history and stays owner-scoped',
+    () async {
+      await seed();
+      expect(await store.mostRecentCharacterForOwner('owner-a'), isNull);
+      await store.appendEvent(
+        scope: moon,
+        eventId: 'last-moon',
+        speaker: 'user',
+        content: 'hello',
+        occurredAt: DateTime.utc(2026, 11, 18, 10),
+      );
+      await store.appendEvent(
+        scope: star,
+        eventId: 'last-star',
+        speaker: 'user',
+        content: 'later',
+        occurredAt: DateTime.utc(2026, 11, 18, 11),
+      );
+      await store.appendEvent(
+        scope: outsider,
+        eventId: 'outsider-latest',
+        speaker: 'user',
+        content: 'other owner',
+        occurredAt: DateTime.utc(2026, 11, 18, 12),
+      );
+      expect(await store.mostRecentCharacterForOwner('owner-a'), star);
+      expect(await store.mostRecentCharacterForOwner('owner-b'), outsider);
+    },
+  );
 
   test(
     'one immutable timeline per owner/character, restart recovery',
