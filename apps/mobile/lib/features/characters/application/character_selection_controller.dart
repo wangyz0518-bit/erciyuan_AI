@@ -3,11 +3,12 @@ import 'package:flutter/foundation.dart';
 import '../domain/character.dart';
 import '../domain/character_catalog.dart';
 
-/// In-memory app state. SQLite and durable history belong to Issue #36.
+/// Ephemeral draft and current selection. Durable messages live in #36 SQLite.
 final class CharacterSelectionController extends ChangeNotifier {
   CharacterSelectionController({
     required this.ownerId,
     required CharacterCatalog catalog,
+    PersonScope? initialScope,
   }) : characters = catalog.listForOwner(ownerId) {
     if (ownerId.trim().isEmpty || characters.isEmpty) {
       throw ArgumentError('Owner must have at least one character.');
@@ -15,7 +16,11 @@ final class CharacterSelectionController extends ChangeNotifier {
     if (characters.any((character) => character.scope.ownerId != ownerId)) {
       throw StateError('Character catalog leaked another owner scope.');
     }
-    _activeScope = characters.first.scope;
+    if (initialScope != null &&
+        !characters.any((character) => character.scope == initialScope)) {
+      throw ArgumentError.value(initialScope, 'initialScope');
+    }
+    _activeScope = initialScope ?? characters.first.scope;
   }
 
   final String ownerId;

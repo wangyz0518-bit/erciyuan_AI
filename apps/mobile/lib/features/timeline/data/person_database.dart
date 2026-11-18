@@ -217,6 +217,25 @@ final class PersonDatabase {
     );
   }
 
+  /// The last character with a persisted interaction. Used by the A-first
+  /// home page to highlight a recent companion without creating sessions.
+  Future<PersonScope?> mostRecentCharacterForOwner(String ownerId) async {
+    _requireValue(ownerId, 'ownerId');
+    final rows = await _db.query(
+      'raw_events',
+      columns: ['character_id'],
+      where: 'owner_id = ?',
+      whereArgs: [ownerId],
+      orderBy: 'occurred_at_utc DESC, sequence DESC',
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return PersonScope(
+      ownerId: ownerId,
+      characterId: rows.single['character_id']! as String,
+    );
+  }
+
   Future<String?> timelineIdFor(PersonScope scope) async {
     _validateScope(scope);
     final rows = await _db.query(

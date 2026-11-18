@@ -1,13 +1,26 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../features/characters/application/character_selection_controller.dart';
 import '../features/characters/presentation/character_home_page.dart';
+import '../features/chat/data/model_gateway_adapter.dart';
+import '../features/timeline/data/person_database.dart';
 
-/// Owns [controller]. The bootstrap composition root provides dependencies.
+/// Owns the official local store, single-owner selection, and optional gateway.
 class CompanionApp extends StatefulWidget {
-  const CompanionApp({required this.controller, super.key});
+  const CompanionApp({
+    required this.controller,
+    required this.database,
+    this.gateway,
+    this.closeDatabaseOnDispose = true,
+    super.key,
+  });
 
   final CharacterSelectionController controller;
+  final PersonDatabase database;
+  final ModelGatewayAdapter? gateway;
+  final bool closeDatabaseOnDispose;
 
   @override
   State<CompanionApp> createState() => _CompanionAppState();
@@ -16,6 +29,8 @@ class CompanionApp extends StatefulWidget {
 class _CompanionAppState extends State<CompanionApp> {
   @override
   void dispose() {
+    widget.gateway?.close();
+    if (widget.closeDatabaseOnDispose) unawaited(widget.database.close());
     widget.controller.dispose();
     super.dispose();
   }
@@ -23,10 +38,18 @@ class _CompanionAppState extends State<CompanionApp> {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: '二次元 AI',
+    debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF7969C3),
+        brightness: Brightness.dark,
+      ),
     ),
-    home: CharacterHomePage(controller: widget.controller),
+    home: CharacterHomePage(
+      controller: widget.controller,
+      database: widget.database,
+      gateway: widget.gateway,
+    ),
   );
 }
