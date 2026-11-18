@@ -261,7 +261,9 @@ final class PersonDatabase {
         );
         if (source.isEmpty) throw StateError('Revision source not found');
         await PersonMemoryRepository.invalidateSourceInTransaction(
-          txn, scope, revisionOf,
+          txn,
+          scope,
+          revisionOf,
         );
       }
       return RawEvent(
@@ -388,7 +390,10 @@ final class PersonDatabase {
       );
       if (changed != 1) throw StateError('Redactable event not found');
       await PersonMemoryRepository.invalidateSourceInTransaction(
-        txn, scope, eventId, purgeContent: true,
+        txn,
+        scope,
+        eventId,
+        purgeContent: true,
       );
     });
   }
@@ -398,40 +403,59 @@ final class PersonDatabase {
   Future<String> exportOwnerJson(String ownerId) async {
     _requireValue(ownerId, 'ownerId');
     return _db.transaction((txn) async {
-      Future<List<Map<String, Object?>>> read(
-        String table, String order,
-      ) => txn.query(
-        table,
-        where: 'owner_id = ?',
-        whereArgs: [ownerId],
-        orderBy: order,
-      );
+      Future<List<Map<String, Object?>>> read(String table, String order) =>
+          txn.query(
+            table,
+            where: 'owner_id = ?',
+            whereArgs: [ownerId],
+            orderBy: order,
+          );
       return const JsonEncoder.withIndent('  ').convert({
         'format': 'erciyuan-person-memory-export',
         'schema_version': 1,
         'database_schema_version': schemaVersion,
         'owner_id': ownerId,
         'characters': await read('characters', 'character_id ASC'),
-        'character_timelines':
-            await read('character_timelines', 'character_id ASC'),
-        'raw_events':
-            await read('raw_events', 'character_id ASC, sequence ASC'),
-        'generation_tasks':
-            await read('generation_tasks', 'character_id ASC, request_id ASC'),
-        'archive_segments':
-            await read('archive_segments', 'character_id ASC, sequence_from ASC'),
-        'archive_cursors':
-            await read('archive_cursors', 'character_id ASC, generator_version ASC'),
-        'memory_summaries':
-            await read('memory_summaries', 'character_id ASC, summary_id ASC'),
-        'memory_terms':
-            await read('memory_terms', 'character_id ASC, summary_id ASC, term ASC'),
-        'summary_sources':
-            await read('summary_sources', 'character_id ASC, summary_id ASC, event_id ASC'),
-        'persona_identity_versions':
-            await read('persona_identity_versions', 'character_id ASC, version ASC'),
-        'identity_candidates':
-            await read('identity_candidates', 'character_id ASC, candidate_id ASC'),
+        'character_timelines': await read(
+          'character_timelines',
+          'character_id ASC',
+        ),
+        'raw_events': await read(
+          'raw_events',
+          'character_id ASC, sequence ASC',
+        ),
+        'generation_tasks': await read(
+          'generation_tasks',
+          'character_id ASC, request_id ASC',
+        ),
+        'archive_segments': await read(
+          'archive_segments',
+          'character_id ASC, sequence_from ASC',
+        ),
+        'archive_cursors': await read(
+          'archive_cursors',
+          'character_id ASC, generator_version ASC',
+        ),
+        'memory_summaries': await read(
+          'memory_summaries',
+          'character_id ASC, summary_id ASC',
+        ),
+        'memory_terms': await read(
+          'memory_terms',
+          'character_id ASC, summary_id ASC, term ASC',
+        ),
+        'summary_sources': await read(
+          'summary_sources',
+          'character_id ASC, summary_id ASC, event_id ASC',
+        ),
+        'persona_identity_versions': await read(
+          'persona_identity_versions',
+          'character_id ASC, version ASC',
+        ),
+        'identity_candidates': await read(
+          'identity_candidates',
+          'character_id ASC, candidate_id ASC',
+        ),
         'attachments': <Object>[],
       });
     });

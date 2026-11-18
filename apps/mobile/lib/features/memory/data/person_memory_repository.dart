@@ -143,7 +143,8 @@ final class PersonMemoryRepository {
     int limit,
   ) async {
     // A completed correction supersedes the earlier event in new contexts.
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT e.* FROM raw_events e
       WHERE e.owner_id = ? AND e.character_id = ?
         AND e.sequence > ? AND e.status = 'complete'
@@ -155,7 +156,9 @@ final class PersonMemoryRepository {
             AND revision.status = 'complete'
         )
       ORDER BY e.sequence ASC LIMIT ?
-    ''', [..._scope(scope), after, limit]);
+    ''',
+      [..._scope(scope), after, limit],
+    );
     return rows.map(_event).toList(growable: false);
   }
 
@@ -164,13 +167,15 @@ final class PersonMemoryRepository {
     String version,
     List<RawEvent> events,
   ) {
-    final bytes = utf8.encode(jsonEncode([
-      scope.ownerId,
-      scope.characterId,
-      version,
-      for (final e in events)
-        [e.eventId, e.sequence, e.content, e.speaker, e.status, e.revisionOf],
-    ]));
+    final bytes = utf8.encode(
+      jsonEncode([
+        scope.ownerId,
+        scope.characterId,
+        version,
+        for (final e in events)
+          [e.eventId, e.sequence, e.content, e.speaker, e.status, e.revisionOf],
+      ]),
+    );
     return sha256.convert(bytes).toString();
   }
 
@@ -323,7 +328,8 @@ final class PersonMemoryRepository {
   }) async {
     if (limit < 1 || limit > 200) throw ArgumentError('Invalid limit');
     final needle = query.trim().toLowerCase();
-    final found = await _db.rawQuery('''
+    final found = await _db.rawQuery(
+      '''
       SELECT s.* FROM memory_summaries s
       INNER JOIN archive_segments a
         ON a.owner_id = s.owner_id AND a.character_id = s.character_id
@@ -336,7 +342,9 @@ final class PersonMemoryRepository {
             AND instr(t.term, ?) > 0
         ))
       ORDER BY a.sequence_to DESC LIMIT ?
-    ''', [..._scope(scope), needle, needle, needle, limit]);
+    ''',
+      [..._scope(scope), needle, needle, needle, limit],
+    );
     final result = <MemorySummary>[];
     for (final row in found) {
       final id = row['summary_id'] as String;
@@ -354,19 +362,21 @@ final class PersonMemoryRepository {
         whereArgs: [..._scope(scope), id],
         orderBy: 'term ASC',
       );
-      result.add(MemorySummary(
-        scope: scope,
-        summaryId: id,
-        archiveId: row['archive_id'] as String,
-        text: row['summary'] as String,
-        generatorVersion: row['generator_version'] as String,
-        status: row['status'] as String,
-        confidence: (row['confidence'] as num).toDouble(),
-        sourceEventIds: [
-          for (final source in sources) source['event_id'] as String,
-        ],
-        terms: [for (final term in termRows) term['term'] as String],
-      ));
+      result.add(
+        MemorySummary(
+          scope: scope,
+          summaryId: id,
+          archiveId: row['archive_id'] as String,
+          text: row['summary'] as String,
+          generatorVersion: row['generator_version'] as String,
+          status: row['status'] as String,
+          confidence: (row['confidence'] as num).toDouble(),
+          sourceEventIds: [
+            for (final source in sources) source['event_id'] as String,
+          ],
+          terms: [for (final term in termRows) term['term'] as String],
+        ),
+      );
     }
     return List.unmodifiable(result);
   }
@@ -375,7 +385,8 @@ final class PersonMemoryRepository {
     PersonScope scope,
     String summaryId,
   ) async {
-    final rows = await _db.rawQuery('''
+    final rows = await _db.rawQuery(
+      '''
       SELECT e.* FROM raw_events e
       INNER JOIN summary_sources src
         ON src.owner_id = e.owner_id AND src.character_id = e.character_id
@@ -383,7 +394,9 @@ final class PersonMemoryRepository {
       WHERE e.owner_id = ? AND e.character_id = ?
         AND src.summary_id = ?
       ORDER BY e.sequence ASC
-    ''', [..._scope(scope), summaryId]);
+    ''',
+      [..._scope(scope), summaryId],
+    );
     return List.unmodifiable(rows.map(_event));
   }
 
@@ -395,7 +408,8 @@ final class PersonMemoryRepository {
     String eventId, {
     bool purgeContent = false,
   }) async {
-    final impacted = await txn.rawQuery('''
+    final impacted = await txn.rawQuery(
+      '''
       SELECT DISTINCT s.summary_id, a.sequence_from, a.generator_version
       FROM summary_sources src
       JOIN memory_summaries s
@@ -406,17 +420,16 @@ final class PersonMemoryRepository {
         AND s.archive_id = a.archive_id
       WHERE src.owner_id = ? AND src.character_id = ? AND src.event_id = ?
         AND s.status IN ('active', 'invalidated')
-    ''', [..._scope(scope), eventId]);
+    ''',
+      [..._scope(scope), eventId],
+    );
     final affectedIds = <String>{};
     for (final row in impacted) {
       final id = row['summary_id'] as String;
       affectedIds.add(id);
       await txn.update(
         'memory_summaries',
-        {
-          'status': 'invalidated',
-          if (purgeContent) 'summary': '',
-        },
+        {'status': 'invalidated', if (purgeContent) 'summary': ''},
         where: 'owner_id = ? AND character_id = ? AND summary_id = ?',
         whereArgs: [..._scope(scope), id],
       );
@@ -426,11 +439,14 @@ final class PersonMemoryRepository {
         whereArgs: [..._scope(scope), id],
       );
       final from = row['sequence_from'] as int;
-      await txn.rawUpdate('''
+      await txn.rawUpdate(
+        '''
         UPDATE archive_cursors SET last_committed_sequence =
           MIN(last_committed_sequence, ?)
         WHERE owner_id = ? AND character_id = ? AND generator_version = ?
-      ''', [from - 1, ..._scope(scope), row['generator_version']]);
+      ''',
+        [from - 1, ..._scope(scope), row['generator_version']],
+      );
     }
     if (affectedIds.isEmpty) return;
     for (final table in ['identity_candidates', 'persona_identity_versions']) {
@@ -442,8 +458,9 @@ final class PersonMemoryRepository {
         whereArgs: _scope(scope),
       );
       for (final row in rows) {
-        final refs = (jsonDecode(row['source_summary_ids_json'] as String)
-            as List).cast<String>();
+        final refs = (jsonDecode(
+          row['source_summary_ids_json'] as String,
+        ) as List).cast<String>();
         if (refs.any(affectedIds.contains)) {
           final key = table == 'identity_candidates'
               ? 'candidate_id'
@@ -467,10 +484,7 @@ final class PersonMemoryRepository {
 
   /// Correct a source by appending a new RawEvent with revisionOf set, using
   /// PersonDatabase.appendEvent; this public method handles manual rebuilding.
-  Future<void> invalidateSummary(
-    PersonScope scope,
-    String summaryId,
-  ) async {
+  Future<void> invalidateSummary(PersonScope scope, String summaryId) async {
     await _db.transaction((txn) async {
       final sources = await txn.query(
         'summary_sources',
@@ -481,7 +495,9 @@ final class PersonMemoryRepository {
       if (sources.isEmpty) throw StateError('Summary does not exist');
       for (final row in sources) {
         await invalidateSourceInTransaction(
-          txn, scope, row['event_id'] as String,
+          txn,
+          scope,
+          row['event_id'] as String,
         );
       }
     });
@@ -495,9 +511,13 @@ final class PersonMemoryRepository {
     required double confidence,
   }) async {
     if (candidateId.trim().isEmpty ||
-        !confidence.isFinite || confidence < 0 || confidence > 1 ||
+        !confidence.isFinite ||
+        confidence < 0 ||
+        confidence > 1 ||
         sourceSummaryIds.isEmpty) {
-      throw ArgumentError('Candidate requires ID, valid confidence and sources');
+      throw ArgumentError(
+        'Candidate requires ID, valid confidence and sources',
+      );
     }
     final refs = sourceSummaryIds.toSet().toList()..sort();
     await _db.transaction((txn) async {
@@ -551,16 +571,20 @@ final class PersonMemoryRepository {
       whereArgs: _scope(scope),
       orderBy: 'created_at_utc DESC, candidate_id ASC',
     );
-    return List.unmodifiable(rows.map((row) => PersonaCandidate(
-      candidateId: row['candidate_id'] as String,
-      scope: scope,
-      proposedJson: row['proposed_json'] as String,
-      sourceSummaryIds: List.unmodifiable(
-        (jsonDecode(row['source_summary_ids_json'] as String) as List)
-            .cast<String>(),
+    return List.unmodifiable(
+      rows.map(
+        (row) => PersonaCandidate(
+          candidateId: row['candidate_id'] as String,
+          scope: scope,
+          proposedJson: row['proposed_json'] as String,
+          sourceSummaryIds: List.unmodifiable(
+            (jsonDecode(row['source_summary_ids_json'] as String) as List)
+                .cast<String>(),
+          ),
+          status: row['status'] as String,
+        ),
       ),
-      status: row['status'] as String,
-    )));
+    );
   }
 
   /// Full audit versions, including invalidated versions, remain inspectable.
@@ -601,9 +625,11 @@ final class PersonMemoryRepository {
         limit: 1,
       );
       final current = versions.isEmpty ? 0 : versions.single['version'] as int;
-      if (current != expectedVersion) throw StateError('Identity version conflict');
-      final refs = (jsonDecode(proposal['source_summary_ids_json'] as String)
-          as List).cast<String>();
+      if (current != expectedVersion)
+        throw StateError('Identity version conflict');
+      final refs = (jsonDecode(
+        proposal['source_summary_ids_json'] as String,
+      ) as List).cast<String>();
       for (final id in refs) {
         final summary = await txn.query(
           'memory_summaries',
@@ -684,12 +710,17 @@ final class PersonMemoryRepository {
       promptVersion,
       'owner=' + scope.ownerId,
       'character=' + scope.characterId,
-      'base=' + _canonicalJson(jsonDecode(base.single['base_identity_json'] as String)),
+      'base=' +
+          _canonicalJson(
+            jsonDecode(base.single['base_identity_json'] as String),
+          ),
       'identity_version=' + (chosen?['version'] ?? 0).toString(),
-      'approved_state=' + _canonicalJson(
-        chosen == null ? <String, Object?>{} :
-        jsonDecode(chosen['stable_state_json'] as String),
-      ),
+      'approved_state=' +
+          _canonicalJson(
+            chosen == null
+                ? <String, Object?>{}
+                : jsonDecode(chosen['stable_state_json'] as String),
+          ),
     ].join('\n');
   }
 
@@ -704,7 +735,8 @@ final class PersonMemoryRepository {
       throw ArgumentError('Invalid recentLimit');
     }
     final prefix = await stablePrefix(scope);
-    final latest = await _db.rawQuery('''
+    final latest = await _db.rawQuery(
+      '''
       SELECT e.* FROM raw_events e
       WHERE e.owner_id = ? AND e.character_id = ?
         AND e.status = 'complete'
@@ -716,10 +748,14 @@ final class PersonMemoryRepository {
             AND revision.status = 'complete'
         )
       ORDER BY e.sequence DESC LIMIT ?
-    ''', [..._scope(scope), recentLimit]);
+    ''',
+      [..._scope(scope), recentLimit],
+    );
     final recent = latest.map(_event).toList().reversed.toList();
     final summaries = await summariesFor(
-      scope, query: currentInput, limit: recallLimit,
+      scope,
+      query: currentInput,
+      limit: recallLimit,
     );
     final expanded = <RawEvent>[];
     if (expandSources) {
@@ -737,7 +773,9 @@ final class PersonMemoryRepository {
       recentEvents: List.unmodifiable(recent),
       recalledSummaries: summaries,
       expandedSourceEvents: List.unmodifiable(expanded),
-      estimatedCharacters: prefix.length + currentInput.length +
+      estimatedCharacters:
+          prefix.length +
+          currentInput.length +
           recent.fold<int>(0, (n, e) => n + e.content.length) +
           summaries.fold<int>(0, (n, s) => n + s.text.length),
     );
