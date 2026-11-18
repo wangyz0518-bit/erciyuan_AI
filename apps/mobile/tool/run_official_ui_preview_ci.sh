@@ -28,7 +28,7 @@ adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
 
-flutter build apk --debug
+timeout --signal=TERM --kill-after=10s 480s flutter build apk --debug
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 adb shell am force-stop dev.erciyuan.mobile || true
 adb shell am start -n dev.erciyuan.mobile/.MainActivity
@@ -66,5 +66,5 @@ for file in "$SCREENSHOTS"/*.png; do
 done
 
 # Device tests are additional evidence, not a replacement for widget tests.
-flutter test integration_test/acceptance_test.dart -d "$ANDROID_SERIAL"
-flutter test integration_test/storage_failure_test.dart -d "$ANDROID_SERIAL"
+timeout --signal=TERM --kill-after=10s 540s flutter test integration_test/acceptance_test.dart -d "$ANDROID_SERIAL" --reporter expanded
+timeout --signal=TERM --kill-after=10s 360s flutter test integration_test/storage_failure_test.dart -d "$ANDROID_SERIAL" --reporter expanded
