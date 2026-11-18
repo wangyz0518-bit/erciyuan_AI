@@ -373,11 +373,9 @@ void main() {
     expect(saved.sequence, 1);
     expect(repeated.eventId, saved.eventId);
     expect(
-      (await store.rawEventsFor(scope: star)).where(
-        (event) => event.speaker == 'assistant',
-      ),
+      (await store.rawEventsFor(scope: star))
+          .where((event) => event.speaker == 'assistant'),
       hasLength(1),
     );
   });
-
 }
