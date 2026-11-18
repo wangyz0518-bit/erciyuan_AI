@@ -1,73 +1,97 @@
-# Flutter 本地验证版运行指南
+# Flutter 开发与验证指南
 
-> 状态：评审中
-> 日期：2026-11-12
-> 负责人：待定
-> 关联：A/B/C/D、ADR-0001、任务 #10
+> 适用工程：`apps/mobile_poc/`
+> Flutter：3.50.0 stable
+> Dart：3.14.0（随 Flutter SDK 提供）
+> Android 验证：Windows 11 x64、Android 16 / API 36、Pixel 6a 模拟器
+> 状态：Android 模拟器验证通过；iOS 未验证
 
-`apps/mobile_poc` 是第一批七项验证使用的独立 Flutter 工程。包含聊天、角色预览、声音测试三个页面。回复是本地预设内容，头像为程序绘制的占位素材，录音和记录保存在设备本地；没有接入真实模型、语音识别、语音合成或账号系统。
+## 1. 工程定位
 
-## 运行
+`apps/mobile_poc/` 是当前移动端本地能力验证工程，不是已经接通真实服务的正式产品版本。它用于验证 Flutter 工程、Android 构建、SQLite 本地保存、基础聊天交互、角色切换及录音播放。
 
-在已配置 Flutter 和 Android SDK 的终端中执行：
+当前聊天回复为模拟内容，角色为占位形象；没有真实 AI、ASR、TTS、账户或云同步。iOS 工程目录由 Flutter 模板生成，尚未在 macOS 上构建、签名或真机验证。
+
+## 2. 环境要求
+
+- Flutter SDK：3.50.0 stable；Dart 3.14.0 随 SDK 提供。
+- Android Studio 与 Android SDK；建议安装 Android 16（API 36）平台、Platform-Tools、Build-Tools 和 Android Emulator。
+- JDK：使用 Android Studio 自带运行时或兼容的 JDK 17+。
+- Android 模拟器或 Android 真机。
+
+Windows 环境搭建步骤见 [Windows 安卓开发环境搭建与验证](windows-android-setup-20261112.md)。其他平台可参考 [Flutter Android setup](https://docs.flutter.dev/platform-integration/android/setup)。
+
+## 3. 获取依赖、运行和构建
+
+在仓库根目录：
 
 ```powershell
-cd apps/mobile_poc
+Set-Location apps/mobile_poc
+flutter --version
+flutter doctor -v
 flutter pub get
 flutter devices
-flutter run -d emulator-5554
+flutter run -d <device-id>
 ```
 
-当前 Windows 工作站的 Flutter、Android SDK、Android Studio、Gradle/Pub 缓存和虚拟手机数据均位于 `D:\dev`。启动模拟器可双击 `D:\dev\Start-Android-Emulator.cmd`。应用名称为“星伴验证版”。
-
-当前工作站从桌面应用启动 Java 时，默认临时目录曾导致 `Unable to establish loopback connection`。项目提供仅影响当前进程的环境脚本：
-
-```powershell
-pwsh -File tool/windows.ps1 -Action run
-pwsh -File tool/windows.ps1 -Action build
-```
-
-如依赖下载需要本机 HTTP 代理，传入 `-ProxyUrl http://127.0.0.1:7890`；脚本也会读取已有的 `HTTP_PROXY`。此地址仅是本工作站的代理示例，不是应用后台。其他工作站通过 `-DevRoot` 指定开发工具目录。脚本不修改系统代理、系统环境变量或安全设置。
-
-## 检查和构建
+静态检查、单元测试和 Android Debug 构建：
 
 ```powershell
 flutter analyze
 flutter test
-flutter test integration_test/acceptance_test.dart -d emulator-5554 --reporter expanded
-flutter test integration_test/storage_failure_test.dart -d emulator-5554 --reporter expanded
-flutter test integration_test/soak_test.dart -d emulator-5554 --reporter expanded
 flutter build apk --debug
 ```
 
-`acceptance_test.dart` 在真实安卓运行环境中检查模拟聊天、切换隔离、SQLite、角色状态及音频播放器。`soak_test.dart` 按实际经过时间执行至少 15 分钟的连续 UI 操作。运行测试时不要手动点击模拟器；录音人工测试单独安排。自动文本输入不等于中文输入法实测。
+APK 输出路径：
 
-`storage_failure_test.dart` 在独立的测试数据库里用 SQLite 触发器注入写入错误，检查重开数据库后的重试、持续失败时保留草稿，以及写入期间取消。建议指定专用测试模拟器，集成测试会重新安装应用。
+```text
+build/app/outputs/flutter-apk/app-debug.apk
+```
 
-集成测试使用独立数据库，且仅在手动版默认数据库为空时写入 100 条明确标注的恢复测试样例。测试过程中 `flutter test` 可能重新安装测试应用；重要私人数据不要放入此原型。测试结果 JSON 写入安卓应用的 documents 目录，主机侧保存到验证证据目录。APK 位于 `build/app/outputs/flutter-apk/app-debug.apk`，不提交到 Git。
+安装到指定模拟器：
 
-实际重启验证使用 `tool/recovery_fixture.dart` 准备空安装中的 100 条样例，再安装正常 `lib/main.dart` 入口的 APK（`adb install -r` 保留数据）。分别在准备后、进程重启后、模拟器重启后保存 SQLite 快照，以 `python tool/verify_recovery.py before.db after-app.db after-emulator.db` 比较内容。快照只包含固定样例，不应对私人数据库执行导出。Android debug 安装可用 `adb exec-out run-as dev.erciyuan.companion_poc cat databases/companion-poc.db` 导出；使用支持原生二进制重定向的终端，且先停止应用避免读到写入中的文件。
+```powershell
+adb -s <device-id> install -r build/app/outputs/flutter-apk/app-debug.apk
+```
 
-## 代码分工
+Windows 工作站遇到 Gradle loopback 临时目录问题时，可使用工程内的 `tool/windows.ps1`。代理参数和使用方式以脚本帮助及本机网络环境为准；不要把代理地址、凭据或本机路径写入共享配置。
 
-| 文件 | 职责 |
-| --- | --- |
-| `lib/main.dart` | 三个页面、键盘布局、生命周期与媒体停止 |
-| `lib/chat_controller.dart` | 模拟回复、取消、重试与角色隔离 |
-| `lib/data.dart` | PoC 内部的角色与消息模型、SQLite 保存和中断恢复 |
-| `lib/avatar.dart` | 占位人物、表情、活动和轻微待机动作 |
-| `lib/audio_controller.dart` | 原生录音、播放、测试音、静音检测 |
+## 4. 自动化测试
 
-数据库只服务于当前本地 PoC，不作为团队服务端接口定案。已有跨工作线接口草案保持原状；接真实后台前仍需评审数据归属、同步和字段契约。
+快速检查：
 
-## 手动检查
+- `flutter analyze`：Dart 静态分析。
+- `flutter test`：单元测试和 widget 测试。
 
-- 聊天页切换“正常”“模拟失败”“延迟 6 秒”，检查取消、重试和角色切换。
-- 角色页分别操作表情、活动状态和素材缺失回退；说话状态不是精确口型。
-- 声音页允许或拒绝麦克风权限；录制、保存、取消、回放。录音最长 30 秒，仅在应用缓存中保存一个片段，不上传。
-- 模拟器需要接入主机麦克风才能收到声音。控制台 `adb -s emulator-5554 emu avd hostmicon` 可启用输入，完成录音后用 `hostmicoff` 关闭。此开关不能保证远程桌面已转发真实麦克风。
-- 测试音只证明本地播放链路，不能证明语音合成可用。非零信号也不能代替人工确认语音清晰度。
+需要真实 Android 环境的集成测试：
 
-## 平台边界
+```powershell
+flutter test integration_test/acceptance_test.dart -d <device-id> --reporter expanded
+flutter test integration_test/storage_failure_test.dart -d <device-id> --reporter expanded
+```
 
-Android 模拟器的结果见验收记录；Android 真机和 iOS 构建安装仍需单独验证。iOS 目录由 Flutter 模板生成并声明了麦克风用途，尚未构建或签名，不能据此宣称苹果端通过。原生鸿蒙不在本批范围内。
+`integration_test/soak_test.dart` 是长时间连续操作测试，耗时较长，按需单独运行。集成测试可能重装测试应用并操作测试数据库，使用专用模拟器，不要在含有重要个人数据的安装环境中执行。
+
+自动化文本输入不能替代真实中文输入法选词验证；录音文件生成也不能替代人工试听确认。
+
+## 5. 验证边界
+
+| 能力 | 当前证据 | 尚未证明 |
+| --- | --- | --- |
+| Android 工程 | API 36 模拟器 Debug APK 构建、安装、启动通过 | Android 真机、不同厂商设备 |
+| iOS 工程 | Flutter 模板目录已生成 | macOS 构建、签名、iOS 真机 |
+| 聊天 | 本地模拟回复、取消、失败重试 | 真实模型接入、流式网络请求 |
+| 数据 | SQLite 本地保存及重启恢复测试 | 云同步、跨设备冲突处理 |
+| 角色 | 占位形象、基础状态变化 | 正式角色素材、Live2D 产品集成 |
+| 音频 | 本地录音与播放链路 | 正式 ASR/TTS、真实语音通话和音质验收 |
+
+历史测试环境、测试步骤和结果见 [Android PoC 验证报告](../reports/android-poc-report-20261112.md)。
+
+## 6. 工程约定
+
+- Flutter 工程根目录为 `apps/mobile_poc/`，所有 Flutter 命令在该目录执行。
+- `pubspec.yaml` 与 `pubspec.lock` 一并提交，保持依赖可复现。
+- 不提交 `build/`、本地数据库、录音、设备配置、密钥和代理凭据。
+- 新增依赖前先确认 Android/iOS 支持情况、维护状态和许可证。
+- 涉及本地数据模型、服务端接口或跨端行为的变更，先检查相关 ADR、接口文档和调用方。
+- PoC 内部数据结构不自动成为正式服务端接口契约。
