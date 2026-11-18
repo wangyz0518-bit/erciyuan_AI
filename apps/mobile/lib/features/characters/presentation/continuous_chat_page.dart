@@ -219,7 +219,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                             onSpeak:
                                 event.speaker == 'assistant' &&
                                     event.status == 'complete'
-                                ? () => unawaited(_voice.speak(event.content))
+                                ? () => unawaited(_requestSystemSpeak(event.content))
                                 : null,
                           );
                         },
@@ -356,6 +356,33 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
       ],
     ),
   );
+  Future<void> _requestSystemSpeak(String text) async {
+    // The user must explicitly authorize each use of a potentially
+    // network-backed OS speech engine before any chat text is supplied to it.
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('使用系统语音朗读？'),
+        content: const Text(
+          '系统语音引擎由设备管理，可能联网处理本条回复。'
+          '这不是人物专属音色；如果不同意向系统语音服务提供文字，请取消。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('同意朗读本条'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || approved != true) return;
+    await _voice.speak(text);
+  }
+
   Future<void> _beginRecognition() async {
     _speechActivated = true;
     await _audio.discard();

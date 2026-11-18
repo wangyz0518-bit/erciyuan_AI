@@ -24,3 +24,7 @@
 - 旧堆叠分支的 Flutter format/analyze/unit/widget/APK：[Actions 44367949317](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367949317) success；Android 模拟器集成：[Actions 44367949434](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367949434) success。
 - 新 main 基线需要再次走相同 Actions；在新结果出来之前旧成功不自动代表最新 SHA 已通过。
 - 声音仍为操作系统默认 TTS，未绑定真实人物专属音色，相关 Issue 不得因此关闭。
+
+### 系统 TTS 的逐条授权说明
+
+系统语音引擎是否联网上传取决于设备引擎，App 不保证端侧合成。因此正式 UI 在每次把回复文字交给系统朗读器前要求用户在弹窗点击“同意朗读本条”；拒绝时不触发系统 TTS。此弹窗不代表云端角色音色/供应商授权。
