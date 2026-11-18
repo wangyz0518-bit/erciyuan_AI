@@ -455,7 +455,7 @@
       let actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><button class="icon-btn" type="button" data-action="navigate" data-value="roles" aria-label="切换人物">⇄</button></div>';
       if (state.screen === "chat") {
         title = '<div class="brand"><span class="mini-avatar ' + (role.avatarClass || "") + '">' + role.icon + '</span><div><div class="brand-name">' + role.name + '</div><div class="brand-sub">' + role.title + ' · 持续对话</div></div></div>';
-        actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><button class="icon-btn" type="button" data-action="navigate" data-value="roles" aria-label="切换角色">⇄</button></div>';
+        actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><button class="icon-btn" type="button" data-action="navigate" data-value="roles" aria-label="切换人物">⇄</button></div>';
       } else if (state.screen === "roles") {
         title = '<div class="brand"><div><div class="brand-name">切换人物</div><div class="brand-sub">每个人物都有独立时间线</div></div></div>';
         actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="navigate" data-value="' + (state.variant === "A" ? "home" : "chat") + '" aria-label="返回">←</button></div>';
@@ -661,7 +661,7 @@
         state.screen = state.variant === "A" ? "home" : "chat";
         saveDemoState();
       } else if (action === "navigate") {
-        state.screen = value;
+        state.screen = value === "home" && state.variant === "B" ? "chat" : value;
       } else if (action === "continue") {
         state.screen = "chat";
       } else if (action === "select-role") {
