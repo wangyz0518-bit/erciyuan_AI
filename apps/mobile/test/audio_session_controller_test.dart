@@ -142,24 +142,27 @@ void main() {
     expect(files.deleted, isNot(contains('/fake/clip.wav')));
   });
 
-  test('discard invalidates pending deadline without resurrecting audio', () async {
-    final limited = AudioSessionController(
-      capture: capture,
-      playback: playback,
-      files: files,
-      maxDuration: const Duration(milliseconds: 35),
-    );
-    addTearDown(() async {
-      await limited.close();
-      limited.dispose();
-    });
-    await limited.begin();
-    await limited.discard();
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-    expect(limited.state, AudioSessionState.idle);
-    expect(limited.recordedPath, isNull);
-    expect(capture.recording, isFalse);
-  });
+  test(
+    'discard invalidates pending deadline without resurrecting audio',
+    () async {
+      final limited = AudioSessionController(
+        capture: capture,
+        playback: playback,
+        files: files,
+        maxDuration: const Duration(milliseconds: 35),
+      );
+      addTearDown(() async {
+        await limited.close();
+        limited.dispose();
+      });
+      await limited.begin();
+      await limited.discard();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(limited.state, AudioSessionState.idle);
+      expect(limited.recordedPath, isNull);
+      expect(capture.recording, isFalse);
+    },
+  );
 
   test('rapid release invalidates late permission without recording', () async {
     capture.permissionGate = Completer<bool>();
