@@ -723,6 +723,7 @@ final class PersonMemoryRepository {
     int recentLimit = 12,
     int recallLimit = 4,
     bool expandSources = false,
+    String? excludeEventId,
   }) async {
     if (recentLimit < 1 || recentLimit > 500) {
       throw ArgumentError('Invalid recentLimit');
@@ -733,6 +734,7 @@ final class PersonMemoryRepository {
       SELECT e.* FROM raw_events e
       WHERE e.owner_id = ? AND e.character_id = ?
         AND e.status = 'complete'
+        AND (? IS NULL OR e.event_id != ?)
         AND NOT EXISTS (
           SELECT 1 FROM raw_events revision
           WHERE revision.owner_id = e.owner_id
@@ -742,14 +744,18 @@ final class PersonMemoryRepository {
         )
       ORDER BY e.sequence DESC LIMIT ?
     ''',
-      [..._scope(scope), recentLimit],
+      [..._scope(scope), excludeEventId, excludeEventId, recentLimit],
     );
     final recent = latest.map(_event).toList().reversed.toList();
-    final summaries = await summariesFor(
+    final summaries = (await summariesFor(
       scope,
       query: currentInput,
       limit: recallLimit,
-    );
+    )).where((summary) {
+      // A retry of the same user event must not duplicate it in retrieved memory.
+      return excludeEventId == null ||
+          !summary.sourceEventIds.contains(excludeEventId);
+    }).toList(growable: false);
     final expanded = <RawEvent>[];
     if (expandSources) {
       final seen = <String>{};
@@ -770,7 +776,8 @@ final class PersonMemoryRepository {
           prefix.length +
           currentInput.length +
           recent.fold<int>(0, (n, e) => n + e.content.length) +
-          summaries.fold<int>(0, (n, s) => n + s.text.length),
+          summaries.fold<int>(0, (n, s) => n + s.text.length) +
+          expanded.fold<int>(0, (n, e) => n + e.content.length),
     );
   }
 }
