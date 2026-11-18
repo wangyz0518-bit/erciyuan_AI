@@ -46,7 +46,7 @@
 | main 的 `apps/mobile_poc/` | Flutter 3.50.0、Android/iOS 模板、CI 及测试环境 | 只提取经过审查的配置和测试思路，保留 PoC 原状 |
 | [PR #16](https://github.com/wangyz0518-bit/erciyuan_AI/pull/16) | Flutter 路由/人物场景/状态组件与生命周期 | 只读参考，后续 #37 按需选择性移植 |
 | [PR #17](https://github.com/wangyz0518-bit/erciyuan_AI/pull/17) | Avatar 插件与资源包契约 | #44 参考，本 Issue 不引入 Live2D SDK |
-| [PR #21/#22](https://github.com/wangyz0518-bit/erciyuan_AI/pull/21) | 模型请求 ID、事件流、取消/重试接口 | 仅借鉴端口约束；#38/#39 后续处理 |
+| [PR #21](https://github.com/wangyz0518-bit/erciyuan_AI/pull/21)、[#22](https://github.com/wangyz0518-bit/erciyuan_AI/pull/22) | 模型请求 ID、事件流、取消/重试接口 | 仅借鉴端口约束；#38/#39 后续处理 |
 | [PR #50](https://github.com/wangyz0518-bit/erciyuan_AI/pull/50) | 已合并的架构、数据契约、测试矩阵 | 作为正式工程设计输入 |
 
 上述 #16/#17/#21/#22 均属于 `wangyz0518-bit`，不得直接改动、合并或关闭其 PR/分支。
