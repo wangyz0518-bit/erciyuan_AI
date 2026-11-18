@@ -437,8 +437,8 @@ final class PersonMemoryRepository {
       final rows = await txn.query(
         table,
         where: purgeContent
-            ? "owner_id = ? AND character_id = ? AND status IN ('proposed','active','invalidated')"
-            : "owner_id = ? AND character_id = ? AND status IN ('proposed','active')",
+            ? "owner_id = ? AND character_id = ? AND status IN ('proposed','approved','active','invalidated')"
+            : "owner_id = ? AND character_id = ? AND status IN ('proposed','approved','active')",
         whereArgs: _scope(scope),
       );
       for (final row in rows) {
