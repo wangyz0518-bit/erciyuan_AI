@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../application/character_selection_controller.dart';
 import '../domain/character.dart';
@@ -23,7 +23,7 @@ class CharacterHomePage extends StatelessWidget {
             for (final character in controller.characters)
               _CharacterChoice(character: character, controller: controller),
             const SizedBox(height: 16),
-            Text('当前人物：' + controller.activeCharacter.name),
+            Text('当前人物：${controller.activeCharacter.name}'),
             const SizedBox(height: 16),
             FilledButton(
               key: const ValueKey('continue-timeline'),
@@ -54,7 +54,7 @@ class _CharacterChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-    key: ValueKey('character-' + character.scope.characterId),
+    key: ValueKey('character-${character.scope.characterId}'),
     title: Text(character.name),
     subtitle: Text(character.description),
     selected: character.scope == controller.activeScope,
