@@ -14,7 +14,7 @@
 
 1. **已完成**：[Issue #25 协作基线](https://github.com/wangyz0518-bit/erciyuan_AI/issues/25)、[Issue #14 人物中心首页原型](https://github.com/wangyz0518-bit/erciyuan_AI/issues/14)。
 2. **记忆优先主线（规划顺序）**：[Issue #34 架构](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) → [#35 最小正式工程](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) → [#36 人物时间线和导出](https://github.com/wangyz0518-bit/erciyuan_AI/issues/36) → [#47 离线可测试的三层记忆引擎](https://github.com/wangyz0518-bit/erciyuan_AI/issues/47) → [#38 AI/后端设计](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38) → [#39 真实文字模型接入与记忆联调](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39)。
-3. **暂缓**：[Issue #31 模拟器 CI](https://github.com/wangyz0518-bit/erciyuan_AI/issues/31)。关联 PR 进度以 GitHub 为准。
+3. **独立补充实施**：[Issue #31 模拟器 CI](https://github.com/wangyz0518-bit/erciyuan_AI/issues/31) 已恢复，技术验收见 [#31 专项记录](issue-31-android-emulator-integration-ci-20261118.md)。下文旧计划段落作为历史记录保留。
 4. **其他后续**：正式 UI #37、iOS #40、Android 真机 #41、音频 #42、ASR/TTS #43、形象 #44；保留原 Issue，按实际依赖与团队协作进度推进。
 
 其他后续方向（角色个性化、账户、云同步、成本治理、隐私与安全、正式发布、鸿蒙适配）保留在 [产品计划](product-plan.md)；三层记忆已拆为 Issue #47。
