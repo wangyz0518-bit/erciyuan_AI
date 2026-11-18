@@ -111,6 +111,56 @@ void main() {
     expect(audio.state, AudioSessionState.idle);
   });
 
+  test('duplicate release triggers only one native stop', () async {
+    await audio.begin();
+    await Future.wait([audio.finish(), audio.finish()]);
+    expect(audio.state, AudioSessionState.recorded);
+    expect(audio.recordedPath, '/fake/clip.wav');
+    expect(files.deleted, isNot(contains('/fake/clip.wav')));
+  });
+
+  test('maximum capture duration stops and preserves local preview', () async {
+    final limited = AudioSessionController(
+      capture: capture,
+      playback: playback,
+      files: files,
+      maxDuration: const Duration(milliseconds: 35),
+    );
+    addTearDown(() async {
+      await limited.close();
+      limited.dispose();
+    });
+    await limited.begin();
+    expect(limited.state, AudioSessionState.recording);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(limited.state, AudioSessionState.recorded);
+    expect(limited.status, contains('上限'));
+    expect(limited.recordedPath, '/fake/clip.wav');
+    // Finger release after auto-stop must not discard the saved clip.
+    await limited.finish();
+    expect(limited.recordedPath, '/fake/clip.wav');
+    expect(files.deleted, isNot(contains('/fake/clip.wav')));
+  });
+
+  test('discard invalidates pending deadline without resurrecting audio', () async {
+    final limited = AudioSessionController(
+      capture: capture,
+      playback: playback,
+      files: files,
+      maxDuration: const Duration(milliseconds: 35),
+    );
+    addTearDown(() async {
+      await limited.close();
+      limited.dispose();
+    });
+    await limited.begin();
+    await limited.discard();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(limited.state, AudioSessionState.idle);
+    expect(limited.recordedPath, isNull);
+    expect(capture.recording, isFalse);
+  });
+
   test('rapid release invalidates late permission without recording', () async {
     capture.permissionGate = Completer<bool>();
     final start = audio.begin();

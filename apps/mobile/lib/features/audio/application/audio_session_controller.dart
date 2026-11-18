@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../domain/audio_ports.dart';
@@ -15,11 +17,22 @@ final class AudioSessionController extends ChangeNotifier {
     required this.capture,
     required this.playback,
     required this.files,
-  });
+    this.maxDuration = const Duration(seconds: 60),
+  }) : assert(maxDuration > Duration.zero);
 
   final AudioCapturePort capture;
   final AudioFilePlaybackPort playback;
   final AudioTemporaryFiles files;
+
+  /// Upper bound on device microphone capture. The result is still local-only.
+  final Duration maxDuration;
+  Timer? _recordingTimeout;
+  bool _finishing = false;
+
+  void _cancelRecordingTimeout() {
+    _recordingTimeout?.cancel();
+    _recordingTimeout = null;
+  }
 
   AudioSessionState state = AudioSessionState.idle;
   String status = '按住麦克风录音；仅本机试听，不识别、不发送。';
@@ -64,7 +77,8 @@ final class AudioSessionController extends ChangeNotifier {
   }
 
   Future<void> begin() {
-    if (!canRecord) return Future<void>.value();
+    if (!canRecord || _finishing) return Future<void>.value();
+    _cancelRecordingTimeout();
     final generation = ++_epoch;
     _show(AudioSessionState.requestingPermission, '正在检查麦克风权限');
     return _queue(() async {
@@ -92,7 +106,14 @@ final class AudioSessionController extends ChangeNotifier {
           await _deleteClips();
           return;
         }
-        _show(AudioSessionState.recording, '正在录音；松开试听，滑出取消');
+        _show(AudioSessionState.recording, '正在录音；松开试听，滑出取消（最多60秒）');
+        _recordingTimeout = Timer(maxDuration, () {
+          if (_current(generation) &&
+              state == AudioSessionState.recording &&
+              !_finishing) {
+            unawaited(finish(reachedLimit: true));
+          }
+        });
       } catch (_) {
         try {
           await capture.cancel();
@@ -106,9 +127,13 @@ final class AudioSessionController extends ChangeNotifier {
   }
 
   /// Releasing before permission/start resolves is treated as a cancelled tap.
-  Future<void> finish() {
-    if (_closed) return Future<void>.value();
+  Future<void> finish({bool reachedLimit = false}) {
+    if (_closed || _finishing || state == AudioSessionState.recorded) {
+      return Future<void>.value();
+    }
     if (state != AudioSessionState.recording) return discard();
+    _cancelRecordingTimeout();
+    _finishing = true;
     final generation = _epoch;
     return _queue(() async {
       try {
@@ -129,12 +154,19 @@ final class AudioSessionController extends ChangeNotifier {
           await files.delete(pending);
         }
         recordedPath = filename;
-        _show(AudioSessionState.recorded, '录音暂存在本机，可试听或删除（未发送）。');
+        _show(
+          AudioSessionState.recorded,
+          reachedLimit
+              ? '录音已达到60秒上限，暂存在本机可试听或删除（未发送）。'
+              : '录音暂存在本机，可试听或删除（未发送）。',
+        );
       } catch (_) {
         await _deleteClips();
         if (_current(generation)) {
           _show(AudioSessionState.failed, '录音保存失败，请重试。');
         }
+      } finally {
+        _finishing = false;
       }
     });
   }
@@ -176,6 +208,7 @@ final class AudioSessionController extends ChangeNotifier {
   /// Invalidation happens synchronously before awaiting any native plugin.
   Future<void> discard() {
     if (_closed) return Future<void>.value();
+    _cancelRecordingTimeout();
     ++_epoch;
     _show(AudioSessionState.idle, '录音已取消并删除；不会生成聊天消息。');
     return _queue(() async {
@@ -193,6 +226,7 @@ final class AudioSessionController extends ChangeNotifier {
 
   Future<void> close() {
     if (_closed) return _tail;
+    _cancelRecordingTimeout();
     ++_epoch;
     _closed = true;
     state = AudioSessionState.closed;
