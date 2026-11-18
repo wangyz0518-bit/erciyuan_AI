@@ -93,11 +93,22 @@ void main() {
       matchesGoldenFile('goldens/continuous-chat-375.png'),
     );
 
+    // Material 3 reverse transitions retain an offstage home route while
+    // the screenshot snapshot animates. Finish that transition BEFORE tapping.
     await tester.pageBack();
-    await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.byKey(const ValueKey('data-management')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump(const Duration(milliseconds: 850));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('data-management')).hitTestable(),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('data-management')).hitTestable(),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 850));
+    await tester.pump();
     expect(find.text('导出全部人物数据'), findsOneWidget);
     await expectLater(
       find.byType(MaterialApp),
