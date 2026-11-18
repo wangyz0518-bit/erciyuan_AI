@@ -17,6 +17,22 @@
 
 L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与安全、正式发布、鸿蒙适配）保留在 [产品计划](product-plan.md)，本轮不创建开发 Issue。
 
+## 2.1 新增 Issue 映射
+
+| 任务 | Issue | 主题 |
+|---|---|---|
+| A | [#34](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) | 正式 Flutter 工程架构设计 |
+| B | [#35](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) | 正式 Flutter 工程基础建设 |
+| C | [#36](https://github.com/wangyz0518-bit/erciyuan_AI/issues/36) | 角色、会话和消息本地数据层 |
+| D | [#37](https://github.com/wangyz0518-bit/erciyuan_AI/issues/37) | 正式角色与聊天界面开发 |
+| E | [#38](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38) | AI 服务与后端架构方案评估 |
+| F | [#39](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39) | 接入真实 AI 文字聊天 |
+| G | [#40](https://github.com/wangyz0518-bit/erciyuan_AI/issues/40) | iOS 工程构建与模拟器验证 |
+| H | [#41](https://github.com/wangyz0518-bit/erciyuan_AI/issues/41) | Android 真机核心流程验证 |
+| I | [#42](https://github.com/wangyz0518-bit/erciyuan_AI/issues/42) | 正式化录音与音频播放能力 |
+| J | [#43](https://github.com/wangyz0518-bit/erciyuan_AI/issues/43) | ASR/TTS 接入 |
+| K | [#44](https://github.com/wangyz0518-bit/erciyuan_AI/issues/44) | 角色形象资源与基础动画 |
+
 ## 2. 已确认约束
 
 - 首版平台为 Android、iOS，客户端采用 Flutter + Dart；以 [ADR-0001](../docs/decisions/0001-mobile-stack.md) 和 [ADR-0002](../docs/decisions/0002-three-platform-scope.md) 为准。
@@ -94,7 +110,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 
 ## 5. 新增任务 A～K
 
-### A：正式 Flutter 工程架构设计
+### A：正式 Flutter 工程架构设计（[Issue #34](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34)）
 
 **目标**：形成足够小、可维护且能承接现有 PoC 的正式工程方案。
 
@@ -114,7 +130,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - 不与 ADR-0001/0002 冲突；ADR-0003 仅在重新评审后才能成为决定。
 - 设计评审通过后才进入 B，不在本任务中大规模重构代码。
 
-### B：正式 Flutter 工程基础建设
+### B：正式 Flutter 工程基础建设（[Issue #35](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35)）
 
 **依赖**：A。
 
@@ -131,7 +147,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - 有最小页面与导航测试；CI 覆盖新增正式工程路径。
 - 没有空抽象、无调用方的框架层或无意义目录。
 
-### C：角色、会话和消息数据层
+### C：角色、会话和消息数据层（[Issue #36](https://github.com/wangyz0518-bit/erciyuan_AI/issues/36)）
 
 **依赖**：A、B。
 
@@ -148,7 +164,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - 重启后恢复已提交数据；失败写入不产生孤立消息或跨角色数据。
 - 数据模型和迁移文档同步；不提前实现云同步或长期记忆。
 
-### D：正式角色与聊天界面
+### D：正式角色与聊天界面（[Issue #37](https://github.com/wangyz0518-bit/erciyuan_AI/issues/37)）
 
 **依赖**：#14 的产品入口决策、A、B、C。
 
@@ -165,7 +181,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - UI 与 C 的真实持久化连接；Widget/集成测试通过。
 - 不把原型中的演示通话或假语音按钮当作真实功能。
 
-### E：AI 服务与后端方案设计
+### E：AI 服务与后端方案设计（[Issue #38](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38)）
 
 **依赖**：A；F/J 实施前置。
 
@@ -182,7 +198,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - 清楚区分已有实测、未验证和待用户确认事项。
 - 不将单用户本机网关直接暴露公网；不在本任务中接入生产密钥。
 
-### F：真实 AI 文字聊天接入
+### F：真实 AI 文字聊天接入（[Issue #39](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39)）
 
 **依赖**：C、D、E。
 
@@ -199,7 +215,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - 后端/客户端测试通过；密钥和真实用户数据未进入仓库。
 - 不把 TTS、ASR、实时通话包含在本任务验收中。
 
-### G：iOS 工程构建验证
+### G：iOS 工程构建验证（[Issue #40](https://github.com/wangyz0518-bit/erciyuan_AI/issues/40)）
 
 **依赖**：B。
 
@@ -214,7 +230,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - macOS/Xcode/Flutter 版本、命令、限制写入指南。
 - 不宣称 App Store 签名或 iPhone 真机通过，除非有对应证据。
 
-### H：Android 真机验证
+### H：Android 真机验证（[Issue #41](https://github.com/wangyz0518-bit/erciyuan_AI/issues/41)）
 
 **依赖**：B、C、D；音频专项能力按 I 的范围另行验收。
 
@@ -229,7 +245,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - 真实设备测试与模拟器结果分开记录。
 - 没有可用设备时明确标记阻塞/未验证，不用模拟器结果替代。
 
-### I：音频能力正式化
+### I：音频能力正式化（[Issue #42](https://github.com/wangyz0518-bit/erciyuan_AI/issues/42)）
 
 **依赖**：A、B；与 C/D 对接。
 
@@ -246,7 +262,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - 自动化覆盖资源清理、权限和竞态；真实录音/播放按设备证据验收。
 - 不把本地录音试听称为 ASR/TTS 或通话。
 
-### J：ASR/TTS 接入
+### J：ASR/TTS 接入（[Issue #43](https://github.com/wangyz0518-bit/erciyuan_AI/issues/43)）
 
 **依赖**：E、F、I；平台验证按 G/H 条件执行。
 
@@ -265,7 +281,7 @@ L～S（角色个性化、记忆、账户、云同步、成本治理、隐私与
 - 按设备分别提供自然度/可懂度、延迟、失败率、资源和成本证据。
 - 真实录音、音色和生成音频按授权与隐私规则管理。
 
-### K：角色形象与动画
+### K：角色形象与动画（[Issue #44](https://github.com/wangyz0518-bit/erciyuan_AI/issues/44)）
 
 **依赖**：A、B、D；与 I/J 的声音/状态同步按需协作。
 
@@ -322,6 +338,7 @@ E AI/后端方案设计（依赖 A）
 - main 基线为 `bc350345d62c5a1da03a0b624de4fb624d27ccbd`。
 - #25、#14、#31 是三个开放 Issue。
 - #14 有本执行者的 PR #33；#31 有本执行者的 PR #32。
+- 新增 A～K 已创建为 Issue #34～#44，并已回填本计划。
 - PR #15～#24 为其他贡献者的开放参考 PR，尚未进入 main。
 - PR #27、#28、#29 已合并；作为 #25 和后续工作的当前文档基线。
 
