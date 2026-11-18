@@ -4,7 +4,7 @@ import 'dart:io';
 
 import '../../characters/domain/character.dart';
 import '../../memory/domain/memory_models.dart';
-import '../../timeline/data/persondatabase.dart';
+import '../../timeline/data/person_database.dart';
 import '../../timeline/domain/raw_event.dart';
 
 enum ModelTurnStatus { completed, failed, cancelled, unknown }
@@ -519,7 +519,7 @@ final class ModelGatewayAdapter {
     if (terminal != null) return terminal!;
     if (dataLines.isNotEmpty) {
       await dispatchFrame(dataLines.join('\n'));
-      if (terminal != null) return terminal;
+      if (terminal != null) return terminal!;
     }
     return await reconcileTurn(
       scope: scope,
