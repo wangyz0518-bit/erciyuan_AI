@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../chat/application/continuous_chat_controller.dart';
 import '../../chat/data/model_gateway_adapter.dart';
