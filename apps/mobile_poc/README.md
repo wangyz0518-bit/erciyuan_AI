@@ -1,26 +1,44 @@
-# 星伴本地验证版
+# Flutter 本地能力验证工程
 
-> 状态：评审中
-> 日期：2026-11-12
-> 负责人：待定
-> 关联：任务 #10、第一批七项验证
+> 类型：PoC / 工程基线
+> 状态：Android 模拟器验证通过；iOS 尚未验证
+> 关联：[Issue #10](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10)
 
-Flutter 原型，包含聊天、角色预览和声音测试。聊天回复为本地模拟内容；角色为程序绘制的占位头像；SQLite、麦克风录音和音频播放使用真实设备接口。没有连接外部 AI 服务。
+本工程用于验证 Flutter 移动端的基础交互与设备能力，并作为后续正式产品工程演进的起点。当前包含：
 
-完整命令、分层和环境排障见 [运行指南](../../docs/guides/flutter-poc-guide-20261112.md)。结果与限制见 [验证报告](../../docs/reports/android-poc-report-20261112.md)。
+- 聊天页面：本地模拟回复、取消、失败重试和角色隔离。
+- 本地数据：SQLite 保存角色、消息和偏好，支持重启恢复。
+- 角色展示：程序绘制的占位形象和基础状态变化。
+- 音频：设备录音、播放和临时文件管理。
+- 自动化：单元测试、集成验收和存储故障测试。
+
+**当前边界：** 未接入真实 AI、ASR、TTS、账户或云端同步；占位角色不代表正式素材。iOS 工程由 Flutter 模板生成，尚未构建、签名或真机验证。
+
+## 开发命令
+
+在本目录执行：
 
 ```sh
 flutter pub get
-flutter run -d emulator-5554
 flutter analyze
 flutter test
-flutter test integration_test/acceptance_test.dart -d emulator-5554 --reporter expanded
-flutter test integration_test/soak_test.dart -d emulator-5554 --reporter expanded
 flutter build apk --debug
+flutter run
 ```
 
-安卓安装包为 `build/app/outputs/flutter-apk/app-debug.apk`。应用名为“星伴验证版”，包名为 `dev.erciyuan.companion_poc`。
+Android 模拟器集成测试（需先启动模拟器）：
 
-`tool/recovery_fixture.dart` 只用于一次性测试环境的重启恢复准备：仅在空数据库中写入 100 条标明用途的样例，其中最后一条故意处于未完成状态。正式入口始终为 `lib/main.dart`，不要把测试准备入口当作交付版本。
+```sh
+flutter test integration_test/acceptance_test.dart -d <device-id> --reporter expanded
+flutter test integration_test/storage_failure_test.dart -d <device-id> --reporter expanded
+```
 
-录音仅存于本机缓存，不上传也不提交。测试应用可被测试工具重装或清除数据，不用于保存重要资料。iOS 模板尚未构建、签名或真机验证。
+长时间 soak 测试按需单独执行，不作为每次提交的快速检查：
+
+```sh
+flutter test integration_test/soak_test.dart -d <device-id> --reporter expanded
+```
+
+Windows 环境辅助脚本见 [tool/windows.ps1](tool/windows.ps1)。完整环境说明、测试边界和排障方法见 [Flutter 开发与验证指南](../../docs/guides/flutter-poc-guide-20261112.md)。
+
+Debug APK 输出到 `build/app/outputs/flutter-apk/app-debug.apk`，属于本地构建产物，不提交 Git。
