@@ -11,14 +11,16 @@ import '../application/audio_session_controller.dart';
 
 /// Adapted from the existing mobile PoC recorder, without a chat side effect.
 final class RecordAudioCapture implements AudioCapturePort {
-  final AudioRecorder _recorder = AudioRecorder();
+  AudioRecorder? _recorder;
+
+  AudioRecorder get _instance => _recorder ??= AudioRecorder();
 
   @override
-  Future<bool> hasPermission() => _recorder.hasPermission();
+  Future<bool> hasPermission() => _instance.hasPermission();
 
   @override
   Future<void> startWav(String filename, {int sampleRate = 16000}) =>
-      _recorder.start(
+      _instance.start(
         RecordConfig(
           encoder: AudioEncoder.wav,
           sampleRate: sampleRate,
@@ -28,31 +30,35 @@ final class RecordAudioCapture implements AudioCapturePort {
       );
 
   @override
-  Future<String?> stop() => _recorder.stop();
+  Future<String?> stop() =>
+      _recorder?.stop() ?? Future<String?>.value(null);
 
   @override
   Future<void> cancel() async {
-    if (await _recorder.isRecording()) {
-      await _recorder.cancel();
+    final recorder = _recorder;
+    if (recorder != null && await recorder.isRecording()) {
+      await recorder.cancel();
     }
   }
 
   @override
-  Future<void> dispose() => _recorder.dispose();
+  Future<void> dispose() =>
+      _recorder?.dispose() ?? Future<void>.value();
 }
 
 final class DeviceAudioFilePlayback implements AudioFilePlaybackPort {
-  final AudioPlayer _player = AudioPlayer();
+  AudioPlayer? _player;
 
   @override
   Future<void> playFile(String filename) =>
-      _player.play(DeviceFileSource(filename));
+      (_player ??= AudioPlayer()).play(DeviceFileSource(filename));
 
   @override
-  Future<void> stop() => _player.stop();
+  Future<void> stop() => _player?.stop() ?? Future<void>.value();
 
   @override
-  Future<void> dispose() => _player.dispose();
+  Future<void> dispose() =>
+      _player?.dispose() ?? Future<void>.value();
 }
 
 /// Audio clips use a distinct dedicated filename, never a message attachment.
