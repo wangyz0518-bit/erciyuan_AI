@@ -9,6 +9,8 @@
 | [issue-34-memory-architecture-20261118.md](issue-34-memory-architecture-20261118.md) | #34 架构设计的拆分任务、交付清单、验收与下一项确认门槛 |
 | [issue-35-mobile-foundation-plan-20261118.md](issue-35-mobile-foundation-plan-20261118.md) | #35 Flutter 基础的技术实施方案（历史计划） |
 | [remaining-issues-batch-execution-20261118.md](remaining-issues-batch-execution-20261118.md) | 跨任务技术路线与复用参考（当前状态以 Issue/PR 为准） |
+| [issue-47-memory-implementation-20261118.md](issue-47-memory-implementation-20261118.md) | 已完成的离线三层记忆内核、真实 CI 验证和仍待模型联调的边界 |
+| [issue-38-backend-architecture-20261118.md](issue-38-backend-architecture-20261118.md) | #38 AI 网关复用评估、认证/租户协议与风险边界 |
 
 ## 使用边界
 

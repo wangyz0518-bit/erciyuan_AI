@@ -8,8 +8,9 @@
 | [person-centered-home-reference-board-20261118.md](person-centered-home-reference-board-20261118.md) | 竞品公开资料、PR #15/#16/#33 复用情况及 A/B 方案比较 | 讨论稿 |
 | [person-centered-home-prototype-20261118.html](person-centered-home-prototype-20261118.html) | 人物主页优先 A / 最近对话优先 B 的可点击原型，含人物切换与数据导出示例 | 可交互原型 |
 | [flutter-memory-first-architecture-20261118.md](flutter-memory-first-architecture-20261118.md) | 正式 Flutter 架构、PoC 迁移、模块边界、记忆优先执行 | #34 设计基线；技术选择待 #35 确认 |
-| [person-memory-data-contract-20261118.md](person-memory-data-contract-20261118.md) | 三层记忆数据、归档/检索/身份更新、导出与测试契约 | #34 设计草案，不是已实现数据库 |
+| [person-memory-data-contract-20261118.md](person-memory-data-contract-20261118.md) | 三层记忆数据、归档/检索/身份更新、导出与测试契约 | #34 设计基线；#36/#47 已实现离线内核，真实 LLM 待 #39 |
 | [examples/person-memory-export-fixture-v0.json](examples/person-memory-export-fixture-v0.json) | 两个人物、全合成、可验证来源引用的导出格式示例 | 设计用测试数据 |
+| [ai-service-backend-architecture-20261118.md](ai-service-backend-architecture-20261118.md) | #38 现有 FastAPI/DeepSeek/语音 PoC 复用审查、安全部署边界、人物身份与协议分层 | #38 设计评估，真实实施待 #39 |
 
 ## 打开原型
 
