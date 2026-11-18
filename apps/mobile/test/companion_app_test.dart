@@ -112,7 +112,10 @@ void main() {
     await tester.tap(find.text('小月').last);
     await settleDatabase(tester);
     expect(find.text('仅属于小星'), findsNothing);
-    expect(await tester.runAsync(() => database.rawEventsFor(scope: moon)), isEmpty);
+    expect(
+      await tester.runAsync(() => database.rawEventsFor(scope: moon)),
+      isEmpty,
+    );
     await tester.enterText(
       find.byKey(const ValueKey('character-draft')),
       '月的草稿',
@@ -124,12 +127,14 @@ void main() {
   testWidgets('my/data entry exports all owner data through real SQLite', (
     tester,
   ) async {
-    await tester.runAsync(() => database.appendEvent(
-      scope: star,
-      eventId: 'user-before-export',
-      speaker: 'user',
-      content: '私有测试记录',
-    ));
+    await tester.runAsync(
+      () => database.appendEvent(
+        scope: star,
+        eventId: 'user-before-export',
+        speaker: 'user',
+        content: '私有测试记录',
+      ),
+    );
     await mount(tester);
     await tester.tap(find.byKey(const ValueKey('data-management')));
     await tester.pump(const Duration(milliseconds: 350));
