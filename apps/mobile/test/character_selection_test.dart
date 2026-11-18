@@ -8,14 +8,15 @@ void main() {
   const moon = PersonScope(ownerId: 'owner-a', characterId: 'moon');
   const foreign = PersonScope(ownerId: 'owner-b', characterId: 'star');
 
-  CharacterSelectionController buildController() => CharacterSelectionController(
-    ownerId: 'owner-a',
-    catalog: MockCharacterCatalog([
-      const Character(scope: star, name: '星', description: 'A'),
-      const Character(scope: moon, name: '月', description: 'B'),
-      const Character(scope: foreign, name: '另一用户', description: 'C'),
-    ]),
-  );
+  CharacterSelectionController buildController() =>
+      CharacterSelectionController(
+        ownerId: 'owner-a',
+        catalog: MockCharacterCatalog([
+          const Character(scope: star, name: '星', description: 'A'),
+          const Character(scope: moon, name: '月', description: 'B'),
+          const Character(scope: foreign, name: '另一用户', description: 'C'),
+        ]),
+      );
 
   test('scope is stable and owner-aware', () {
     expect(star, const PersonScope(ownerId: 'owner-a', characterId: 'star'));
