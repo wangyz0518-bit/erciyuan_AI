@@ -74,6 +74,12 @@ flutter test integration_test/storage_failure_test.dart -d <device-id> --reporte
 
 自动化文本输入不能替代真实中文输入法选词验证；录音文件生成也不能替代人工试听确认。
 
+### GitHub Actions API 36 模拟器集成验证
+
+`.github/workflows/flutter-android.yml` 包含独立的 `integration` Job，仅当快速 `verify` Job 成功后执行。通过 `reactivecircus/android-emulator-runner@v2` 启动 API 36、Google APIs、x86_64、Pixel 6 模拟器，设置 `working-directory: apps/mobile_poc`，运行单一 `bash tool/run_android_integration_ci.sh` 命令。
+
+脚本依次执行上述两个集成测试，并通过 Bash 的 EXIT trap 在退出时采集模拟器 logcat。CI 的 `android-emulator-logcat` 产物最多保存 7 天；不上传数据库、录音或应用私有文件。PR 与 main push 的结果以实际 GitHub Actions 记录为准，模拟器启动本身不代表测试通过。长期 soak 测试不纳入该 Job。
+
 ## 5. 验证边界
 
 | 能力 | 当前证据 | 尚未证明 |
