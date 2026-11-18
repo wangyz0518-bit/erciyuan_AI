@@ -17,3 +17,10 @@
 - 基于可注入的假 ASR/TTS 测试转写不自动发送、迟到结果丢弃、离线不可用、停止播放、销毁清理。
 - GitHub CI 需执行 Flutter format/analyze/test、Android APK 和模拟器；iOS 由 #40 实际 macOS/Xcode 作业验证。
 - 设备端识别的可用性由安装的系统语言包/语音服务决定；必须对 Android/iOS 真机分别测权限、中文准确率、听感及系统引擎网络策略。
+
+## 2026-11-19 CI 验证与合并依赖
+
+- 上游 #42 [PR #63](https://github.com/wangyz0518-bit/erciyuan_AI/pull/63) 已合并，当前 #43 分支经内容复制重新建立于已合并的 main SHA，避免重复携带 #42 的旧提交。
+- 旧堆叠分支的 Flutter format/analyze/unit/widget/APK：[Actions 44367949317](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367949317) success；Android 模拟器集成：[Actions 44367949434](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367949434) success。
+- 新 main 基线需要再次走相同 Actions；在新结果出来之前旧成功不自动代表最新 SHA 已通过。
+- 声音仍为操作系统默认 TTS，未绑定真实人物专属音色，相关 Issue 不得因此关闭。
