@@ -42,3 +42,9 @@ flutter test integration_test/soak_test.dart -d <device-id> --reporter expanded
 Windows 环境辅助脚本见 [tool/windows.ps1](tool/windows.ps1)。完整环境说明、测试边界和排障方法见 [Flutter 开发与验证指南](../../docs/guides/flutter-poc-guide-20261112.md)。
 
 Debug APK 输出到 `build/app/outputs/flutter-apk/app-debug.apk`，属于本地构建产物，不提交 Git。
+
+## GitHub Actions Android 模拟器集成测试
+
+`.github/workflows/flutter-android.yml` 在现有格式、分析、unit/widget 和 Debug APK 快速检查成功后，使用 API 36 / x86_64 / Google APIs 模拟器自动运行 `acceptance_test.dart` 与 `storage_failure_test.dart`。两个测试在 `apps/mobile_poc/` 下执行，并保留最多 7 天的 `android-emulator-logcat` 诊断产物；不上传测试数据库、录音或真实用户数据。
+
+CI 使用 `bash tool/run_android_integration_ci.sh` 在同一 Shell 中执行测试并在退出时收集日志。该脚本仅用于 GitHub Actions 临时模拟器，开发者本地应继续使用上文的 `flutter test ... -d <device-id>` 命令。长时 soak test 仍为手动执行。Android 模拟器通过不代表真实 Android 设备或 iOS 已通过。
