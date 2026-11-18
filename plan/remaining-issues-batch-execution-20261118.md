@@ -7,6 +7,17 @@
 > 本计划原则：**先审查已有 PR 的实际代码，尽可能移植已有稳定实现，才补新功能；避免原样合并历史叠加 PR**。
 > 本文件只记录技术范围、复用和验收参考，不设置个人审批或执行模式。
 
+## 2026-11-18 最新主线验收快照
+
+- **Issue #37 已完成并关闭**：正式人物主页、人物切换、SQLite 唯一持续时间线、文字发送与状态、全量 JSON 导出和 Android 模拟器回归已通过 [PR #59](https://github.com/wangyz0518-bit/erciyuan_AI/pull/59) 合并，commit `644e07a4beddcb3649d35783c8f4181dc5d803e1`。
+- Flutter 格式、分析、Widget/单元测试、官方三页截图、Android Debug APK 与 Python 网关离线测试：[CI #44344224037](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44344224037) — **success**。
+- 正式工程 Android API36 模拟器安装、运行、实际页面截图和两个真实 SQLite/人物隔离集成测试：[CI #44344224115](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44344224115) — **success**。不能当作物理设备验证。
+- **#40 iOS**：独立 macOS/Xcode CI 草案 [PR #60](https://github.com/wangyz0518-bit/erciyuan_AI/pull/60)，需要真实 iOS Simulator 构建与运行成功后验收。
+- **#41 Android 真机**：物理设备专用测试脚本 [PR #61](https://github.com/wangyz0518-bit/erciyuan_AI/pull/61)，暂缺授权实机，Issue 继续开放，不能以模拟器替代。
+- **#42–#44**：按相应 Issue 继续实施；**#39** 真实付费模型 Token/费用与质量验证仍等待独立凭据及成本授权。
+
+此处记录真实状态与技术依赖，不改变以下历史计划快照及任何团队操作权限规则。
+
 ## 1. 目标、不变量和范围
 
 **最终目标**：基于 Flutter + Dart 的 Android/iOS 人物中心 AI 陪伴 MVP：每个人物只有**一条持续存在的逻辑时间线**，可恢复原始历史，三层记忆可检索/追溯，真实 AI 文字回复能使用人物身份与记忆；随后补齐正式 UI、平台验证、音频、ASR/TTS、人物形象。

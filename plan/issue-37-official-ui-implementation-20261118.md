@@ -46,3 +46,11 @@
 - 首版仅负责完整交互流程与可靠数据边界，视觉统一微调在可运行版本验证后进行。
 
 此记录描述公共产品与测试事实，不定义任何个人账号权限、审批习惯或协作限制。
+
+
+## 2026-11-18 完成后证据更新
+
+- [PR #59](https://github.com/wangyz0518-bit/erciyuan_AI/pull/59) **已合并**（squash `644e07a4beddcb3649d35783c8f4181dc5d803e1`），[Issue #37](https://github.com/wangyz0518-bit/erciyuan_AI/issues/37) 已关闭为完成。
+- Flutter 主 CI [#44344224037](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44344224037)：Dart format、flutter analyze、全部单元/Widget 测试、三页 Flutter 截图、Android Debug APK、Python 网关离线测试均 **成功**。
+- Android API36 官方工程模拟器 [#44344224115](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44344224115)：启动、截图以及 `integration_test/acceptance_test.dart` 与 `storage_failure_test.dart` 均 **成功**。这是模拟器证据，**不是 #41 真机**。
+- 未验证及后续范围：#40 iOS Simulator、#41 物理 Android、#42 音频、#43 ASR/TTS、#44 Live2D 与 #39 真实付费模型调用。首版人物图像仍为占位素材；剪贴板数据导出为用户显式操作，非自动云上传。
