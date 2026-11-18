@@ -71,9 +71,11 @@ jobs:
       - name: Install dependencies
         working-directory: apps/mobile
         run: flutter pub get
-      - name: Format
+      - name: Format and show formatter patch (temporary diagnostic)
         working-directory: apps/mobile
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          dart format lib test
+          git diff -- lib test
       - name: Analyze
         working-directory: apps/mobile
         run: flutter analyze
