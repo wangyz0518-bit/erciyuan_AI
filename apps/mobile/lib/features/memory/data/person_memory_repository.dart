@@ -747,15 +747,14 @@ final class PersonMemoryRepository {
       [..._scope(scope), excludeEventId, excludeEventId, recentLimit],
     );
     final recent = latest.map(_event).toList().reversed.toList();
-    final summaries = (await summariesFor(
-      scope,
-      query: currentInput,
-      limit: recallLimit,
-    )).where((summary) {
-      // A retry of the same user event must not duplicate it in retrieved memory.
-      return excludeEventId == null ||
-          !summary.sourceEventIds.contains(excludeEventId);
-    }).toList(growable: false);
+    final summaries =
+        (await summariesFor(scope, query: currentInput, limit: recallLimit))
+            .where((summary) {
+              // A retry of the same user event must not duplicate it in retrieved memory.
+              return excludeEventId == null ||
+                  !summary.sourceEventIds.contains(excludeEventId);
+            })
+            .toList(growable: false);
     final expanded = <RawEvent>[];
     if (expandSources) {
       final seen = <String>{};
