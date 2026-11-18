@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:erciyuan_mobile/features/characters/domain/character.dart';
 import 'package:erciyuan_mobile/features/timeline/data/person_database.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,7 +27,7 @@ void main() {
 
   tearDown(() async {
     await database.close();
-    await File(dbPath).delete();
+    await deleteDatabase(dbPath);
   });
 
   testWidgets(
