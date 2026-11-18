@@ -10,6 +10,6 @@
 
 ## 打开原型
 
-可直接在浏览器打开 HTML 文件，无需安装依赖或启动服务。也可使用 GitHub 文件页的预览能力查看源码和下载。
+可直接在浏览器打开 HTML 文件，无需安装依赖或启动服务。也可使用[浏览器预览](https://htmlpreview.github.io/?https://github.com/wangyz0518-bit/erciyuan_AI/blob/design/person-centered-home-prototype/docs/design/person-centered-home-prototype-20261118.html)查看交互原型；若第三方预览服务不可用，可下载 HTML 后本地打开。
 
 原型中的人物、消息、记忆摘要和导出内容均为合成演示数据。浏览器本地存储仅用于演示持久化，不代表正式数据存储或三层记忆已实现。
