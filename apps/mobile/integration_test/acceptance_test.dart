@@ -75,8 +75,10 @@ void main() {
           await tester.pump(const Duration(milliseconds: 350));
         }
         final events = await database.rawEventsFor(scope: scope);
-        fail('Expected one saved user event and one Mock reply for '
-            '${scope.characterId}; observed ${events.length}');
+        fail(
+          'Expected one saved user event and one Mock reply for '
+          '${scope.characterId}; observed ${events.length}',
+        );
       }
 
       await tester.pumpWidget(
