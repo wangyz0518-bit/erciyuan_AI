@@ -25,8 +25,13 @@ Architecture: `lib/bootstrap.dart` owns object assembly, UI under
 `features/characters/application/`; domain owns `PersonScope` and the
 `CharacterCatalog` port, while `data/` supplies a deterministic Mock.
 The mock owner ID is only a local fixture; **never treat it as real authentication**.
-Persistent SQLite, migrations, RawEvent and export belong to #36;
-memory archive, indexing and identity changes belong to #47.
+SQLite PersonDatabase now lives in `lib/features/timeline/data/person_database.dart`.
+It stores character timelines and append-only raw events, including per-character
+transactional sequences, migration v1→v2 and vendor-independent owner export.
+`test/person_database_test.dart` runs native SQLite on Linux using an injected
+FFI database factory. The visible starter page remains clearly marked Mock;
+the formal UI/repository wiring belongs to #37. No account login is present.
+Memory archive, indexing and identity changes belong to #47.
 
 Android Debug build is checked by `.github/workflows/flutter-mobile.yml`.
 The iOS native template is present but no iOS Simulator or physical device
