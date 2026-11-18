@@ -255,6 +255,21 @@ void main() {
     expect(await db.memory.archiveCursor(star, summarizer.version), 0);
   });
 
+  test('configured auto archiver reacts to committed events', () async {
+    await db.close();
+    db = await PersonDatabase.open(
+      factory: databaseFactoryFfi,
+      databasePath: dbPath,
+      automaticSummarizer: summarizer,
+    );
+    await add(star, 'auto-1', 'a committed memory');
+    expect(await db.memory.summariesFor(star), isEmpty);
+    await add(star, 'auto-2', 'the next committed event');
+    expect(db.lastArchiveError, isNull);
+    expect(await db.memory.summariesFor(star), hasLength(1));
+    expect(await db.memory.archiveCursor(star, summarizer.version), 2);
+  });
+
   test('stable prompt is unchanged by new messages or summaries', () async {
     final before = await db.memory.stablePrefix(star);
     await add(star, 'one', '记住这个');
