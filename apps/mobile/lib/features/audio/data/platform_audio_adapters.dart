@@ -30,8 +30,7 @@ final class RecordAudioCapture implements AudioCapturePort {
       );
 
   @override
-  Future<String?> stop() =>
-      _recorder?.stop() ?? Future<String?>.value(null);
+  Future<String?> stop() => _recorder?.stop() ?? Future<String?>.value(null);
 
   @override
   Future<void> cancel() async {
@@ -42,8 +41,7 @@ final class RecordAudioCapture implements AudioCapturePort {
   }
 
   @override
-  Future<void> dispose() =>
-      _recorder?.dispose() ?? Future<void>.value();
+  Future<void> dispose() => _recorder?.dispose() ?? Future<void>.value();
 }
 
 final class DeviceAudioFilePlayback implements AudioFilePlaybackPort {
@@ -57,8 +55,7 @@ final class DeviceAudioFilePlayback implements AudioFilePlaybackPort {
   Future<void> stop() => _player?.stop() ?? Future<void>.value();
 
   @override
-  Future<void> dispose() =>
-      _player?.dispose() ?? Future<void>.value();
+  Future<void> dispose() => _player?.dispose() ?? Future<void>.value();
 }
 
 /// Audio clips use a distinct dedicated filename, never a message attachment.
