@@ -4,18 +4,49 @@ on:
   pull_request:
     paths:
       - "apps/mobile/**"
+      - "services/person_gateway/**"
+      - "docs/接口/person-text-gateway-v1-20261118.md"
       - ".github/workflows/flutter-mobile.yml"
+      - ".github/workflows/person-gateway.yml"
   push:
     branches: [main]
     paths:
       - "apps/mobile/**"
+      - "services/person_gateway/**"
+      - "docs/接口/person-text-gateway-v1-20261118.md"
       - ".github/workflows/flutter-mobile.yml"
+      - ".github/workflows/person-gateway.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  person-gateway:
+    name: Python gateway offline tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/person_gateway/requirements.txt
+      - name: Install gateway test dependencies
+        working-directory: services/person_gateway
+        run: python -m pip install -r requirements.txt
+      - name: Check Python syntax
+        working-directory: services/person_gateway
+        run: python -m compileall -q gateway.py tests
+      - name: Run offline tests only
+        working-directory: services/person_gateway
+        env:
+          PERSON_GATEWAY_MODE: mock
+          PERSON_LIVE_CALLS_ENABLED: "false"
+          DEEPSEEK_API_KEY: ""
+        run: python -m pytest -q
+
   verify:
     name: Analyze, test, build Android debug
     runs-on: ubuntu-latest
@@ -40,7 +71,7 @@ jobs:
       - name: Install dependencies
         working-directory: apps/mobile
         run: flutter pub get
-      - name: Format
+      - name: Check Dart formatting
         working-directory: apps/mobile
         run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze

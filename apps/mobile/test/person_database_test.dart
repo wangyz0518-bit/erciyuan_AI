@@ -265,4 +265,117 @@ void main() {
       isTrue,
     );
   });
+
+  test('v3 generation tasks migrate to unknown and completion is atomic/idempotent', () async {
+    await store.close();
+    await File(databasePath).delete();
+
+    final legacy = await databaseFactoryFfi.openDatabase(
+      databasePath,
+      options: OpenDatabaseOptions(
+        version: 3,
+        onCreate: (database, version) async {
+          await database.execute('''
+            CREATE TABLE characters (
+              owner_id TEXT NOT NULL,
+              character_id TEXT NOT NULL,
+              PRIMARY KEY (owner_id, character_id)
+            )
+          ''');
+          await database.execute('''
+            CREATE TABLE character_timelines (
+              owner_id TEXT NOT NULL,
+              character_id TEXT NOT NULL,
+              timeline_id TEXT NOT NULL UNIQUE,
+              next_sequence INTEGER NOT NULL DEFAULT 1,
+              PRIMARY KEY (owner_id, character_id),
+              FOREIGN KEY (owner_id, character_id)
+                REFERENCES characters(owner_id, character_id) ON DELETE CASCADE
+            )
+          ''');
+          await database.execute('''
+            CREATE TABLE raw_events (
+              owner_id TEXT NOT NULL,
+              character_id TEXT NOT NULL,
+              event_id TEXT NOT NULL,
+              sequence INTEGER NOT NULL,
+              occurred_at_utc TEXT NOT NULL,
+              speaker TEXT NOT NULL,
+              kind TEXT NOT NULL,
+              content TEXT NOT NULL,
+              status TEXT NOT NULL,
+              request_id TEXT,
+              revision_of TEXT,
+              PRIMARY KEY (owner_id, character_id, event_id),
+              UNIQUE (owner_id, character_id, sequence),
+              FOREIGN KEY (owner_id, character_id)
+                REFERENCES character_timelines(owner_id, character_id) ON DELETE CASCADE
+            )
+          ''');
+          await database.execute('''
+            CREATE TABLE generation_tasks (
+              owner_id TEXT NOT NULL,
+              character_id TEXT NOT NULL,
+              request_id TEXT NOT NULL,
+              status TEXT NOT NULL CHECK(status IN ('pending','complete','failed','cancelled')),
+              retry_of TEXT,
+              started_at_utc TEXT NOT NULL,
+              PRIMARY KEY (owner_id, character_id, request_id),
+              FOREIGN KEY (owner_id, character_id)
+                REFERENCES character_timelines(owner_id, character_id) ON DELETE CASCADE
+            )
+          ''');
+          await database.insert('characters', {
+            'owner_id': star.ownerId,
+            'character_id': star.characterId,
+          });
+          await database.insert('character_timelines', {
+            'owner_id': star.ownerId,
+            'character_id': star.characterId,
+            'timeline_id': 'timeline-star',
+            'next_sequence': 1,
+          });
+          await database.insert('generation_tasks', {
+            'owner_id': star.ownerId,
+            'character_id': star.characterId,
+            'request_id': 'request-migration-0001',
+            'status': 'pending',
+            'retry_of': null,
+            'started_at_utc': DateTime.now().toUtc().toIso8601String(),
+          });
+        },
+      ),
+    );
+    await legacy.close();
+
+    store = await PersonDatabase.open(
+      databasePath: databasePath,
+      factory: databaseFactoryFfi,
+    );
+    await store.setGenerationStatus(
+      scope: star,
+      requestId: 'request-migration-0001',
+      status: 'unknown',
+    );
+    final saved = await store.completeGeneration(
+      scope: star,
+      requestId: 'request-migration-0001',
+      eventId: 'assistant-request-migration-0001',
+      content: 'confirmed after status reconciliation',
+    );
+    final repeated = await store.completeGeneration(
+      scope: star,
+      requestId: 'request-migration-0001',
+      eventId: 'assistant-request-migration-0001',
+      content: 'confirmed after status reconciliation',
+    );
+
+    expect(saved.sequence, 1);
+    expect(repeated.eventId, saved.eventId);
+    expect(
+      (await store.rawEventsFor(scope: star))
+          .where((event) => event.speaker == 'assistant'),
+      hasLength(1),
+    );
+  });
 }
