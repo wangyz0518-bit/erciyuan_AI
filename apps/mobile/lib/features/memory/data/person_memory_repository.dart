@@ -290,6 +290,32 @@ final class PersonMemoryRepository {
     });
   }
 
+  /// Called by an event-commit hook or app lifecycle retry worker. If an
+  /// offline summarizer fails the cursor stays put; a later call can resume.
+  Future<int> archiveReady({
+    required PersonScope scope,
+    required MemorySummarizer summarizer,
+    int minimumEvents = 2,
+    int batchSize = 24,
+    int maxBatches = 32,
+  }) async {
+    if (maxBatches < 1 || maxBatches > 1000) {
+      throw ArgumentError('Invalid maxBatches');
+    }
+    var completed = 0;
+    while (completed < maxBatches) {
+      final result = await archiveNext(
+        scope: scope,
+        summarizer: summarizer,
+        minimumEvents: minimumEvents,
+        batchSize: batchSize,
+      );
+      if (result == null) break;
+      completed++;
+    }
+    return completed;
+  }
+
   Future<List<MemorySummary>> summariesFor(
     PersonScope scope, {
     String query = '',
