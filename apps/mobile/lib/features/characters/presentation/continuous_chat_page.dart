@@ -27,6 +27,7 @@ class ContinuousChatPage extends StatefulWidget {
   final PersonDatabase database;
   final PersonScope scope;
   final ModelGatewayAdapter? gateway;
+
   /// Optional injectable audio scope for widget/device tests.
   final AudioSessionController? audioSession;
 
@@ -400,9 +401,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
           _slideCancelled = true;
         }
       },
-      onPointerUp: (_) => unawaited(
-        _slideCancelled ? _audio.discard() : _audio.finish(),
-      ),
+      onPointerUp: (_) =>
+          unawaited(_slideCancelled ? _audio.discard() : _audio.finish()),
       onPointerCancel: (_) => unawaited(_audio.discard()),
       child: Container(
         key: const ValueKey('hold-to-record'),

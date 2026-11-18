@@ -77,7 +77,7 @@ final class LocalAudioTemporaryFiles implements AudioTemporaryFiles {
 /// file playback until a separate, tested native PCM implementation exists.
 final class AndroidPcmPlayback implements AudioPcmPlaybackPort {
   AndroidPcmPlayback({MethodChannel? channel})
-      : _channel = channel ?? const MethodChannel('dev.erciyuan/pcm');
+    : _channel = channel ?? const MethodChannel('dev.erciyuan/pcm');
 
   final MethodChannel _channel;
   String? _active;

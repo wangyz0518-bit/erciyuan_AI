@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 
 import '../domain/audio_ports.dart';
@@ -31,7 +29,8 @@ final class AudioSessionController extends ChangeNotifier {
   bool _closed = false;
   int _epoch = 0;
 
-  bool get canRecord => !_closed &&
+  bool get canRecord =>
+      !_closed &&
       state != AudioSessionState.requestingPermission &&
       state != AudioSessionState.recording;
   bool get hasClip => recordedPath != null && !_closed;
@@ -48,10 +47,7 @@ final class AudioSessionController extends ChangeNotifier {
     final task = _tail.then((_) => work());
     // Every failed operation is reported to its caller; it must not poison
     // subsequent cleanup operations.
-    _tail = task.then<void>(
-      (_) {},
-      onError: (Object _, StackTrace __) {},
-    );
+    _tail = task.then<void>((_) {}, onError: (Object _, StackTrace __) {});
     return task;
   }
 
@@ -168,7 +164,9 @@ final class AudioSessionController extends ChangeNotifier {
     if (_closed) return Future<void>.value();
     ++_epoch;
     _show(
-      recordedPath == null ? AudioSessionState.idle : AudioSessionState.recorded,
+      recordedPath == null
+          ? AudioSessionState.idle
+          : AudioSessionState.recorded,
       '播放已停止；录音仍仅保存在本机。',
     );
     return _queue(() => playback.stop());
