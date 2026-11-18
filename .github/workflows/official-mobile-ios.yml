@@ -1,0 +1,48 @@
+name: Official Flutter iOS Simulator
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/official-mobile-ios.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/official-mobile-ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios-simulator:
+    name: Build, install and test iOS Simulator (unsigned)
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.50.0"
+          channel: stable
+          cache: true
+      - name: Show macOS, Xcode and Flutter versions
+        run: |
+          sw_vers
+          xcodebuild -version
+          flutter --version
+          xcrun simctl list devices available
+      - name: Install official mobile dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+      - name: Build, install, launch and exercise actual iOS Simulator
+        run: bash apps/mobile/tool/run_ios_simulator_ci.sh
+      - name: Upload iOS Simulator screenshot and unsigned .app
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: erciyuan-official-ios-simulator
+          path: artifacts/official-ios-simulator/
+          if-no-files-found: warn
+          retention-days: 7
