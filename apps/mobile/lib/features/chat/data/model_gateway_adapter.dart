@@ -259,7 +259,7 @@ final class ModelGatewayAdapter {
       _activeRequests[key] = request;
       request.headers.set(
         HttpHeaders.authorizationHeader,
-        '***',
+        'Bearer $_accessToken',
       );
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
@@ -640,7 +640,7 @@ final class ModelGatewayAdapter {
       );
       request.headers.set(
         HttpHeaders.authorizationHeader,
-        '***',
+        'Bearer $_accessToken',
       );
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode != HttpStatus.ok) {
@@ -697,7 +697,7 @@ final class ModelGatewayAdapter {
       );
       request.headers.set(
         HttpHeaders.authorizationHeader,
-        '***',
+        'Bearer $_accessToken',
       );
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode == HttpStatus.ok) {
