@@ -8,13 +8,20 @@
 
 ## 已确认决策
 
-- 首版平台范围按 [ADR-0002](docs/decisions/0002-three-platform-scope.md) 执行：Android、iOS；原生鸿蒙后续适配，具体时间另行确定。原生鸿蒙不属于首版交付和验收范围。
-- 首版移动端采用 **Flutter + Dart**，见 [ADR-0001](docs/decisions/0001-mobile-stack.md)。
-- 已确认决策以 `docs/decisions/` 中的 ADR 为准；提案、调研结论不得当作已定案事项。
+- 首版平台：Android、iOS；原生鸿蒙后续适配，见 [ADR-0002](docs/decisions/0002-three-platform-scope.md)。
+- 首版移动端技术栈：Flutter + Dart，见 [ADR-0001](docs/decisions/0001-mobile-stack.md)。
+- 已确认决策以 `docs/decisions/` 中的 ADR 为准；提案和调研结论不自动构成决策。
+
+## 当前工程
+
+- Flutter 本地验证工程位于 `apps/mobile_poc/`，用于承载已验证的 Android 基础能力和后续工程演进。
+- 当前聊天回复仍为本地模拟内容；角色形象为占位素材。不得将 PoC 能力描述为真实 AI、正式语音或正式产品功能。
+- Android API 36 模拟器已完成 Debug 构建、安装和运行验证；iOS 工程目录由 Flutter 模板生成，尚未构建、签名或真机验证。
+- 运行命令、依赖版本和已知限制见 [Flutter 开发与验证指南](docs/guides/flutter-poc-guide-20261112.md)；历史实测证据见 [Android PoC 报告](docs/reports/android-poc-report-20261112.md)。
 
 ## 工作约束
 
-- 当前采用开放式协作，不预设固定工作线、模块负责人或成员分工；成员根据具体任务共同参与。
+- 当前采用开放式协作，不预设固定工作线、模块负责人或成员分工。
 - 开始工作前阅读相关 Issue、项目规则及直接相关的设计/接口文档；不要假设旧计划仍然有效。
 - 涉及公共接口、数据模型、架构或兼容性的重要变更，先通过 Issue/PR 讨论并取得相关参与者确认，再实施。
 - 验收记录区分真实能力、模拟结果、未接通和失败项，不把规划目标或模拟结果标成已完成。

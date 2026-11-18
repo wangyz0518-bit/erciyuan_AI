@@ -1,0 +1,73 @@
+name: Flutter Android validation
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile_poc/**"
+      - ".github/workflows/flutter-android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile_poc/**"
+      - ".github/workflows/flutter-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Analyze, test, and build Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.50.0"
+          channel: stable
+          cache: true
+
+      - name: Show toolchain
+        run: |
+          flutter --version
+          dart --version
+          java -version
+
+      - name: Install dependencies
+        working-directory: apps/mobile_poc
+        run: flutter pub get
+
+      - name: Check formatting
+        working-directory: apps/mobile_poc
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        working-directory: apps/mobile_poc
+        run: flutter analyze
+
+      - name: Unit and widget tests
+        working-directory: apps/mobile_poc
+        run: flutter test
+
+      - name: Build Android debug APK
+        working-directory: apps/mobile_poc
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: apps/mobile_poc/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
