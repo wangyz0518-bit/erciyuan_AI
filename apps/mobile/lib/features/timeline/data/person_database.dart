@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:sqflite_common/sqlite_api.dart';
 
 import '../../characters/domain/character.dart';
+import '../../memory/data/person_memory_repository.dart';
 import '../domain/raw_event.dart';
 
 /// SQLite fact repository. All operations are scoped by owner + character.
@@ -12,8 +13,11 @@ import '../domain/raw_event.dart';
 final class PersonDatabase {
   PersonDatabase._(this._db);
 
-  static const int schemaVersion = 2;
+  static const int schemaVersion = 3;
   final Database _db;
+
+  /// Memory shares the same SQLite connection and atomic fact transactions.
+  PersonMemoryRepository get memory => PersonMemoryRepository(_db);
 
   static Future<PersonDatabase> open({
     DatabaseFactory? factory,
@@ -33,9 +37,13 @@ final class PersonDatabase {
         onCreate: (database, version) async {
           await _createVersionOne(database);
           await _createGenerationTasks(database);
+          await PersonMemoryRepository.createSchema(database);
         },
         onUpgrade: (database, oldVersion, newVersion) async {
           if (oldVersion < 2) await _createGenerationTasks(database);
+          if (oldVersion < 3) {
+            await PersonMemoryRepository.createSchema(database);
+          }
         },
       ),
     );
@@ -236,6 +244,18 @@ final class PersonDatabase {
         whereArgs: [..._args(scope), sequence],
       );
       if (changed != 1) throw StateError('Sequence advance conflict');
+      if (revisionOf != null && status == 'complete') {
+        final source = await txn.query(
+          'raw_events',
+          columns: ['event_id'],
+          where: "owner_id = ? AND character_id = ? AND event_id = ? AND status = 'complete'",
+          whereArgs: [..._args(scope), revisionOf],
+        );
+        if (source.isEmpty) throw StateError('Revision source not found');
+        await PersonMemoryRepository.invalidateSourceInTransaction(
+          txn, scope, revisionOf,
+        );
+      }
       return RawEvent(
         scope: scope,
         eventId: eventId,
@@ -330,50 +350,69 @@ final class PersonDatabase {
     if (changed != 1) throw StateError('Generation task not found');
   }
 
-  /// Versioned, vendor-independent JSON for ALL characters of one owner.
-  /// #47 will fill the currently empty memory and identity collections.
+  /// Explicit privacy redaction: keep an event's stable ID and sequence but
+  /// remove its personal content and invalidate all derived summaries.
+  Future<void> redactEvent({
+    required PersonScope scope,
+    required String eventId,
+  }) async {
+    _validateScope(scope);
+    _requireValue(eventId, 'eventId');
+    await _db.transaction((txn) async {
+      final changed = await txn.update(
+        'raw_events',
+        {'content': '', 'status': 'redacted'},
+        where: "owner_id = ? AND character_id = ? AND event_id = ? AND status = 'complete'",
+        whereArgs: [..._args(scope), eventId],
+      );
+      if (changed != 1) throw StateError('Redactable event not found');
+      await PersonMemoryRepository.invalidateSourceInTransaction(
+        txn, scope, eventId,
+      );
+    });
+  }
+
+  /// Versioned, vendor-independent, transaction-consistent JSON for ALL
+  /// characters belonging to ONE owner. The app's file-sharing UI is #37.
   Future<String> exportOwnerJson(String ownerId) async {
     _requireValue(ownerId, 'ownerId');
-    final characters = await _db.query(
-      'characters',
-      where: 'owner_id = ?',
-      whereArgs: [ownerId],
-      orderBy: 'character_id ASC',
-    );
-    final timelines = await _db.query(
-      'character_timelines',
-      where: 'owner_id = ?',
-      whereArgs: [ownerId],
-      orderBy: 'character_id ASC',
-    );
-    final events = await _db.query(
-      'raw_events',
-      where: 'owner_id = ?',
-      whereArgs: [ownerId],
-      orderBy: 'character_id ASC, sequence ASC',
-    );
-    final tasks = await _db.query(
-      'generation_tasks',
-      where: 'owner_id = ?',
-      whereArgs: [ownerId],
-      orderBy: 'character_id ASC, request_id ASC',
-    );
-    return const JsonEncoder.withIndent('  ').convert({
-      'format': 'erciyuan-person-memory-export',
-      'schema_version': 1,
-      'database_schema_version': schemaVersion,
-      'owner_id': ownerId,
-      'characters': characters,
-      'character_timelines': timelines,
-      'raw_events': events,
-      'generation_tasks': tasks,
-      'archive_segments': <Object>[],
-      'memory_summaries': <Object>[],
-      'memory_terms': <Object>[],
-      'summary_sources': <Object>[],
-      'persona_identity_versions': <Object>[],
-      'identity_candidates': <Object>[],
-      'attachments': <Object>[],
+    return _db.transaction((txn) async {
+      Future<List<Map<String, Object?>>> read(
+        String table, String order,
+      ) => txn.query(
+        table,
+        where: 'owner_id = ?',
+        whereArgs: [ownerId],
+        orderBy: order,
+      );
+      return const JsonEncoder.withIndent('  ').convert({
+        'format': 'erciyuan-person-memory-export',
+        'schema_version': 1,
+        'database_schema_version': schemaVersion,
+        'owner_id': ownerId,
+        'characters': await read('characters', 'character_id ASC'),
+        'character_timelines':
+            await read('character_timelines', 'character_id ASC'),
+        'raw_events':
+            await read('raw_events', 'character_id ASC, sequence ASC'),
+        'generation_tasks':
+            await read('generation_tasks', 'character_id ASC, request_id ASC'),
+        'archive_segments':
+            await read('archive_segments', 'character_id ASC, sequence_from ASC'),
+        'archive_cursors':
+            await read('archive_cursors', 'character_id ASC, generator_version ASC'),
+        'memory_summaries':
+            await read('memory_summaries', 'character_id ASC, summary_id ASC'),
+        'memory_terms':
+            await read('memory_terms', 'character_id ASC, summary_id ASC, term ASC'),
+        'summary_sources':
+            await read('summary_sources', 'character_id ASC, summary_id ASC, event_id ASC'),
+        'persona_identity_versions':
+            await read('persona_identity_versions', 'character_id ASC, version ASC'),
+        'identity_candidates':
+            await read('identity_candidates', 'character_id ASC, candidate_id ASC'),
+        'attachments': <Object>[],
+      });
     });
   }
 
