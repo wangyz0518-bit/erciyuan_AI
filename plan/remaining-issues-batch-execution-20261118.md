@@ -68,9 +68,9 @@
 
 这是优先级顺序，**不是全部的硬依赖链**。硬依赖：#35→#36→#47→#38→#39；#37 至少依赖 #35/#36，后排是为了实际对接 AI；#40 依赖 #35；#41 依赖 #35/#36/#37；#42 依赖 #35、与数据/UI 接口对齐；#43 依赖 #38/#39/#42；#44 依赖 #35/#37、SDK/素材许可。若 #39 因凭据阻塞，可先完成 #37 与 Mock UI，再回来联调，不以等待外部服务阻塞全部可独立任务。
 
-## 4. #31 暂缓事项
+## 4. #31 Android 模拟器集成 CI 补充路线
 
-[#31 Android 模拟器集成 CI](https://github.com/wangyz0518-bit/erciyuan_AI/issues/31) 仍为第 12 个未完成 Issue，继续暂缓，现有 [PR #32](https://github.com/wangyz0518-bit/erciyuan_AI/pull/32) 与 [PR #49](https://github.com/wangyz0518-bit/erciyuan_AI/pull/49) 的状态以 GitHub 为准。#35 的独立快速 Flutter/Android Debug CI **并不等于** #31 的模拟器集成验收。恢复时间可由团队按进展协调；其他产品方向不自动纳入本路线。
+[#31 Android 模拟器集成 CI](https://github.com/wangyz0518-bit/erciyuan_AI/issues/31) 已恢复实施，技术方案与验收边界见 [专项记录](issue-31-android-emulator-integration-ci-20261118.md)。原 [PR #32](https://github.com/wangyz0518-bit/erciyuan_AI/pull/32) 的模拟器启动配置与 [PR #49](https://github.com/wangyz0518-bit/erciyuan_AI/pull/49) 的故障分析选择性复用，新分支提供独立 CI 回归。#35 的快速 Flutter/Android Debug CI **并不等于** #31 的模拟器集成验收。
 
 ## 5. 技术实施与验证参考
 
