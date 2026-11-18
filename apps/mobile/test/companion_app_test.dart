@@ -87,6 +87,7 @@ void main() {
     await settleDatabase(tester);
     expect(find.text('唯一持续时间线'), findsOneWidget);
     expect(find.byKey(const ValueKey('hold-to-record')), findsOneWidget);
+    expect(find.byKey(const ValueKey('speech-recognize')), findsOneWidget);
     expect(find.byKey(const ValueKey('chat-mode')), findsOneWidget);
   });
 

@@ -9,6 +9,8 @@ import '../../chat/application/continuous_chat_controller.dart';
 import '../../chat/data/model_gateway_adapter.dart';
 import '../../timeline/data/person_database.dart';
 import '../../timeline/domain/raw_event.dart';
+import '../../voice/application/voice_assist_controller.dart';
+import '../../voice/data/system_voice_adapters.dart';
 import '../application/character_selection_controller.dart';
 import '../domain/character.dart';
 
@@ -20,6 +22,7 @@ class ContinuousChatPage extends StatefulWidget {
     required this.scope,
     this.gateway,
     this.audioSession,
+    this.voiceAssist,
     super.key,
   });
 
@@ -30,6 +33,7 @@ class ContinuousChatPage extends StatefulWidget {
 
   /// Optional injectable audio scope for widget/device tests.
   final AudioSessionController? audioSession;
+  final VoiceAssistController? voiceAssist;
 
   @override
   State<ContinuousChatPage> createState() => _ContinuousChatPageState();
@@ -40,6 +44,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   late final ContinuousChatController _chat;
   late final TextEditingController _input;
   late final AudioSessionController _audio;
+  late final VoiceAssistController _voice;
+  bool _speechActivated = false;
   bool _slideCancelled = false;
   final ScrollController _scroll = ScrollController();
 
@@ -52,6 +58,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _audio = widget.audioSession ?? createDeviceAudioSession();
+    _voice = widget.voiceAssist ?? createDeviceVoiceAssist();
     _chat = ContinuousChatController(
       database: widget.database,
       scope: widget.scope,
@@ -90,6 +97,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
       unawaited(_audio.discard());
+      unawaited(_voice.stopAll());
     }
   }
 
@@ -98,6 +106,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_audio.close());
     _audio.dispose();
+    unawaited(_voice.close());
+    _voice.dispose();
     _chat.removeListener(_scrollWhenFollowing);
     _chat.dispose();
     _input.removeListener(_refreshInput);
@@ -111,6 +121,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     FocusScope.of(context).unfocus();
     widget.selection.selectCharacter(scope);
     unawaited(_audio.discard());
+    unawaited(_voice.stopAll());
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => ContinuousChatPage(
@@ -166,7 +177,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
       body: SafeArea(
         top: false,
         child: AnimatedBuilder(
-          animation: Listenable.merge([_chat, _audio]),
+          animation: Listenable.merge([_chat, _audio, _voice]),
           builder: (context, _) => Column(
             children: [
               _CharacterScene(
@@ -205,6 +216,11 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                           return _MessageBubble.fromEvent(
                             event,
                             name: character.name,
+                            onSpeak:
+                                event.speaker == 'assistant' &&
+                                    event.status == 'complete'
+                                ? () => unawaited(_voice.speak(event.content))
+                                : null,
                           );
                         },
                       ),
@@ -251,6 +267,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                   ),
                 ),
               _audioControls(),
+              _speechControls(),
               _composer(),
             ],
           ),
@@ -326,6 +343,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
         ),
         const SizedBox(width: 8),
         _recordButton(),
+        _recognizeButton(),
         const SizedBox(width: 6),
         IconButton.filled(
           key: const ValueKey('send-message'),
@@ -338,6 +356,75 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
       ],
     ),
   );
+  Future<void> _beginRecognition() async {
+    _speechActivated = true;
+    await _audio.discard();
+    if (!mounted) return;
+    await _voice.beginRecognition();
+  }
+
+  Widget _recognizeButton() => IconButton(
+    key: const ValueKey('speech-recognize'),
+    tooltip: _voice.listening ? '停止识别，等待编辑' : '设备端中文语音识别（需系统授权）',
+    onPressed: () {
+      _speechActivated = true;
+      if (_voice.listening) {
+        unawaited(_voice.stopRecognition());
+      } else {
+        unawaited(_beginRecognition());
+      }
+    },
+    icon: Icon(
+      _voice.listening
+          ? Icons.stop_circle_outlined
+          : Icons.record_voice_over_outlined,
+    ),
+  );
+
+  Widget _speechControls() {
+    if (!_speechActivated && !_voice.speaking) return const SizedBox.shrink();
+    return Container(
+      key: const ValueKey('speech-result'),
+      width: double.infinity,
+      color: const Color(0xFF303750),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Wrap(
+        spacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            _voice.status,
+            style: const TextStyle(fontSize: 11, color: Colors.white),
+          ),
+          if (_voice.editableCandidate.isNotEmpty)
+            Text(
+              '识别：${_voice.editableCandidate}',
+              style: const TextStyle(fontSize: 11),
+            ),
+          if (_voice.editableCandidate.isNotEmpty && !_voice.listening)
+            TextButton(
+              key: const ValueKey('apply-recognition-to-draft'),
+              onPressed: () {
+                _input.text = _voice.editableCandidate;
+                _input.selection = TextSelection.collapsed(
+                  offset: _input.text.length,
+                );
+                widget.selection.updateDraft(widget.scope, _input.text);
+                _voice.clearTranscript();
+              },
+              child: const Text('填入草稿（仍需编辑发送）'),
+            ),
+          if (_voice.speaking)
+            TextButton(
+              key: const ValueKey('stop-system-tts'),
+              onPressed: () => unawaited(_voice.stopAll()),
+              child: const Text('停止朗读'),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _audioControls() {
     if (_audio.state == AudioSessionState.idle ||
         _audio.state == AudioSessionState.closed) {
@@ -394,6 +481,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     child: Listener(
       onPointerDown: (_) {
         _slideCancelled = false;
+        unawaited(_voice.stopAll());
         unawaited(_audio.begin());
       },
       onPointerMove: (event) {
@@ -490,19 +578,25 @@ class _MessageBubble extends StatelessWidget {
     required this.speaker,
     required this.name,
     this.isStreaming = false,
+    this.onSpeak,
   });
 
-  factory _MessageBubble.fromEvent(RawEvent event, {required String name}) =>
-      _MessageBubble(
-        content: event.status == 'redacted' ? '（已删除的内容）' : event.content,
-        speaker: event.speaker,
-        name: name,
-      );
+  factory _MessageBubble.fromEvent(
+    RawEvent event, {
+    required String name,
+    VoidCallback? onSpeak,
+  }) => _MessageBubble(
+    content: event.status == 'redacted' ? '（已删除的内容）' : event.content,
+    speaker: event.speaker,
+    name: name,
+    onSpeak: onSpeak,
+  );
 
   final String content;
   final String speaker;
   final String name;
   final bool isStreaming;
+  final VoidCallback? onSpeak;
 
   @override
   Widget build(BuildContext context) {
@@ -540,6 +634,12 @@ class _MessageBubble extends StatelessWidget {
                   height: 1.4,
                 ),
               ),
+              if (onSpeak != null && !mine && !isStreaming)
+                TextButton.icon(
+                  onPressed: onSpeak,
+                  icon: const Icon(Icons.volume_up_outlined, size: 15),
+                  label: const Text('系统朗读'),
+                ),
               if (isStreaming)
                 const Text(
                   '生成中 · 尚未写入历史',
