@@ -15,7 +15,7 @@ const moon = PersonScope(ownerId: 'owner-a', characterId: 'moon');
 const token = 'local-development-token-for-tests';
 
 Uri baseUri(HttpServer server) =>
-    Uri.parse('http://127.0.0.1:' + server.port.toString() + '/');
+    Uri.parse('http://127.0.0.1:${server.port}/');
 
 Future<HttpServer> startServer(
   Future<void> Function(HttpRequest request) handler,
@@ -32,7 +32,7 @@ Future<void> writeFrame(
   Map<String, Object?> frame,
 ) async {
   response.encoding = utf8;
-  response.write('data: ' + jsonEncode(frame) + '\n\n');
+  response.write('data: ${jsonEncode(frame)}\n\n');
   await response.flush();
 }
 
@@ -349,7 +349,7 @@ void main() {
           'event': 'message.completed',
           'request_id': requestId,
           'character_id': characterId,
-          'content': 'reply-' + characterId,
+          'content': 'reply-$characterId',
           'usage': null,
         });
         await request.response.close();
@@ -435,7 +435,7 @@ void main() {
         }));
         await request.response.close();
       } else if (request.method == 'GET' &&
-          request.uri.path.endsWith('/' + requestId)) {
+          request.uri.path.endsWith('/$requestId')) {
         request.response.headers.contentType = ContentType.json;
         request.response.write(jsonEncode({
           'request_id': requestId,
@@ -474,7 +474,7 @@ void main() {
     final events = await database.rawEventsFor(scope: star);
     expect(events.any((event) => event.eventId == 'user-cancel-1'), isTrue);
     expect(
-      events.any((event) => event.eventId == 'assistant-' + requestId),
+      events.any((event) => event.eventId == 'assistant-$requestId'),
       isFalse,
     );
     final exported = jsonDecode(await database.exportOwnerJson(star.ownerId))
