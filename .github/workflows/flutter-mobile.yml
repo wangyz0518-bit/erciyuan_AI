@@ -47,9 +47,11 @@ jobs:
           base64 -w0 pubspec.lock
           echo
           echo LOCK_END
-      - name: Format
+      - name: Format (diagnostic; commit exact output)
         working-directory: apps/mobile
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          dart format lib test
+          git diff -- lib test
       - name: Analyze
         working-directory: apps/mobile
         run: flutter analyze
