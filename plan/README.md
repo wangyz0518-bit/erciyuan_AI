@@ -7,6 +7,7 @@
 | [product-plan.md](product-plan.md) | 产品定位、目标用户、核心体验、功能范围、阶段路线、质量要求和待决策事项 |
 | [mobile-mvp-execution-plan-20261118.md](mobile-mvp-execution-plan-20261118.md) | 记忆优先主线 #34→#35→#36→#47→#38→#39，A～L 任务、复用边界及 #31 暂缓说明 |
 | [issue-34-memory-architecture-20261118.md](issue-34-memory-architecture-20261118.md) | #34 架构设计的拆分任务、交付清单、验收与下一项确认门槛 |
+| [issue-35-mobile-foundation-plan-20261118.md](issue-35-mobile-foundation-plan-20261118.md) | #35 正式 Flutter 最小工程的拟执行范围、CI、验收清单及 ADR-0004 确认门槛（待批准） |
 
 ## 使用边界
 
