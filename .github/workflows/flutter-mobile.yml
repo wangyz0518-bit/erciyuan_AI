@@ -74,9 +74,9 @@ jobs:
       - name: Check Dart formatting
         working-directory: apps/mobile
         run: |
-          if ! dart format --output=none --set-exit-if-changed lib test test_screenshots; then
-            dart format lib test test_screenshots
-            git --no-pager diff -- lib test test_screenshots
+          if ! dart format --output=none --set-exit-if-changed lib test test_screenshots integration_test; then
+            dart format lib test test_screenshots integration_test
+            git --no-pager diff -- lib test test_screenshots integration_test
             exit 1
           fi
       - name: Analyze
