@@ -9,9 +9,9 @@
 
 本轮不从零重画已有成果：
 
-- [PR #33](https://github.com/wangyz0518-bit/erciyuan_AI/pull/33)（作者：keeyangyy）：复用其原创 A/B 首页结构、三款产品参考板、CSS 人物占位图、手机预览和可点击交互框架。该 PR 保持原样，不修改其分支或 PR；本原型在自己的分支中选择性继承并按人物中心原则调整。
-- [PR #15](https://github.com/wangyz0518-bit/erciyuan_AI/pull/15)（仓库所有者提交）：复用沉浸聊天视觉、人物持续可见、文字/语音切换、历史面板和 Sketch 交互思路。原型中的通话、语音和聊天历史面板属于演示，不把它们当成真实服务或多会话产品模型。
-- [PR #16](https://github.com/wangyz0518-bit/erciyuan_AI/pull/16)（仓库所有者提交）：复用 Flutter 人物场景、消息区、输入组件、录音取消/清理和角色切换的生命周期测试思路。正式 Flutter 代码不在本 Issue 中重构。
+- [PR #33](https://github.com/wangyz0518-bit/erciyuan_AI/pull/33)（本执行账号 keeyangyy 之前提交的 A/B 草稿）：复用其原创首页结构、三款产品参考板、CSS 人物占位图、手机预览和可点击交互框架。旧分支基于较早 main 且已与当前 main 分叉，因此不强推改写旧历史；本次在最新 main 上建立独立后继 PR #48，选择性继承并按人物中心原则调整。#48 合并后再将 #33 标记为被替代。
+- [PR #15](https://github.com/wangyz0518-bit/erciyuan_AI/pull/15)（仓库所有者 wangyz0518-bit 提交）：复用沉浸聊天视觉、人物持续可见、文字/语音切换、历史面板和 Sketch 交互思路。原型中的通话、语音和聊天历史面板属于演示，不把它们当成真实服务或多会话产品模型。
+- [PR #16](https://github.com/wangyz0518-bit/erciyuan_AI/pull/16)（仓库所有者 wangyz0518-bit 提交）：复用 Flutter 人物场景、消息区、输入组件、录音取消/清理和角色切换的生命周期测试思路。正式 Flutter 代码不在本 Issue 中重构。
 - PR #33 的三产品官方资料参考板作为研究起点；本文件补充本项目的差异化原则，不把竞品的信息架构直接复制为本项目方案。
 
 ## 2. 公开产品参考
