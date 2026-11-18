@@ -29,14 +29,14 @@
 
 在 Flutter 3.50.0 及 Dart 3.14 环境：
 
-`bash
+```bash
 cd apps/mobile
 flutter pub get
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test
 flutter build apk --debug
-`
+```
 
 应核验：
 1. schema v1→v3 与 v2→v3 迁移保留时间线、人物和原始事件。
