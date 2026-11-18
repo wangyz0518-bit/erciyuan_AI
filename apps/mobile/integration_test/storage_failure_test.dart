@@ -32,55 +32,60 @@ void main() {
     await File(dbPath).delete();
   });
 
-  testWidgets('missing character rejects event; after repair first sequence is one', (
-    tester,
-  ) async {
-    await expectLater(
-      database.appendEvent(
+  testWidgets(
+    'missing character rejects event; after repair first sequence is one',
+    (tester) async {
+      await expectLater(
+        database.appendEvent(
+          scope: star,
+          eventId: 'first-event',
+          speaker: 'user',
+          content: '第一次失败的写入',
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(await database.rawEventsFor(scope: star), isEmpty);
+      await database.createCharacter(
+        character: const Character(scope: star, name: '小星', description: 'A'),
+        timelineId: 'star-timeline',
+      );
+      final saved = await database.appendEvent(
         scope: star,
         eventId: 'first-event',
         speaker: 'user',
-        content: '第一次失败的写入',
-      ),
-      throwsA(isA<StateError>()),
-    );
-    expect(await database.rawEventsFor(scope: star), isEmpty);
-    await database.createCharacter(
-      character: const Character(scope: star, name: '小星', description: 'A'),
-      timelineId: 'star-timeline',
-    );
-    final saved = await database.appendEvent(
-      scope: star,
-      eventId: 'first-event',
-      speaker: 'user',
-      content: '重新写入成功',
-    );
-    expect(saved.sequence, 1);
-    expect((await database.rawEventsFor(scope: star)).single.content, '重新写入成功');
-  });
+        content: '重新写入成功',
+      );
+      expect(saved.sequence, 1);
+      expect(
+        (await database.rawEventsFor(scope: star)).single.content,
+        '重新写入成功',
+      );
+    },
+  );
 
-  testWidgets('duplicate character creation rolls back without partial timeline', (
-    tester,
-  ) async {
-    await database.createCharacter(
-      character: const Character(scope: star, name: '小星', description: 'A'),
-      timelineId: 'unique-timeline',
-    );
-    await expectLater(
-      database.createCharacter(
-        character: const Character(scope: moon, name: '小月', description: 'B'),
+  testWidgets(
+    'duplicate character creation rolls back without partial timeline',
+    (tester) async {
+      await database.createCharacter(
+        character: const Character(scope: star, name: '小星', description: 'A'),
         timelineId: 'unique-timeline',
-      ),
-      throwsA(isA<Exception>()),
-    );
-    expect(await database.timelineIdFor(moon), isNull);
-    expect(await database.charactersForOwner(star.ownerId), hasLength(1));
-    await database.createCharacter(
-      character: const Character(scope: moon, name: '小月', description: 'B'),
-      timelineId: 'moon-timeline',
-    );
-    expect(await database.charactersForOwner(star.ownerId), hasLength(2));
-  });
+      );
+      await expectLater(
+        database.createCharacter(
+          character: const Character(scope: moon, name: '小月', description: 'B'),
+          timelineId: 'unique-timeline',
+        ),
+        throwsA(isA<Exception>()),
+      );
+      expect(await database.timelineIdFor(moon), isNull);
+      expect(await database.charactersForOwner(star.ownerId), hasLength(1));
+      await database.createCharacter(
+        character: const Character(scope: moon, name: '小月', description: 'B'),
+        timelineId: 'moon-timeline',
+      );
+      expect(await database.charactersForOwner(star.ownerId), hasLength(2));
+    },
+  );
 
   testWidgets('duplicate raw fact never advances sequence or leaks scope', (
     tester,
