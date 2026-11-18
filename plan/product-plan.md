@@ -4,7 +4,7 @@
 > 版本：v1.0
 > 日期：2026-11-18
 > 维护：随产品方向和已确认决策更新
-> 关联：[产品决策](../docs/decisions/README.md)、[接口草案](../docs/接口/README.md)
+> 关联：[产品决策](../docs/decisions/README.md)、[接口草案](../docs/接口/README.md)、[人物中心产品原则](../docs/design/person-centered-companion-principles-20261118.md)
 
 ## 1. 产品概述
 
