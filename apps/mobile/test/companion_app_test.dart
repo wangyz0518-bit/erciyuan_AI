@@ -62,7 +62,7 @@ void main() {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 500)),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 350));
   }
 
   Future<void> mount(WidgetTester tester) async {
@@ -102,16 +102,17 @@ void main() {
     await settleDatabase(tester);
 
     expect(
-      (await database.rawEventsFor(scope: star)).map((event) => event.speaker),
+      (await tester.runAsync(() => database.rawEventsFor(scope: star)))!
+          .map((event) => event.speaker),
       ['user', 'assistant'],
     );
     expect(find.textContaining('离线 Mock'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('chat-switch-character')));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.tap(find.text('小月').last);
     await settleDatabase(tester);
     expect(find.text('仅属于小星'), findsNothing);
-    expect(await database.rawEventsFor(scope: moon), isEmpty);
+    expect(await tester.runAsync(() => database.rawEventsFor(scope: moon)), isEmpty);
     await tester.enterText(
       find.byKey(const ValueKey('character-draft')),
       '月的草稿',
@@ -123,15 +124,15 @@ void main() {
   testWidgets('my/data entry exports all owner data through real SQLite', (
     tester,
   ) async {
-    await database.appendEvent(
+    await tester.runAsync(() => database.appendEvent(
       scope: star,
       eventId: 'user-before-export',
       speaker: 'user',
       content: '私有测试记录',
-    );
+    ));
     await mount(tester);
     await tester.tap(find.byKey(const ValueKey('data-management')));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 350));
     expect(find.text('导出全部人物数据'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('export-all-person-data')));
     await settleDatabase(tester);
