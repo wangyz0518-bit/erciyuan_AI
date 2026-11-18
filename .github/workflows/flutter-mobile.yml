@@ -71,20 +71,9 @@ jobs:
       - name: Install dependencies
         working-directory: apps/mobile
         run: flutter pub get
-      - name: Format and export formatter output (temporary diagnostic)
+      - name: Check Dart formatting
         working-directory: apps/mobile
-        run: |
-          dart format lib test
-          for file in \
-            lib/features/chat/data/model_gateway_adapter.dart \
-            lib/features/memory/data/person_memory_repository.dart \
-            lib/features/timeline/data/person_database.dart \
-            test/model_gateway_adapter_test.dart \
-            test/person_database_test.dart; do
-            echo "###FILE_START:$file"
-            cat "$file"
-            echo "###FILE_END:$file"
-          done
+        run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze
         working-directory: apps/mobile
         run: flutter analyze
