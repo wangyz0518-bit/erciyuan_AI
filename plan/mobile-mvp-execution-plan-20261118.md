@@ -24,7 +24,7 @@
 | A | [#34](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) | 正式 Flutter 工程架构设计 |
 | B | [#35](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) | 正式 Flutter 工程基础建设 |
 | C | [#36](https://github.com/wangyz0518-bit/erciyuan_AI/issues/36) | 人物、持续时间线、原始消息与数据导出 |
-| D | [#37](https://github.com/wangyz0518-bit/erciyuan_AI/issues/37) | 正式角色与聊天界面开发 |
+| D | [#37](https://github.com/wangyz0518-bit/erciyuan_AI/issues/37) | 正式人物与持续对话界面开发 |
 | E | [#38](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38) | AI 服务与后端架构方案评估 |
 | F | [#39](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39) | 接入真实 AI 文字聊天 |
 | G | [#40](https://github.com/wangyz0518-bit/erciyuan_AI/issues/40) | iOS 工程构建与模拟器验证 |
@@ -181,7 +181,7 @@
 - 重启后恢复已提交数据；失败写入不产生孤立消息或跨角色数据。
 - 数据模型和迁移文档同步；实现当前原始数据的一键 JSON/JSONL 导出，结构预留归档摘要、记忆索引、人物身份和附件元数据；完整自动记忆由 L 实施。
 
-### D：正式角色与聊天界面（[Issue #37](https://github.com/wangyz0518-bit/erciyuan_AI/issues/37)）
+### D：正式人物与持续对话界面（[Issue #37](https://github.com/wangyz0518-bit/erciyuan_AI/issues/37)）
 
 **依赖**：#14 的产品入口决策、A、B、C。
 
