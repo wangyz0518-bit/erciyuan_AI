@@ -96,7 +96,9 @@ void main() {
     await tester.pageBack();
     await tester.pump(const Duration(milliseconds: 350));
     await tester.tap(find.byKey(const ValueKey('data-management')));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('导出全部人物数据'), findsOneWidget);
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/data-management-375.png'),
