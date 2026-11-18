@@ -1,5 +1,5 @@
 name: 任务
-description: 记录一项可验收的团队任务
+description: 记录一项可验收的协作任务
 title: "[任务] "
 labels: ["task"]
 body:
@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         提交前先搜索现有 Issue，避免重复。
-        任务应能独立验收；跨工作线的任务请写明依赖。
+        任务应能独立验收；存在依赖时请写明。成员可在讨论中共同认领和推进，无需预先指定负责人。
 
   - type: textarea
     id: purpose
@@ -18,31 +18,20 @@ body:
     validations:
       required: true
 
-  - type: checkboxes
-    id: workstream
-    attributes:
-      label: 工作线
-      description: 可多选。
-      options:
-        - label: A 手机界面与交互
-        - label: B 角色与对话核心
-        - label: C 形象制作与驱动
-        - label: D 声音处理
-        - label: 跨工作线 / 其他
-
   - type: input
-    id: owner
+    id: participants
     attributes:
-      label: 负责人 / 审阅人
-      placeholder: 例如：负责人 @xxx，审阅人 @yyy
+      label: 参与者（可选）
+      description: 可填写已确定的参与者；尚未确定时留空。
+      placeholder: 例如：@xxx、@yyy
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: dependencies
     attributes:
       label: 依赖
-      description: 依赖哪些接口、素材、其他任务？没有填“无”。
+      description: 依赖哪些接口、其他任务或外部条件？没有可留空。
     validations:
       required: false
 
