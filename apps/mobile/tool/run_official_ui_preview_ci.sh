@@ -7,6 +7,19 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SCREENSHOTS="$ROOT/artifacts/official-android-emulator-ui"
 mkdir -p "$SCREENSHOTS"
 
+# Preserve failure evidence while Android is still running inside the emulator
+# runner action. The post-action ADB session is not always available.
+capture_device_evidence() {
+  local result=$?
+  if [[ "$result" -ne 0 ]]; then
+    timeout --signal=TERM --kill-after=2s 15s adb exec-out screencap -p \
+      > "$SCREENSHOTS/failure-state.png" || true
+  fi
+  timeout --signal=TERM --kill-after=2s 15s adb logcat -d -t 2500 -v time \
+    > "$SCREENSHOTS/device-logcat.txt" || true
+}
+trap capture_device_evidence EXIT
+
 export ANDROID_SERIAL="${ANDROID_SERIAL:-emulator-5554}"
 adb wait-for-device
 adb shell wm size 375x812
