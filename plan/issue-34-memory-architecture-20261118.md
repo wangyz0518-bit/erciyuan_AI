@@ -1,9 +1,8 @@
 # Issue #34：人物中心正式工程架构设计执行清单
 
 > 日期：2026-11-18
-> 状态：已获项目发起人授权开始 #34；后续 #35 需另行确认
+> 状态：#34 已完成（历史设计清单）
 > Issue：[正式 Flutter 工程架构设计 #34](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34)
-> 执行账号：`keeyangyy`（只操作该账号的 PR）
 > 主线：#34 → #35 → #36 → #47 → #38 → #39；#31 暂缓
 
 ## 1. 输入与原则
@@ -11,8 +10,8 @@
 - 已接受技术决策：[Flutter + Dart](../docs/decisions/0001-mobile-stack.md)、[Android/iOS 首版](../docs/decisions/0002-three-platform-scope.md)。
 - 已确认产品原则：[人物中心持续陪伴](../docs/design/person-centered-companion-principles-20261118.md)：一个人物一条逻辑时间线、三层记忆、隔离、一键全量导出。
 - 当前正式代码基线为 `apps/mobile_poc/` 本地 Flutter PoC，不是长期生产实现。
-- `wangyz0518-bit` 的 PR #15～#24 为**只读参考资产**；不得修改、关闭、合并、改写其分支。可在自己的新分支中选择性吸收思想、接口/测试案例并注明来源。
-- 当前执行者的 PR #32（Android CI）和 PR #49（Draft CI 计划）保持原状；#31 暂缓。
+- PR #15～#24 是相关历史设计与实现参考，复用时检查来源、依赖及兼容性。
+- PR #32/#49 与 #31 模拟器 CI 相关，不属于本 Issue 范围。
 
 ## 2. 本 Issue 的子任务
 
@@ -33,6 +32,6 @@
 
 不在此 Issue 决定模型供应商、部署平台、语音/Live2D 技术选型或账户云同步策略。这些必须在后续 #38、#39、#42～#44 中验证并决策。
 
-## 4. 下个确认点
+## 4. 后续工作
 
-#34 自审、合并并关闭后，只提交 [#35 最小正式 Flutter 工程](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) 的具体实现计划；请项目发起人确认 ADR-0004 提案是否按推荐方案实施，未确认前不启动 #35。
+#34 的设计为 [#35 最小正式 Flutter 工程](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) 提供基础；进度以实际 Issue/PR 为准。
