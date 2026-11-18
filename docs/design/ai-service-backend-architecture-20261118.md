@@ -21,7 +21,7 @@
 | [#22 服务端流式语音](https://github.com/wangyz0518-bit/erciyuan_AI/pull/22) | gateway/streaming.py、speech_pool.py、PCM 顺序/偏移校验、连接复用、迟到事件拒绝与测试 | v2 语音仍是本机单用户；iOS PCM 和生产并发未验收 | **文字主链先不引入 WebSocket；音频模块由 #42/#43 复用** |
 | [#24 录音音色复刻](https://github.com/wangyz0518-bit/erciyuan_AI/pull/24) | voice_enrollment.py、voice_profiles.py、voice_store.py、test_voice_profiles.py 的未知结果查询、幂等任务、绑定版本 | voice_profiles.sqlite 当前无独立用户权限；云端音色删除、录音合法授权和租户隔离不足 | **#43 复用核心状态机但补齐隐私/授权/删除** |
 | #18/#19/#23 | 供应商对比实验及音色微调的负面结果 | 旧实验不等于商业 SLA；#23 继续暂停 | **只作为候选选择依据** |
-| main #35/#36/#47 | 正式 Flutter、人 物 scope、SQLite RawEvent、Archive、MemorySummary、Identity、全量导出 | 本机 owner_id 是数据分区，不是在线登录身份；离线规则摘要不证明真实语义质量 | **直接采用已实现的数据契约** |
+| main #35/#36/#47 | 正式 Flutter、人物 scope、SQLite RawEvent、Archive、MemorySummary、Identity、全量导出 | 本机 owner_id 是数据分区，不是在线登录身份；离线规则摘要不证明真实语义质量 | **直接采用已实现的数据契约** |
 
 #21、#22、#24 的 Changed Files 包含继承的旧分支代码，不代表每个 PR 都独立重新开发了全部文件。#39 必须按原提交和路径增量选择性移植，而不是整体合并历史 PoC 分支。
 
