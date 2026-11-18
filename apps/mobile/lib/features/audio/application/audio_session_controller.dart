@@ -47,15 +47,14 @@ final class AudioSessionController extends ChangeNotifier {
     final task = _tail.then((_) => work());
     // Every failed operation is reported to its caller; it must not poison
     // subsequent cleanup operations.
-    _tail = task.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    _tail = task.then<void>((_) {}, onError: (Object _, StackTrace _) {});
     return task;
   }
 
   Future<void> _deleteClips() async {
-    final paths = <String>{
-      if (_pendingPath != null) _pendingPath!,
-      if (recordedPath != null) recordedPath!,
-    };
+    final paths = <String?>[_pendingPath, recordedPath]
+        .whereType<String>()
+        .toSet();
     _pendingPath = null;
     recordedPath = null;
     for (final filename in paths) {
