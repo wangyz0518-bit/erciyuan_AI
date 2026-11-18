@@ -73,7 +73,12 @@ jobs:
         run: flutter pub get
       - name: Check Dart formatting
         working-directory: apps/mobile
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          if ! dart format --output=none --set-exit-if-changed lib test; then
+            dart format lib test
+            git --no-pager diff -- lib test
+            exit 1
+          fi
       - name: Analyze
         working-directory: apps/mobile
         run: flutter analyze
