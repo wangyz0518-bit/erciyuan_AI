@@ -366,8 +366,9 @@ final class PersonMemoryRepository {
   static Future<void> invalidateSourceInTransaction(
     Transaction txn,
     PersonScope scope,
-    String eventId,
-  ) async {
+    String eventId, {
+    bool purgeContent = false,
+  }) async {
     final impacted = await txn.rawQuery('''
       SELECT DISTINCT s.summary_id, a.sequence_from, a.generator_version
       FROM summary_sources src
@@ -378,7 +379,7 @@ final class PersonMemoryRepository {
         ON s.owner_id = a.owner_id AND s.character_id = a.character_id
         AND s.archive_id = a.archive_id
       WHERE src.owner_id = ? AND src.character_id = ? AND src.event_id = ?
-        AND s.status = 'active'
+        AND s.status IN ('active', 'invalidated')
     ''', [..._scope(scope), eventId]);
     final affectedIds = <String>{};
     for (final row in impacted) {
@@ -386,7 +387,10 @@ final class PersonMemoryRepository {
       affectedIds.add(id);
       await txn.update(
         'memory_summaries',
-        {'status': 'invalidated'},
+        {
+          'status': 'invalidated',
+          if (purgeContent) 'summary': '',
+        },
         where: 'owner_id = ? AND character_id = ? AND summary_id = ?',
         whereArgs: [..._scope(scope), id],
       );
@@ -418,7 +422,13 @@ final class PersonMemoryRepository {
               : 'version';
           await txn.update(
             table,
-            {'status': 'invalidated'},
+            {
+              'status': 'invalidated',
+              if (purgeContent && table == 'identity_candidates')
+                'proposed_json': '{}',
+              if (purgeContent && table == 'persona_identity_versions')
+                'stable_state_json': '{}',
+            },
             where: 'owner_id = ? AND character_id = ? AND ' + key + ' = ?',
             whereArgs: [..._scope(scope), row[key]],
           );
