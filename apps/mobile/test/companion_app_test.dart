@@ -2,7 +2,7 @@ import 'package:erciyuan_mobile/app/companion_app.dart';
 import 'package:erciyuan_mobile/features/characters/application/character_selection_controller.dart';
 import 'package:erciyuan_mobile/features/characters/data/mock_character_catalog.dart';
 import 'package:erciyuan_mobile/features/characters/domain/character.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
