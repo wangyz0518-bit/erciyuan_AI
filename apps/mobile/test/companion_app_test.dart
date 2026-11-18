@@ -114,9 +114,16 @@ void main() {
     );
     expect(find.textContaining('离线 Mock'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('chat-switch-character')));
-    await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.text('小月').last);
+    await tester.pump();
+    // PopupMenu uses a Material route animation and blocks pointer events
+    // until the menu has finished opening.
+    await tester.pump(const Duration(milliseconds: 850));
+    await tester.pump();
+    final moonOption = find.text('小月').last;
+    expect(moonOption.hitTestable(), findsOneWidget);
+    await tester.tap(moonOption.hitTestable());
     await settleDatabase(tester);
+    expect(selection.activeScope, moon);
     expect(find.text('仅属于小星'), findsNothing);
     expect(
       await tester.runAsync(() => database.rawEventsFor(scope: moon)),
