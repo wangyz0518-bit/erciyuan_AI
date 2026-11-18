@@ -5,7 +5,7 @@ import 'package:erciyuan_mobile/features/characters/application/character_select
 import 'package:erciyuan_mobile/features/characters/data/mock_character_catalog.dart';
 import 'package:erciyuan_mobile/features/characters/domain/character.dart';
 import 'package:erciyuan_mobile/features/timeline/data/person_database.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
