@@ -1,6 +1,6 @@
 # Flutter AI 陪伴 MVP 专项执行计划
 
-> 状态：已获项目发起人确认，待按 Issue 顺序执行
+> 状态：#25、#14 已完成；Issue #31 执行计划已提交待确认；确认后再实施
 > 日期：2026-11-18
 > 基线：main `bc8a1fd47cad45c1bd5394bbb72d0aabd06c746d`
 > 范围：现有 Issue #25、#14、#31；新增任务 A～K、L（人物中心三层记忆）
@@ -12,7 +12,8 @@
 
 执行顺序：
 
-1. 现有任务：[#25 文档与协作基线](https://github.com/wangyz0518-bit/erciyuan_AI/issues/25) → [#14 App 主界面原型](https://github.com/wangyz0518-bit/erciyuan_AI/issues/14) → [#31 Android 模拟器集成测试 CI](https://github.com/wangyz0518-bit/erciyuan_AI/issues/31)。
+1. 现有任务：[#25 文档与协作基线](https://github.com/wangyz0518-bit/erciyuan_AI/issues/25)（已完成） → [#14 App 主界面原型](https://github.com/wangyz0518-bit/erciyuan_AI/issues/14)（已完成） → [#31 Android 模拟器集成测试 CI](https://github.com/wangyz0518-bit/erciyuan_AI/issues/31)（执行计划待确认）。
+   - #31 计划：[android-integration-ci-execution-plan-20261118.md](android-integration-ci-execution-plan-20261118.md)
 2. 新增任务：A → B → C → D → E → F → G → H → I → J → K；L 在 A/C/E/F 基础能力完成后实施。
 
 其他后续方向（角色个性化、账户、云同步、成本治理、隐私与安全、正式发布、鸿蒙适配）保留在 [产品计划](product-plan.md)；三层记忆已拆为 Issue #47。
@@ -106,7 +107,7 @@
 - 修正文档职责、索引、协作入口和实际流程之间的冲突。
 - 将“作者不自行批准自己的 PR”调整为符合本项目授权的规则：作者可进行自审并记录结果；作者只合并自己提交且已满足 CI/Review/验收条件的 PR；默认不合并其他人的 PR。Issue 可处理所有人的。
 - 在 plan/ 建立本专项计划并链接新增任务。
-- 验收后关闭 #25。
+- 验收后关闭 #25。已由 PR #46 合并并关闭。
 
 ### #14：App 主界面及可点击原型
 
@@ -118,8 +119,8 @@
 
 ### #31：Android 模拟器集成测试 CI
 
-- 修复当前 PR #32 的模拟器脚本问题。
-- 在 API 36 模拟器执行指定集成测试，保留可诊断日志。
+- 复核早期 PR #32 的模拟器脚本问题；该分支已落后 main 34 个提交，执行计划建议从最新 main 建立后继 PR，不强推旧分支。
+- 在 API 36 模拟器执行指定集成测试，保留可诊断日志。具体步骤见[Issue #31 执行计划](android-integration-ci-execution-plan-20261118.md)，等待项目发起人确认后开始。
 - 不上传数据库、录音或个人数据；长时间 soak test 不作为每次 PR 必需项。
 - CI 与 main 验证通过后关闭 #31。
 
@@ -370,13 +371,15 @@ E AI/后端方案设计（依赖 A）
 
 ## 8. 当前状态快照
 
-截至本次人物中心设计分支创建时：
-- main 基线为 `bc8a1fd47cad45c1bd5394bbb72d0aabd06c746d`。
-- #25 已完成并关闭；#14 正在执行；#31 仍开放，等待 #14 完成后提交执行计划供项目发起人确认。
-- PR #15～#24 均由仓库所有者 wangyz0518-bit 提交，尚未合并；作为可复用 PoC/研究资产按需选择性移植，不因作者相同就跳过代码、安全、许可和测试审查。
-- PR #32 和 PR #33 由本执行账号 keeyangyy 提交；#32 是 Android 集成测试 CI，#33 是早期 A/B 首页原型草稿。PR #33 的分支基于旧 main 且已分叉，本次以最新 main 建立后继 PR #48，不强推改写旧历史；#48 合并后再关闭 #33。
-- 本次人物中心 A/B 原型在独立分支开发，完成后提交自己的 PR。
+截至 2026-11-18：
+- 当前 main：`bdda1714f5a467b7f3028f981777f2405316a0bc`。
+- #25 已完成并关闭（PR #46）。
+- #14 已完成并关闭（PR #48）；A 人物主页优先是当前推荐，B 最近对话优先保留对照。
+- #31 仍开放，执行计划见 [android-integration-ci-execution-plan-20261118.md](android-integration-ci-execution-plan-20261118.md)，待项目发起人确认。
+- 早期 PR #32 由本执行账号 keeyangyy 提交；其快速检查通过，模拟器已启动，但集成 Job 在测试前因工作目录错误失败。该分支落后 main 34 个提交，不建议直接合并；后继方案待确认。
+- PR #33 是早期 A/B 原型草稿，已由后继 PR #48 替代并关闭。
+- PR #15～#24 均由仓库所有者 wangyz0518-bit 提交，尚未合并；作为可复用 PoC/研究资产按需选择性移植。
 - 新增 A～K 已创建为 Issue #34～#44；L 已创建为 [Issue #47](https://github.com/wangyz0518-bit/erciyuan_AI/issues/47)。
-- PR #27、#28、#29 已合并；作为 #25 和后续工作的当前文档基线。
+
 
 创建 Issue 后，以 GitHub 实际状态更新编号和链接；不要把本快照当作永久状态。
