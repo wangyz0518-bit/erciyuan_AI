@@ -409,7 +409,8 @@ final class PersonDatabase {
     final changed = await _db.update(
       'generation_tasks',
       {'status': status},
-      where: "owner_id = ? AND character_id = ? AND request_id = ? "
+      where:
+          "owner_id = ? AND character_id = ? AND request_id = ? "
           "AND status IN ('pending', 'unknown')",
       whereArgs: [..._args(scope), requestId],
     );
@@ -454,7 +455,8 @@ final class PersonDatabase {
       if (taskStatus == 'complete') {
         final existing = await txn.query(
           'raw_events',
-          where: "owner_id = ? AND character_id = ? AND request_id = ? "
+          where:
+              "owner_id = ? AND character_id = ? AND request_id = ? "
               "AND speaker = 'assistant' AND status = 'complete'",
           whereArgs: [..._args(scope), requestId],
           limit: 1,
@@ -503,7 +505,8 @@ final class PersonDatabase {
       final closed = await txn.update(
         'generation_tasks',
         {'status': 'complete'},
-        where: "owner_id = ? AND character_id = ? AND request_id = ? "
+        where:
+            "owner_id = ? AND character_id = ? AND request_id = ? "
             "AND status IN ('pending', 'unknown')",
         whereArgs: [..._args(scope), requestId],
       );
