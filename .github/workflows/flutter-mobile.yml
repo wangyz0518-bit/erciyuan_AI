@@ -92,12 +92,9 @@ jobs:
           path: apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 7
-      - name: Unit and Widget tests
-        working-directory: apps/mobile
-        run: timeout --signal=TERM 180s flutter test --reporter expanded --timeout 2m
       - name: Render Flutter UI previews (375px)
         working-directory: apps/mobile
-        run: flutter test --update-goldens test_screenshots/official_ui_preview_test.dart
+        run: timeout --signal=TERM 150s flutter test --update-goldens --reporter expanded test_screenshots/official_ui_preview_test.dart
       - name: Upload Flutter UI preview images
         uses: actions/upload-artifact@v4
         with:
@@ -105,3 +102,6 @@ jobs:
           path: apps/mobile/test_screenshots/goldens/*.png
           if-no-files-found: error
           retention-days: 7
+      - name: Unit and Widget tests
+        working-directory: apps/mobile
+        run: timeout --signal=TERM 180s flutter test --reporter expanded --timeout 2m
