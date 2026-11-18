@@ -14,7 +14,7 @@ import '../domain/raw_event.dart';
 final class PersonDatabase {
   PersonDatabase._(this._db, this._automaticSummarizer);
 
-  static const int schemaVersion = 3;
+  static const int schemaVersion = 4;
   final Database _db;
   final MemorySummarizer? _automaticSummarizer;
   Object? _lastArchiveError;
@@ -51,6 +51,9 @@ final class PersonDatabase {
           if (oldVersion < 2) await _createGenerationTasks(database);
           if (oldVersion < 3) {
             await PersonMemoryRepository.createSchema(database);
+          }
+          if (oldVersion < 4) {
+            await _migrateGenerationTasksUnknown(database);
           }
         },
       ),
@@ -112,7 +115,7 @@ final class PersonDatabase {
         owner_id TEXT NOT NULL,
         character_id TEXT NOT NULL,
         request_id TEXT NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('pending','complete','failed','cancelled')),
+        status TEXT NOT NULL CHECK(status IN ('pending','complete','failed','cancelled','unknown')),
         retry_of TEXT,
         started_at_utc TEXT NOT NULL,
         PRIMARY KEY (owner_id, character_id, request_id),
@@ -120,6 +123,33 @@ final class PersonDatabase {
           REFERENCES character_timelines(owner_id, character_id) ON DELETE CASCADE
       )
     ''');
+  }
+
+  static Future<void> _migrateGenerationTasksUnknown(Database db) async {
+    await db.execute(
+      'ALTER TABLE generation_tasks RENAME TO generation_tasks_v3',
+    );
+    await db.execute('''
+      CREATE TABLE generation_tasks (
+        owner_id TEXT NOT NULL,
+        character_id TEXT NOT NULL,
+        request_id TEXT NOT NULL,
+        status TEXT NOT NULL
+          CHECK(status IN ('pending','complete','failed','cancelled','unknown')),
+        retry_of TEXT,
+        started_at_utc TEXT NOT NULL,
+        PRIMARY KEY (owner_id, character_id, request_id),
+        FOREIGN KEY (owner_id, character_id)
+          REFERENCES character_timelines(owner_id, character_id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      INSERT INTO generation_tasks
+        (owner_id, character_id, request_id, status, retry_of, started_at_utc)
+      SELECT owner_id, character_id, request_id, status, retry_of, started_at_utc
+      FROM generation_tasks_v3
+    ''');
+    await db.execute('DROP TABLE generation_tasks_v3');
   }
 
   static void _validateScope(PersonScope scope) {
@@ -315,6 +345,21 @@ final class PersonDatabase {
     return List.unmodifiable(rows.map(_rawEvent));
   }
 
+  Future<RawEvent?> rawEventById({
+    required PersonScope scope,
+    required String eventId,
+  }) async {
+    _validateScope(scope);
+    _requireValue(eventId, 'eventId');
+    final rows = await _db.query(
+      'raw_events',
+      where: 'owner_id = ? AND character_id = ? AND event_id = ?',
+      whereArgs: [..._args(scope), eventId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : _rawEvent(rows.single);
+  }
+
   static RawEvent _rawEvent(Map<String, Object?> row) => RawEvent(
     scope: PersonScope(
       ownerId: row['owner_id']! as String,
@@ -350,27 +395,142 @@ final class PersonDatabase {
     return result != 0;
   }
 
+  /// Records a non-success terminal state. A later status lookup may resolve
+  /// unknown to a confirmed failed/cancelled state; terminal states are stable.
   Future<void> setGenerationStatus({
     required PersonScope scope,
     required String requestId,
     required String status,
   }) async {
     _validateScope(scope);
-    if (!const [
-      'pending',
-      'complete',
-      'failed',
-      'cancelled',
-    ].contains(status)) {
+    if (!const ['failed', 'cancelled', 'unknown'].contains(status)) {
       throw ArgumentError.value(status, 'status');
     }
     final changed = await _db.update(
       'generation_tasks',
       {'status': status},
-      where: 'owner_id = ? AND character_id = ? AND request_id = ?',
+      where: "owner_id = ? AND character_id = ? AND request_id = ? "
+          "AND status IN ('pending', 'unknown')",
       whereArgs: [..._args(scope), requestId],
     );
-    if (changed != 1) throw StateError('Generation task not found');
+    if (changed == 1) return;
+    final rows = await _db.query(
+      'generation_tasks',
+      columns: ['status'],
+      where: 'owner_id = ? AND character_id = ? AND request_id = ?',
+      whereArgs: [..._args(scope), requestId],
+      limit: 1,
+    );
+    if (rows.isEmpty || rows.single['status'] != status) {
+      throw StateError('Generation task cannot transition to $status');
+    }
+  }
+
+  /// Atomically persists the complete assistant reply and closes its task.
+  /// An unknown task can be completed only after a later status lookup confirms
+  /// that the server actually completed the same request.
+  Future<RawEvent> completeGeneration({
+    required PersonScope scope,
+    required String requestId,
+    required String eventId,
+    required String content,
+  }) async {
+    _validateScope(scope);
+    _requireValue(requestId, 'requestId');
+    _requireValue(eventId, 'eventId');
+    if (content.trim().isEmpty) throw ArgumentError('Reply cannot be empty');
+    final timestamp = DateTime.now().toUtc().toIso8601String();
+
+    final saved = await _db.transaction((txn) async {
+      final tasks = await txn.query(
+        'generation_tasks',
+        columns: ['status'],
+        where: 'owner_id = ? AND character_id = ? AND request_id = ?',
+        whereArgs: [..._args(scope), requestId],
+        limit: 1,
+      );
+      if (tasks.isEmpty) throw StateError('Generation task not found');
+      final taskStatus = tasks.single['status'] as String;
+      if (taskStatus == 'complete') {
+        final existing = await txn.query(
+          'raw_events',
+          where: "owner_id = ? AND character_id = ? AND request_id = ? "
+              "AND speaker = 'assistant' AND status = 'complete'",
+          whereArgs: [..._args(scope), requestId],
+          limit: 1,
+        );
+        if (existing.isNotEmpty) {
+          final event = _rawEvent(existing.single);
+          if (event.eventId == eventId && event.content == content) return event;
+        }
+        throw StateError('Generation already completed with a different reply');
+      }
+      if (taskStatus != 'pending' && taskStatus != 'unknown') {
+        throw StateError('Generation task is not completable');
+      }
+
+      final timelines = await txn.query(
+        'character_timelines',
+        columns: ['next_sequence'],
+        where: 'owner_id = ? AND character_id = ?',
+        whereArgs: _args(scope),
+        limit: 1,
+      );
+      if (timelines.isEmpty) throw StateError('Character timeline is missing');
+      final sequence = timelines.single['next_sequence']! as int;
+      await txn.insert('raw_events', {
+        'owner_id': scope.ownerId,
+        'character_id': scope.characterId,
+        'event_id': eventId,
+        'sequence': sequence,
+        'occurred_at_utc': timestamp,
+        'speaker': 'assistant',
+        'kind': 'message',
+        'content': content,
+        'status': 'complete',
+        'request_id': requestId,
+        'revision_of': null,
+      });
+      final advanced = await txn.update(
+        'character_timelines',
+        {'next_sequence': sequence + 1},
+        where: 'owner_id = ? AND character_id = ? AND next_sequence = ?',
+        whereArgs: [..._args(scope), sequence],
+      );
+      if (advanced != 1) throw StateError('Sequence advance conflict');
+      final closed = await txn.update(
+        'generation_tasks',
+        {'status': 'complete'},
+        where: "owner_id = ? AND character_id = ? AND request_id = ? "
+            "AND status IN ('pending', 'unknown')",
+        whereArgs: [..._args(scope), requestId],
+      );
+      if (closed != 1) throw StateError('Generation completion conflict');
+      return RawEvent(
+        scope: scope,
+        eventId: eventId,
+        sequence: sequence,
+        occurredAtUtc: timestamp,
+        speaker: 'assistant',
+        kind: 'message',
+        content: content,
+        status: 'complete',
+        requestId: requestId,
+      );
+    });
+
+    if (_automaticSummarizer != null) {
+      try {
+        await memory.archiveReady(
+          scope: scope,
+          summarizer: _automaticSummarizer,
+        );
+        _lastArchiveError = null;
+      } catch (error) {
+        _lastArchiveError = error;
+      }
+    }
+    return saved;
   }
 
   /// Explicit privacy redaction: keep an event's stable ID and sequence but
