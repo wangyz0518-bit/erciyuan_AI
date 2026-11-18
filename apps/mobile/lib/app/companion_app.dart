@@ -13,12 +13,14 @@ class CompanionApp extends StatefulWidget {
     required this.controller,
     required this.database,
     this.gateway,
+    this.closeDatabaseOnDispose = true,
     super.key,
   });
 
   final CharacterSelectionController controller;
   final PersonDatabase database;
   final ModelGatewayAdapter? gateway;
+  final bool closeDatabaseOnDispose;
 
   @override
   State<CompanionApp> createState() => _CompanionAppState();
@@ -28,7 +30,7 @@ class _CompanionAppState extends State<CompanionApp> {
   @override
   void dispose() {
     widget.gateway?.close();
-    unawaited(widget.database.close());
+    if (widget.closeDatabaseOnDispose) unawaited(widget.database.close());
     widget.controller.dispose();
     super.dispose();
   }
