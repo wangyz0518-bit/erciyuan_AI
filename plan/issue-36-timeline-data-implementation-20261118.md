@@ -2,7 +2,7 @@
 
 > 状态：代码/SQLite CI 验证已通过；等待自审/合并。
 > 基线：#35 PR #52 / main 4ce827a4ee53fb554a10a1e1cd664d55c76af252
-> 复用评审：apps/mobile_poc/lib/data.dart 和 chat_controller.dart 的角色过滤、事务、重启恢复、取消与存储故障负向测试；PR #16/#21/#22 仅只读参考，不整分支合并。
+> 复用评审：apps/mobile_poc/lib/data.dart 和 chat_controller.dart 的角色过滤、事务、重启恢复、取消与存储故障负向测试；PR #16/#21/#22 可按需参考或复用，但应核对增量和兼容性。
 
 ## 范围
 - 与 #34 数据契约一致：复合 owner+character 的 Character、唯一 CharacterTimeline、RawEvent、GenerationTask；各实体 ID 稳定、sequence 在每个人物内单调。

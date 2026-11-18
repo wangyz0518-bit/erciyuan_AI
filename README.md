@@ -10,7 +10,7 @@
 ## 从这里开始
 
 1. 阅读 [项目规则](AGENTS.md)，了解项目约束。
-2. 阅读 [团队协作规则](CONTRIBUTING.md)，了解 Issue、分支和 PR 流程。
+2. 阅读 [协作原则](CONTRIBUTING.md)，了解开放协作方式。
 3. 阅读 [产品计划](plan/README.md)，了解产品目标和阶段路线。
 4. 阅读 [文档索引](docs/README.md)，查找设计、决策、指南和验证报告。
 
@@ -33,10 +33,10 @@ cd erciyuan_AI
 
 - `apps/mobile_poc/`：Flutter 移动端本地能力验证工程。
 - `AGENTS.md`：项目约束与 AI 协作要求。
-- `CONTRIBUTING.md`：所有成员适用的协作流程。
+- `CONTRIBUTING.md`：开放协作的基本原则。
 - `plan/`：当前产品计划及必要的跨任务协作计划。
 - `docs/`：长期维护的项目知识、决策、指南和验证报告。
 - `planning/`：历史 Word 计划与生成工具，不作为当前执行依据。
-- `.github/`：Issue、Pull Request 模板及 CI 工作流。
+- `.github/`：CI 工作流。
 
 本地构建产物、运行时数据、环境配置和密钥不纳入 Git。

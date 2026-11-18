@@ -1,11 +1,10 @@
 # Issue #35：最小正式 Flutter 工程基础建设——已批准的执行计划
 
-> 状态：**ADR-0004 与本计划已获批准；等待剩余任务批量计划统一审阅，尚未实施 #35**
+> 状态：#35 历史实施方案；完成情况以 Issue/PR 为准
 > 日期：2026-11-18
 > 前置：[#34 人物中心架构](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) 已完成（[PR #50](https://github.com/wangyz0518-bit/erciyuan_AI/pull/50)）
-> 决策：项目发起人已接受 [ADR-0004](../docs/decisions/0004-person-centered-memory-architecture.md) 和本计划；开始代码前需先通过[剩余任务总计划](remaining-issues-batch-execution-20261118.md)的统一审核
+> 决策依据：[ADR-0004](../docs/decisions/0004-person-centered-memory-architecture.md) 方案 2
 > 记忆优先顺序：#34（完成）→ **#35（已批准、未开始）** → #36 → #47 → #38 → #39
-> PR 权限：仅修改、审核、合并执行账号 `keeyangyy` 的 PR；`wangyz0518-bit` 的 #15～#24 仅只读参考。
 
 ## 1. 已批准的架构选择
 
@@ -17,7 +16,7 @@
 - 记忆三层数据与后端模型依赖通过领域端口隔离，#47 先使用确定性/Mock 摘要器实现并离线测试；
 - 不在本阶段决定生产 LLM、语音/Live2D、账户与云同步。
 
-**项目发起人要求将剩余 Issue 统一列出审核，见[批量执行计划](remaining-issues-batch-execution-20261118.md)。在该计划获批前不启动代码。**
+**后续技术依赖见[跨任务路线](remaining-issues-batch-execution-20261118.md)。**
 
 ## 2. 此 Issue 的明确范围
 
@@ -44,23 +43,23 @@
 | 资产 | 用途 | 复用方式 |
 |---|---|---|
 | main 的 `apps/mobile_poc/` | Flutter 3.50.0、Android/iOS 模板、CI 及测试环境 | 只提取经过审查的配置和测试思路，保留 PoC 原状 |
-| [PR #16](https://github.com/wangyz0518-bit/erciyuan_AI/pull/16) | Flutter 路由/人物场景/状态组件与生命周期 | 只读参考，后续 #37 按需选择性移植 |
+| [PR #16](https://github.com/wangyz0518-bit/erciyuan_AI/pull/16) | Flutter 路由/人物场景/状态组件与生命周期 | 可按需复用，后续 #37 按需选择性移植 |
 | [PR #17](https://github.com/wangyz0518-bit/erciyuan_AI/pull/17) | Avatar 插件与资源包契约 | #44 参考，本 Issue 不引入 Live2D SDK |
 | [PR #21](https://github.com/wangyz0518-bit/erciyuan_AI/pull/21)、[#22](https://github.com/wangyz0518-bit/erciyuan_AI/pull/22) | 模型请求 ID、事件流、取消/重试接口 | 仅借鉴端口约束；#38/#39 后续处理 |
 | [PR #50](https://github.com/wangyz0518-bit/erciyuan_AI/pull/50) | 已合并的架构、数据契约、测试矩阵 | 作为正式工程设计输入 |
 
-上述 #16/#17/#21/#22 均属于 `wangyz0518-bit`，不得直接改动、合并或关闭其 PR/分支。
+复用这些 PR 时，应核对与最新 main 的差异、来源及兼容性。
 
 ## 4. 推荐的实现步骤
 
-1. 在用户批准批量执行总计划后，从最新 main 建立 `feat/mobile-foundation`。
+1. 从最新 main 建立正式工程的工作分支。
 2. 建立 `apps/mobile/` 正式 Flutter 模板、依赖与最小启动入口。
 3. 按实际调用关系增加人物 scope、应用状态和唯一时间线的基础导航，用纯内存 Mock 保证可测试。
 4. 保持跨人物隔离的请求边界，避免形成会话列表或“新建会话”。
 5. 新增单元/Widget 测试和正式工程快速 CI。
 6. 更新正式工程 README、启动命令、未验证平台与后续数据层边界。
-7. 提交本执行账号自己的 PR，审阅完整差异，核对所有必需 CI 和回归结果；测试失败不得跳过。
-8. 合并自己提交的 PR，验证 main 和 Issue #35 验收；若批量执行计划获批，直接依次执行 #36，无需逐项重复审批。
+7. 检查变更范围与相关测试、CI，失败或未验证事项如实说明。
+8. 根据实际情况更新 Issue 和技术文档。
 
 ## 5. 验收标准
 
@@ -72,7 +71,7 @@
 - [ ] 最小导航、状态更新和依赖注入有自动化测试。
 - [ ] Flutter/Dart/Java/Android 环境和复现方法有文档；iOS 仅如实注明模板/构建/真机各自状态。
 - [ ] CI 不把已有 PoC 的 #31 集成测试任务意外扩张到本 Issue。
-- [ ] 所有未合并的其他开发者 PR 保持原状。
+- [ ] 无意外覆盖其他贡献者的工作成果。
 
 ## 6. 不在范围及后续依赖
 
@@ -81,4 +80,4 @@
 - 不在 #35 部署后端、接入 DeepSeek 或任何真实模型，交由 [#38/#39](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38)。
 - 不在 #35 实现正式首页美术、音频、Live2D、登录和云同步，依后续 Issue 单独决定。
 
-**本计划已获用户批准，但不是工程已开工或测试通过的证据。**
+**这是历史技术计划，不代表当前工程已完成或通过验证；请参阅实际 Issue/PR。**
