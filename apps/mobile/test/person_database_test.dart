@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:erciyuan_mobile/features/characters/domain/character.dart';
 import 'package:erciyuan_mobile/features/timeline/data/person_database.dart';
 import 'package:path/path.dart' as path;
-import 'package:sqflite_common/sqlite_api.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -35,19 +34,11 @@ void main() {
 
   Future<void> seed() async {
     await store.createCharacter(
-      character: const Character(
-        scope: star,
-        name: '小星',
-        description: 'A',
-      ),
+      character: const Character(scope: star, name: '小星', description: 'A'),
       timelineId: 'timeline-star',
     );
     await store.createCharacter(
-      character: const Character(
-        scope: moon,
-        name: '小月',
-        description: 'B',
-      ),
+      character: const Character(scope: moon, name: '小月', description: 'B'),
       timelineId: 'timeline-moon',
     );
     await store.createCharacter(
@@ -60,31 +51,34 @@ void main() {
     );
   }
 
-  test('one immutable timeline per owner/character, restart recovery', () async {
-    await seed();
-    final first = await store.appendEvent(
-      scope: star,
-      eventId: 'event-1',
-      speaker: 'user',
-      content: '你好',
-    );
-    expect(first.sequence, 1);
-    await store.close();
-    store = await PersonDatabase.open(
-      databasePath: databasePath,
-      factory: databaseFactoryFfi,
-    );
-    expect(await store.timelineIdFor(star), 'timeline-star');
-    expect((await store.rawEventsFor(scope: star)).single.content, '你好');
-    final second = await store.appendEvent(
-      scope: star,
-      eventId: 'event-2',
-      speaker: 'assistant',
-      content: '你好呀',
-    );
-    expect(second.sequence, 2);
-    expect(await store.timelineIdFor(star), 'timeline-star');
-  });
+  test(
+    'one immutable timeline per owner/character, restart recovery',
+    () async {
+      await seed();
+      final first = await store.appendEvent(
+        scope: star,
+        eventId: 'event-1',
+        speaker: 'user',
+        content: '你好',
+      );
+      expect(first.sequence, 1);
+      await store.close();
+      store = await PersonDatabase.open(
+        databasePath: databasePath,
+        factory: databaseFactoryFfi,
+      );
+      expect(await store.timelineIdFor(star), 'timeline-star');
+      expect((await store.rawEventsFor(scope: star)).single.content, '你好');
+      final second = await store.appendEvent(
+        scope: star,
+        eventId: 'event-2',
+        speaker: 'assistant',
+        content: '你好呀',
+      );
+      expect(second.sequence, 2);
+      expect(await store.timelineIdFor(star), 'timeline-star');
+    },
+  );
 
   test('scoped reads, paging, and full-owner export never leak data', () async {
     await seed();
@@ -122,8 +116,9 @@ void main() {
     );
     expect(next.single.eventId, 'star-two');
     expect(await store.rawEventsFor(scope: outsider), hasLength(1));
-    final exported = jsonDecode(await store.exportOwnerJson('owner-a'))
-        as Map<String, dynamic>;
+    final exported = jsonDecode(
+      await store.exportOwnerJson('owner-a'),
+    ) as Map<String, dynamic>;
     expect(exported['schema_version'], 1);
     expect((exported['characters'] as List).length, 2);
     expect((exported['raw_events'] as List).length, 3);
@@ -151,39 +146,51 @@ void main() {
     expect(context.map((event) => event.eventId), ['complete']);
   });
 
-  test('duplicate event rolls back sequence, duplicate request is idempotent', () async {
-    await seed();
-    await store.appendEvent(
-      scope: star,
-      eventId: 'one',
-      speaker: 'user',
-      content: 'first',
-    );
-    await expectLater(
-      store.appendEvent(
+  test(
+    'duplicate event rolls back sequence, duplicate request is idempotent',
+    () async {
+      await seed();
+      await store.appendEvent(
         scope: star,
         eventId: 'one',
         speaker: 'user',
-        content: 'repeat',
-      ),
-      throwsA(isA<Exception>()),
-    );
-    final second = await store.appendEvent(
-      scope: star,
-      eventId: 'two',
-      speaker: 'assistant',
-      content: 'second',
-    );
-    expect(second.sequence, 2);
-    expect(await store.registerGeneration(scope: star, requestId: 'req'), isTrue);
-    expect(await store.registerGeneration(scope: star, requestId: 'req'), isFalse);
-    expect(await store.registerGeneration(scope: moon, requestId: 'req'), isTrue);
-    await store.setGenerationStatus(
-      scope: star,
-      requestId: 'req',
-      status: 'cancelled',
-    );
-  });
+        content: 'first',
+      );
+      await expectLater(
+        store.appendEvent(
+          scope: star,
+          eventId: 'one',
+          speaker: 'user',
+          content: 'repeat',
+        ),
+        throwsA(isA<Exception>()),
+      );
+      final second = await store.appendEvent(
+        scope: star,
+        eventId: 'two',
+        speaker: 'assistant',
+        content: 'second',
+      );
+      expect(second.sequence, 2);
+      expect(
+        await store.registerGeneration(scope: star, requestId: 'req'),
+        isTrue,
+      );
+      expect(
+        await store.registerGeneration(scope: star, requestId: 'req'),
+        isFalse,
+      );
+      expect(
+        await store.registerGeneration(scope: moon, requestId: 'req'),
+        isTrue,
+      );
+      await store.setGenerationStatus(
+        scope: star,
+        requestId: 'req',
+        status: 'cancelled',
+      );
+    },
+  );
 
   test('failed two-table character creation commits nothing', () async {
     await store.createCharacter(
@@ -253,6 +260,9 @@ void main() {
     );
     expect((await store.charactersForOwner('owner-a')).single.name, '旧版星');
     expect(await store.timelineIdFor(star), 'stable-legacy');
-    expect(await store.registerGeneration(scope: star, requestId: 'migrated'), isTrue);
+    expect(
+      await store.registerGeneration(scope: star, requestId: 'migrated'),
+      isTrue,
+    );
   });
 }

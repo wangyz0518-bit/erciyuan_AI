@@ -20,7 +20,8 @@ final class PersonDatabase {
     String? databasePath,
   }) async {
     final selectedFactory = factory ?? sqflite.databaseFactory;
-    final location = databasePath ??
+    final location =
+        databasePath ??
         path.join(await sqflite.getDatabasesPath(), 'erciyuan-persons.db');
     final db = await selectedFactory.openDatabase(
       location,
@@ -156,14 +157,18 @@ final class PersonDatabase {
       whereArgs: [ownerId],
       orderBy: 'created_at_utc ASC, character_id ASC',
     );
-    return List.unmodifiable(rows.map((row) => Character(
-      scope: PersonScope(
-        ownerId: row['owner_id']! as String,
-        characterId: row['character_id']! as String,
+    return List.unmodifiable(
+      rows.map(
+        (row) => Character(
+          scope: PersonScope(
+            ownerId: row['owner_id']! as String,
+            characterId: row['character_id']! as String,
+          ),
+          name: row['name']! as String,
+          description: row['description']! as String,
+        ),
       ),
-      name: row['name']! as String,
-      description: row['description']! as String,
-    )));
+    );
   }
 
   Future<String?> timelineIdFor(PersonScope scope) async {
@@ -192,7 +197,13 @@ final class PersonDatabase {
     _validateScope(scope);
     _requireValue(eventId, 'eventId');
     _requireValue(speaker, 'speaker');
-    if (!const ['complete','pending','failed','cancelled','redacted'].contains(status)) {
+    if (!const [
+      'complete',
+      'pending',
+      'failed',
+      'cancelled',
+      'redacted',
+    ].contains(status)) {
       throw ArgumentError.value(status, 'status');
     }
     final timestamp = (occurredAt ?? DateTime.now()).toUtc().toIso8601String();
@@ -285,18 +296,14 @@ final class PersonDatabase {
   }) async {
     _validateScope(scope);
     _requireValue(requestId, 'requestId');
-    final result = await _db.insert(
-      'generation_tasks',
-      {
-        'owner_id': scope.ownerId,
-        'character_id': scope.characterId,
-        'request_id': requestId,
-        'status': 'pending',
-        'retry_of': retryOf,
-        'started_at_utc': DateTime.now().toUtc().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    final result = await _db.insert('generation_tasks', {
+      'owner_id': scope.ownerId,
+      'character_id': scope.characterId,
+      'request_id': requestId,
+      'status': 'pending',
+      'retry_of': retryOf,
+      'started_at_utc': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
     return result != 0;
   }
 
@@ -306,7 +313,12 @@ final class PersonDatabase {
     required String status,
   }) async {
     _validateScope(scope);
-    if (!const ['pending','complete','failed','cancelled'].contains(status)) {
+    if (!const [
+      'pending',
+      'complete',
+      'failed',
+      'cancelled',
+    ].contains(status)) {
       throw ArgumentError.value(status, 'status');
     }
     final changed = await _db.update(
