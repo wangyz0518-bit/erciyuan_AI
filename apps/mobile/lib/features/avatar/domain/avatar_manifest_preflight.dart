@@ -11,9 +11,17 @@ final class AvatarManifestPreflight {
   static final _actionId = RegExp(r'^[a-z][a-z0-9_]*$');
   static final _segment = RegExp(r'^[A-Za-z0-9_-][A-Za-z0-9_.-]*$');
   static const _manifestKeys = {
-    'format', 'formatVersion', 'id', 'version', 'name',
-    'renderer', 'runtimeProfile', 'entry', 'preview',
-    'actions', 'expressions',
+    'format',
+    'formatVersion',
+    'id',
+    'version',
+    'name',
+    'renderer',
+    'runtimeProfile',
+    'entry',
+    'preview',
+    'actions',
+    'expressions',
   };
 
   static bool _path(String value) =>
@@ -64,7 +72,11 @@ final class AvatarManifestPreflight {
     if (actions is! Map<String, dynamic> ||
         actions.length < 3 ||
         actions.length > 24 ||
-        !actions.keys.toSet().containsAll(const {'idle', 'wave', 'weight_shift'})) {
+        !actions.keys.toSet().containsAll(const {
+          'idle',
+          'wave',
+          'weight_shift',
+        })) {
       throw const FormatException('Missing required avatar actions');
     }
     final targets = <String, String>{};
@@ -112,8 +124,9 @@ final class AvatarManifestPreflight {
     final names = <String>{};
     for (final expression in expressions.entries) {
       final data = expression.value;
-      if (!_actionId.hasMatch(expression.key) || data is! Map<String, dynamic> ||
-          data.keys.toSet().difference(const {'name','label'}).isNotEmpty ||
+      if (!_actionId.hasMatch(expression.key) ||
+          data is! Map<String, dynamic> ||
+          data.keys.toSet().difference(const {'name', 'label'}).isNotEmpty ||
           data['name'] is! String ||
           data['label'] is! String ||
           (data['label'] as String).isEmpty ||

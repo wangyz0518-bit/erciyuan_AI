@@ -15,8 +15,20 @@ Map<String, Object?> example() => {
   'preview': 'preview.png',
   'actions': {
     'idle': {'label': '待机', 'group': 'Idle', 'index': 0, 'playback': 'loop'},
-    'wave': {'label': '挥手', 'group': 'Actions', 'index': 0, 'playback': 'once', 'returnTo': 'idle'},
-    'weight_shift': {'label': '换重心', 'group': 'Actions', 'index': 1, 'playback': 'once', 'returnTo': 'idle'},
+    'wave': {
+      'label': '挥手',
+      'group': 'Actions',
+      'index': 0,
+      'playback': 'once',
+      'returnTo': 'idle',
+    },
+    'weight_shift': {
+      'label': '换重心',
+      'group': 'Actions',
+      'index': 1,
+      'playback': 'once',
+      'returnTo': 'idle',
+    },
   },
 };
 
@@ -86,9 +98,6 @@ void main() {
       () => AvatarManifestPreflight.inspect(jsonEncode(invalid)),
       throwsFormatException,
     );
-    expect(
-      () => AvatarManifestPreflight.inspect('{'),
-      throwsFormatException,
-    );
+    expect(() => AvatarManifestPreflight.inspect('{'), throwsFormatException);
   });
 }
