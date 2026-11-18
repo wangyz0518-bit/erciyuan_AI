@@ -9,7 +9,14 @@ import '../../timeline/domain/raw_event.dart';
 
 enum ModelTurnStatus { completed, failed, cancelled, unknown }
 
-enum ModelTurnUpdateType { started, delta, completed, failed, cancelled, unknown }
+enum ModelTurnUpdateType {
+  started,
+  delta,
+  completed,
+  failed,
+  cancelled,
+  unknown,
+}
 
 class ModelTurnUpdate {
   const ModelTurnUpdate({
@@ -117,10 +124,7 @@ final class ModelGatewayAdapter {
     if (_closed) throw StateError('ModelGatewayAdapter is closed');
   }
 
-  void _notify(
-    ModelTurnUpdateCallback? callback,
-    ModelTurnUpdate update,
-  ) {
+  void _notify(ModelTurnUpdateCallback? callback, ModelTurnUpdate update) {
     if (callback == null) return;
     try {
       callback(update);
@@ -147,10 +151,7 @@ final class ModelGatewayAdapter {
       'protocol_version': 1,
       'request_id': requestId,
       'character_id': scope.characterId,
-      'current_input': {
-        'event_id': eventId,
-        'content': content,
-      },
+      'current_input': {'event_id': eventId, 'content': content},
       'context': {
         'prefix_version': context.promptTemplateVersion,
         'identity_version': _identityVersion(context.stablePrefix),
@@ -258,7 +259,7 @@ final class ModelGatewayAdapter {
       _activeRequests[key] = request;
       request.headers.set(
         HttpHeaders.authorizationHeader,
-        'Bearer $_accessToken',
+        '***',
       );
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
@@ -266,9 +267,9 @@ final class ModelGatewayAdapter {
 
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode != HttpStatus.ok) {
-        final responseBody = await utf8.decodeStream(response).timeout(
-          _requestTimeout,
-        );
+        final responseBody = await utf8
+            .decodeStream(response)
+            .timeout(_requestTimeout);
         final code = _errorCode(responseBody) ?? 'HTTP_${response.statusCode}';
         if (response.statusCode >= 500) {
           return await reconcileTurn(
@@ -391,7 +392,9 @@ final class ModelGatewayAdapter {
             throw const FormatException('Completed SSE content is missing');
           }
           if (receivedDelta && streamed.toString() != content) {
-            throw const FormatException('SSE final content does not match deltas');
+            throw const FormatException(
+              'SSE final content does not match deltas',
+            );
           }
           await database.completeGeneration(
             scope: scope,
@@ -535,8 +538,7 @@ final class ModelGatewayAdapter {
     required ModelTurnUpdateCallback? onUpdate,
   }) async {
     final responseCharacter = data['character_id'];
-    if (responseCharacter is String &&
-        responseCharacter != scope.characterId) {
+    if (responseCharacter is String && responseCharacter != scope.characterId) {
       await _markUnknown(scope, requestId);
       return ModelTurnResult(
         scope: scope,
@@ -638,7 +640,7 @@ final class ModelGatewayAdapter {
       );
       request.headers.set(
         HttpHeaders.authorizationHeader,
-        'Bearer $_accessToken',
+        '***',
       );
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode != HttpStatus.ok) {
@@ -695,7 +697,7 @@ final class ModelGatewayAdapter {
       );
       request.headers.set(
         HttpHeaders.authorizationHeader,
-        'Bearer $_accessToken',
+        '***',
       );
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode == HttpStatus.ok) {
