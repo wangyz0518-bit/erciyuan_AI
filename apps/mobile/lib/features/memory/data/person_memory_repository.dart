@@ -216,8 +216,8 @@ final class PersonMemoryRepository {
         draft.confidence > 1) {
       throw StateError('Summary has incomplete or invalid source citations');
     }
-    final archiveId = 'archive-' + digest.substring(0, 32);
-    final summaryId = 'summary-' + digest.substring(0, 32);
+    final archiveId = 'archive-${digest.substring(0, 32)}';
+    final summaryId = 'summary-${digest.substring(0, 32)}';
     final terms = draft.terms
         .map((term) => term.trim().toLowerCase())
         .where((term) => term.isNotEmpty && term.length <= 120)
@@ -474,7 +474,7 @@ final class PersonMemoryRepository {
               if (purgeContent && table == 'persona_identity_versions')
                 'stable_state_json': '{}',
             },
-            where: 'owner_id = ? AND character_id = ? AND ' + key + ' = ?',
+            where: 'owner_id = ? AND character_id = ? AND $key = ?',
             whereArgs: [..._scope(scope), row[key]],
           );
         }
@@ -625,8 +625,9 @@ final class PersonMemoryRepository {
         limit: 1,
       );
       final current = versions.isEmpty ? 0 : versions.single['version'] as int;
-      if (current != expectedVersion)
+      if (current != expectedVersion) {
         throw StateError('Identity version conflict');
+      }
       final refs = (jsonDecode(
         proposal['source_summary_ids_json'] as String,
       ) as List).cast<String>();
@@ -708,19 +709,11 @@ final class PersonMemoryRepository {
     final chosen = versions.isEmpty ? null : versions.single;
     return [
       promptVersion,
-      'owner=' + scope.ownerId,
-      'character=' + scope.characterId,
-      'base=' +
-          _canonicalJson(
-            jsonDecode(base.single['base_identity_json'] as String),
-          ),
-      'identity_version=' + (chosen?['version'] ?? 0).toString(),
-      'approved_state=' +
-          _canonicalJson(
-            chosen == null
-                ? <String, Object?>{}
-                : jsonDecode(chosen['stable_state_json'] as String),
-          ),
+      'owner=${scope.ownerId}',
+      'character=${scope.characterId}',
+      'base=${_canonicalJson(jsonDecode(base.single['base_identity_json'] as String))}',
+      "identity_version=${chosen?['version'] ?? 0}",
+      "approved_state=${_canonicalJson(chosen == null ? <String, Object?>{} : jsonDecode(chosen['stable_state_json'] as String))}",
     ].join('\n');
   }
 
