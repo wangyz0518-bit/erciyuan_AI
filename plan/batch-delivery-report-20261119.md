@@ -1,6 +1,6 @@
 # erciyuan_AI 2026-11-19 批次交付与验收报告
 
-> 状态：执行中，**以各 PR、Issue 和 Actions 的实际记录为准**。此文档只记录共同维护的技术实现、实际测试及未满足的验收条件，不增加任何人的 GitHub 审批或权限规则。
+> 状态：2026-11-19 可独立交付的代码与离线测试已并入 main，**真实资源/设备/许可未验收的六个 Issue 继续开放**；以各 PR、Issue 和 Actions 的实际记录为准。此文档只记录共同维护的技术实现、实际测试及未满足的验收条件，不增加任何人的 GitHub 审批或权限规则。
 >
 > 项目：Flutter Android/iOS 人物中心 AI 陪伴应用。每个人物维持唯一持续时间线，按 owner_id + character_id 隔离 SQLite、原始历史/归档/身份记忆与完整数据导出。
 
@@ -14,12 +14,20 @@
 
 | Issue | 增量 PR | 已交付范围 | 当前可证实的验证 | 仍缺少 |
 | --- | --- | --- | --- | --- |
-| #39 | [#66](https://github.com/wangyz0518-bit/erciyuan_AI/pull/66) | live 模式完整 gateway → DeepSeek adapter → SSE → SQLite ledger 的无外网模拟上游回归；含上下文/幂等/权限隔离与错误脱敏 | [Person gateway offline CI 44371860150](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44371860150) success；正式 Flutter CI 仍以最终记录为准 | 真实付费 LLM 请求、Token/缓存/成本/质量、可复现用户服务联调 |
+| #39 | [#66](https://github.com/wangyz0518-bit/erciyuan_AI/pull/66)，已合并 `96ce8f3` | live 模式完整 gateway → DeepSeek adapter → SSE → SQLite ledger 的无外网模拟上游回归；含上下文/幂等/权限隔离与错误脱敏 | [Person gateway CI 44371860150](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44371860150) 和 [Flutter CI 44371860174](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44371860174) 均 success | 真实付费 LLM 请求、Token/缓存/成本/质量、可复现用户服务联调 |
 | #40 | [#60](https://github.com/wangyz0518-bit/erciyuan_AI/pull/60) | macOS/Xcode 无签名 iOS Simulator 构建、安装、启动、截图与 Flutter integration_test 脚本已并入 main，commit ab507fc96a11d498927f1af1a29cbd9ddad2df6f | macOS26 [44344176615](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44344176615) 两次在步骤前取消；macOS15 [44367835338](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367835338) 同样取消；Flutter/Android 检查可通过 | 实际 macOS runner/Xcode 成功，真 iPhone Simulator 安装截图与集成测试 |
 | #41 | [#61](https://github.com/wangyz0518-bit/erciyuan_AI/pull/61) | 只允许真实物理 Android 设备的安装/启动/SQLite 回归验收脚本与人工检查清单，commit 6157da3f2a8a1b7dfe1d5d85446fea847f450fd0 | [Flutter CI 44345139528](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44345139528) success | 有 ADB 权限的 Android 手机、型号/OS 版本、启动/导航/中文输入/后台/权限真机证据 |
 | #42 | [#63](https://github.com/wangyz0518-bit/erciyuan_AI/pull/63) | record/audioplayers 本地录音和文件试听、取消/删除/后台/人物切换清理、Android PCM 原生端口、正式聊天 UI，commit ebcbfc3f6a1ec4ede82daba776d256fd6614a2ce | [Flutter CI 44367511368](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367511368) success；[Android 模拟器 44367511417](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367511417) success | Android/iOS 设备真实录音试听、权限中断和 PCM 音质；iOS 流式 PCM 未实现 |
-| #43 | [#64](https://github.com/wangyz0518-bit/erciyuan_AI/pull/64) | 可编辑设备端 ASR 候选，只有手动填入草稿再发送；系统 TTS 的用户主动朗读与逐条明确同意、迟到语音与人物隔离 | 旧堆叠 SHA 的 [Flutter 44367949317](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367949317) 与 [模拟器 44367949434](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44367949434) success；最新 SHA CI 需另行确认 | 真正角色绑定音色、TTS 供应商/声音资源许可和删除，iOS/Android 真人听感、延迟/准确率 |
-| #44 | [#65](https://github.com/wangyz0518-bit/erciyuan_AI/pull/65) | v0.1 资源描述安全预检与明确非 Live2D 的 Flutter 动作语义静态形象降级；不引入未经授权 Core/素材 | 单元/Widget 和 Flutter/Android CI 需以最新 SHA 结果确认 | 真正 ZIP 完整安全导入器、授权的 Cubism Core/人物资源、Android 实机真实 Live2D 动作与 iOS 验收 |
+| #43 | [#64](https://github.com/wangyz0518-bit/erciyuan_AI/pull/64)，已合并 `220e8d1` | 可编辑设备端 ASR 候选，只有手动填入草稿再发送；系统 TTS 的用户主动朗读与逐条明确同意、迟到语音与人物隔离 | [Flutter 44371264151](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44371264151) 和 [Android 模拟器 44371264714](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44371264714) 均 success | 真正角色绑定音色、TTS 供应商/声音资源许可和删除，iOS/Android 真人听感、延迟/准确率 |
+| #44 | [#65](https://github.com/wangyz0518-bit/erciyuan_AI/pull/65)，已合并 `0f14ca4` | v0.1 资源描述安全预检与明确非 Live2D 的 Flutter 动作语义静态形象降级；不引入未经授权 Core/素材 | [Flutter 44371255558](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44371255558) 和 [Android 模拟器 44371255744](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44371255744) 均 success | 真正 ZIP 完整安全导入器、授权的 Cubism Core/人物资源、Android 实机真实 Live2D 动作与 iOS 验收 |
+
+### 主线合并与组合检查
+
+本次代码、测试与 CI 工具一共 6 个已合并 PR：#60（iOS CI 工具）、#61（Android 真机验收脚本）、#63（正式音频层）、#64（设备端 ASR/系统朗读）、#65（静态形象/manifest 预检）、#66（live Provider 零网络端到端回归）。全部为独立审查后合入 main 的增量，未覆盖或直接合并历史 PoC。
+
+- #64 与 #65 合并后，在 main 的正式人物聊天页面静态检查同时包含音频录制入口、语音确认弹窗、ASR/TTS 控制器以及 AvatarFallbackScene；**仍需以 main 合并后最新 Actions 作为完整构建回归结论**。
+- 由于仓库新增了 iOS workflow，所有涉及 apps/mobile 的 PR 均会触发 macOS 队列；job 未运行不应视为代码测试通过或失败。
+- PR #67 仅更新本批交付报告和 plan 索引，不含功能代码；此文档本身不构成任何未通过验收的替代证据。
 
 ## 质量与隐私边界
 
