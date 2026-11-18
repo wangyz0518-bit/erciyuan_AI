@@ -275,8 +275,8 @@
       <div class="control">
         <span class="control-label">首屏方案</span>
         <div class="seg" role="group" aria-label="选择首屏方案">
-          <button type="button" data-action="variant" data-value="A" aria-pressed="true">A · 角色主页</button>
-          <button type="button" data-action="variant" data-value="B" aria-pressed="false">B · 最近会话</button>
+          <button type="button" data-action="variant" data-value="A" aria-pressed="true">A · 人物主页</button>
+          <button type="button" data-action="variant" data-value="B" aria-pressed="false">B · 最近对话</button>
         </div>
       </div>
       <div class="control">
@@ -310,7 +310,7 @@
 
       <aside class="notes" aria-live="polite">
         <div class="notes-kicker">DESIGN NOTES</div>
-        <h2 id="notes-title">A · 角色主页优先</h2>
+        <h2 id="notes-title">A · 人物主页优先</h2>
         <p class="notes-lead" id="notes-lead">先建立角色印象，再由一个明确的主按钮进入聊天。</p>
         <div class="note-card">
           <h3>结构重点</h3>
@@ -328,7 +328,7 @@
           <h3>核心路径</h3>
           <span class="note-chip">首次进入</span>
           <span class="note-chip">继续上次对话</span>
-          <span class="note-chip">切换角色</span>
+          <span class="note-chip">切换人物</span>
           <span class="note-chip">查看语音入口</span>
           <span class="note-chip">导出人物数据</span>
         </div>
@@ -452,7 +452,7 @@
     function renderHeader() {
       const role = currentRole();
       let title = '<div class="brand"><span class="brand-mark">✦</span><div><div class="brand-name">星伴</div><div class="brand-sub">一个人物，一段持续的对话</div></div></div>';
-      let actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><button class="icon-btn" type="button" data-action="navigate" data-value="roles" aria-label="切换角色">⇄</button></div>';
+      let actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><button class="icon-btn" type="button" data-action="navigate" data-value="roles" aria-label="切换人物">⇄</button></div>';
       if (state.screen === "chat") {
         title = '<div class="brand"><span class="mini-avatar ' + (role.avatarClass || "") + '">' + role.icon + '</span><div><div class="brand-name">' + role.name + '</div><div class="brand-sub">' + role.title + ' · 持续对话</div></div></div>';
         actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><button class="icon-btn" type="button" data-action="navigate" data-value="roles" aria-label="切换角色">⇄</button></div>';
@@ -461,7 +461,7 @@
         actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="navigate" data-value="' + (state.variant === "A" ? "home" : "chat") + '" aria-label="返回">←</button></div>';
       } else if (state.screen === "profile") {
         title = '<div class="brand"><div><div class="brand-name">我的</div><div class="brand-sub">数据归你所有</div></div></div>';
-        actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="navigate" data-value="home" aria-label="返回主页">⌂</button></div>';
+        actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="navigate" data-value="' + (state.variant === "A" ? "home" : "chat") + '" aria-label="返回">←</button></div>';
       }
       $("app-header").innerHTML = title + actions;
     }
@@ -469,7 +469,7 @@
     function renderHome() {
       const role = currentRole();
       const returning = state.mode === "returning";
-      const timeline = role.messages.concat(state.sent[role.id]);
+      const timeline = (returning ? role.messages : []).concat(state.sent[role.id]);
       const latest = timeline[timeline.length - 1];
       const cta = returning ? "继续与 TA 对话" : "开始认识 TA";
       const preview = returning
@@ -609,7 +609,7 @@
     function renderNotes() {
       const a = state.variant === "A";
       $("notes-title").textContent = a ? "A · 人物主页优先" : "B · 最近对话优先";
-      $("notes-lead").textContent = a ? "先认识人物身份，再进入同一条持续时间线。" : "直接打开最近使用人物的时间线，但不创建新会话。";
+      $("notes-lead").textContent = a ? "先认识人物身份，再进入同一条持续时间线。" : "直接打开最近使用人物的时间线，但不会另开一段对话。";
       $("notes-points").innerHTML = (a
         ? ["人物形象、背景和性格占据首屏主要面积。", "「继续与 TA 对话」进入该人物唯一的持续时间线。", "最近内容只是同一条时间线的预览；人物切换才会切换数据边界。"]
         : ["打开即看到最近使用人物的原始时间线。", "人物身份和切换入口固定在顶部。", "历史归档在后台完成，用户不需要管理多个聊天窗口。"]
