@@ -1,0 +1,10 @@
+{
+  "started_at": "2026-11-12T07:19:31.880784",
+  "finished_at": "2026-11-12T07:34:35.885911",
+  "elapsed_seconds": 904,
+  "cycles": 132,
+  "message_count": 264,
+  "result": "passed",
+  "scope": "real-time automated UI; simulated chat, real SQLite and Android audio player; no microphone capture",
+  "device_time_zone": "UTC (emulator); host/user timezone Asia/Shanghai"
+}
