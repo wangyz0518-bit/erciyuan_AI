@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../audio/application/audio_session_controller.dart';
 import '../../audio/data/platform_audio_adapters.dart';
 import '../../audio/domain/audio_ports.dart';
+import '../../avatar/presentation/avatar_fallback_scene.dart';
 import '../../chat/application/continuous_chat_controller.dart';
 import '../../chat/data/model_gateway_adapter.dart';
 import '../../timeline/data/person_database.dart';
@@ -451,16 +452,12 @@ class _CharacterScene extends StatelessWidget {
           ),
         ),
         Center(
-          child: CircleAvatar(
-            radius: 51,
-            backgroundColor: const Color(0xFFB9A3E4),
-            child: Icon(
-              character.scope.characterId == 'star'
-                  ? Icons.star_rounded
-                  : Icons.dark_mode_rounded,
-              size: 67,
-              color: const Color(0xFF2A2442),
-            ),
+          child: AvatarFallbackScene(
+            characterId: character.scope.characterId,
+            characterName: character.name,
+            motion: isReplying
+                ? AvatarSceneMotion.talking
+                : AvatarSceneMotion.idle,
           ),
         ),
         Positioned(
