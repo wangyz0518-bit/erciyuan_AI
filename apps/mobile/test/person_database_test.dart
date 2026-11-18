@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:erciyuan_mobile/features/characters/domain/character.dart';
 import 'package:erciyuan_mobile/features/timeline/data/person_database.dart';
 import 'package:path/path.dart' as path;
+import 'package:sqflite_common/sqlite_api.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 
