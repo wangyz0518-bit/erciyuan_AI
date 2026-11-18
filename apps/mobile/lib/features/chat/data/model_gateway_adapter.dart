@@ -367,6 +367,7 @@ final class ModelGatewayAdapter {
               type: ModelTurnUpdateType.started,
             ),
           );
+          break;
         case 'message.delta':
           final delta = decoded['delta'];
           if (delta is! String) {
@@ -383,6 +384,7 @@ final class ModelGatewayAdapter {
               delta: delta,
             ),
           );
+          break;
         case 'message.completed':
           final content = decoded['content'];
           if (content is! String || content.trim().isEmpty) {
@@ -412,6 +414,7 @@ final class ModelGatewayAdapter {
               content: content,
             ),
           );
+          break;
         case 'message.failed':
           final code = decoded['code'] is String
               ? decoded['code'] as String
@@ -436,6 +439,7 @@ final class ModelGatewayAdapter {
               errorCode: code,
             ),
           );
+          break;
         case 'message.cancelled':
           await _database.setGenerationStatus(
             scope: scope,
@@ -456,6 +460,7 @@ final class ModelGatewayAdapter {
               type: ModelTurnUpdateType.cancelled,
             ),
           );
+          break;
         case 'message.unknown':
           final code = decoded['code'] is String
               ? decoded['code'] as String
@@ -480,6 +485,7 @@ final class ModelGatewayAdapter {
               errorCode: code,
             ),
           );
+          break;
         case 'turn.status':
           terminal = await _applyStatus(
             scope: scope,
@@ -487,6 +493,7 @@ final class ModelGatewayAdapter {
             data: decoded,
             onUpdate: onUpdate,
           );
+          break;
         default:
           throw FormatException('Unsupported SSE event: $event');
       }
