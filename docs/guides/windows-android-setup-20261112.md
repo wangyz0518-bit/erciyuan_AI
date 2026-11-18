@@ -1,4 +1,4 @@
- > 状态：已验证（Windows x64 / Android API 36 模拟器）
+> 状态：已验证（Windows x64 / Android API 36 模拟器）
 > 日期：2026-11-12
 > 关联：[ADR-0001](../decisions/0001-mobile-stack.md)、[任务 #10](https://github.com/wangyz0518-bit/erciyuan_AI/issues/10)
 
