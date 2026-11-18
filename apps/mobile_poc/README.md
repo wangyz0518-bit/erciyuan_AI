@@ -26,6 +26,15 @@ flutter build apk --debug
 flutter run
 ```
 
+## 自动化测试
+
+快速检查：
+
+```sh
+flutter analyze
+flutter test
+```
+
 Android 模拟器集成测试（需先启动模拟器）：
 
 ```sh
@@ -33,12 +42,14 @@ flutter test integration_test/acceptance_test.dart -d <device-id> --reporter exp
 flutter test integration_test/storage_failure_test.dart -d <device-id> --reporter expanded
 ```
 
-长时间 soak 测试按需单独执行，不作为每次提交的快速检查：
+长时间 soak 测试按需单独执行，不作为每次 PR 的快速检查：
 
 ```sh
 flutter test integration_test/soak_test.dart -d <device-id> --reporter expanded
 ```
 
-Windows 环境辅助脚本见 [tool/windows.ps1](tool/windows.ps1)。完整环境说明、测试边界和排障方法见 [Flutter 开发与验证指南](../../docs/guides/flutter-poc-guide-20261112.md)。
+GitHub Actions 会运行快速检查、Android Debug APK 构建，并在 Android API 36 模拟器中执行上述两个集成测试。CI 不替代 Android 真机、iOS、原生输入法和人工音质验收。完整环境说明、测试边界和排障方法见 [Flutter 开发与验证指南](../../docs/guides/flutter-poc-guide-20261112.md)。
+
+Windows 环境辅助脚本见 [tool/windows.ps1](tool/windows.ps1)。
 
 Debug APK 输出到 `build/app/outputs/flutter-apk/app-debug.apk`，属于本地构建产物，不提交 Git。
