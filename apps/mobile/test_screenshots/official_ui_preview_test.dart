@@ -23,11 +23,15 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final directory = await Directory.systemTemp.createTemp('ui-gallery-');
-    final db = await PersonDatabase.open(
-      databasePath: path.join(directory.path, 'gallery.db'),
-      factory: databaseFactoryFfi,
-    );
+    final directory = (await tester.runAsync(
+      () => Directory.systemTemp.createTemp('ui-gallery-'),
+    ))!;
+    final db = (await tester.runAsync(
+      () => PersonDatabase.open(
+        databasePath: path.join(directory.path, 'gallery.db'),
+        factory: databaseFactoryFfi,
+      ),
+    ))!;
     addTearDown(() async {
       await db.close();
       await directory.delete(recursive: true);
@@ -35,7 +39,8 @@ void main() {
 
     const star = PersonScope(ownerId: 'preview', characterId: 'star');
     const moon = PersonScope(ownerId: 'preview', characterId: 'moon');
-    for (final character in const [
+    await tester.runAsync(() async {
+      for (final character in const [
       Character(scope: star, name: '小星', description: '温柔而好奇的伙伴'),
       Character(scope: moon, name: '小月', description: '善于倾听的伙伴'),
     ]) {
@@ -44,7 +49,7 @@ void main() {
         timelineId: 'preview-${character.scope.characterId}',
       );
     }
-    await db.appendEvent(
+        await db.appendEvent(
       scope: star,
       eventId: 'preview-user',
       speaker: 'user',
@@ -56,6 +61,7 @@ void main() {
       speaker: 'assistant',
       content: '【离线 Mock】小星：我也想听听你看到的星空。',
     );
+    });
     final selection = CharacterSelectionController(
       ownerId: 'preview',
       catalog: MockCharacterCatalog(const [
@@ -70,7 +76,7 @@ void main() {
         closeDatabaseOnDispose: false,
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 350));
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/people-home-375.png'),
@@ -81,16 +87,16 @@ void main() {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 500)),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 350));
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/continuous-chat-375.png'),
     );
 
     await tester.pageBack();
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.tap(find.byKey(const ValueKey('data-management')));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 350));
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/data-management-375.png'),
