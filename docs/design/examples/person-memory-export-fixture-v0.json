@@ -1,0 +1,173 @@
+{
+  "format": "erciyuan-user-data",
+  "schema_version": "0.1-design",
+  "owner_id": "synthetic-owner-only",
+  "generated_at_utc": "2026-11-18T00:00:00Z",
+  "provenance": "synthetic-design-fixture",
+  "notice": "Only synthetic data. This is not an actual app export or a production format.",
+  "characters": [
+    {
+      "character_id": "star",
+      "identity": {
+        "current_version": 1,
+        "base_identity": {
+          "name": "小星",
+          "personality": [
+            "温柔",
+            "善于倾听"
+          ],
+          "authored_by": "synthetic-design-fixture"
+        },
+        "dynamic_versions": [],
+        "candidates": []
+      },
+      "timeline": {
+        "timeline_id": "timeline-star",
+        "raw_events": [
+          {
+            "event_id": "star-001",
+            "sequence": 1,
+            "occurred_at_utc": "2026-11-17T08:00:00Z",
+            "speaker": "user",
+            "kind": "text",
+            "content": {
+              "text": "最近项目有些忙。"
+            },
+            "provenance": "synthetic-design-fixture"
+          },
+          {
+            "event_id": "star-002",
+            "sequence": 2,
+            "occurred_at_utc": "2026-11-17T08:00:01Z",
+            "speaker": "assistant",
+            "kind": "text",
+            "content": {
+              "text": "你想先聊聊最让你在意的部分吗？"
+            },
+            "provenance": "synthetic-design-fixture"
+          },
+          {
+            "event_id": "star-003",
+            "sequence": 3,
+            "occurred_at_utc": "2026-11-17T12:00:00Z",
+            "speaker": "user",
+            "kind": "text",
+            "content": {
+              "text": "今晚想放松一下。"
+            },
+            "provenance": "synthetic-design-fixture"
+          }
+        ]
+      },
+      "archives": [
+        {
+          "archive_id": "archive-star-1",
+          "sequence_from": 1,
+          "sequence_to": 2,
+          "source_digest": "synthetic-digest-placeholder-not-cryptographic",
+          "generator_version": "mock-v0"
+        }
+      ],
+      "summaries": [
+        {
+          "summary_id": "summary-star-1",
+          "archive_id": "archive-star-1",
+          "summary": "用户最近工作繁忙，喜欢先倾诉再讨论处理方法。",
+          "topics": [
+            "日常"
+          ],
+          "source_event_ids": [
+            "star-001",
+            "star-002"
+          ],
+          "generator_version": "mock-v0",
+          "status": "valid"
+        }
+      ]
+    },
+    {
+      "character_id": "moon",
+      "identity": {
+        "current_version": 1,
+        "base_identity": {
+          "name": "小月",
+          "personality": [
+            "冷静",
+            "细致"
+          ],
+          "authored_by": "synthetic-design-fixture"
+        },
+        "dynamic_versions": [],
+        "candidates": []
+      },
+      "timeline": {
+        "timeline_id": "timeline-moon",
+        "raw_events": [
+          {
+            "event_id": "moon-001",
+            "sequence": 1,
+            "occurred_at_utc": "2026-11-16T08:00:00Z",
+            "speaker": "user",
+            "kind": "text",
+            "content": {
+              "text": "想整理一下最近的阅读清单。"
+            },
+            "provenance": "synthetic-design-fixture"
+          },
+          {
+            "event_id": "moon-002",
+            "sequence": 2,
+            "occurred_at_utc": "2026-11-16T08:00:01Z",
+            "speaker": "assistant",
+            "kind": "text",
+            "content": {
+              "text": "先按主题分组，再看优先级。"
+            },
+            "provenance": "synthetic-design-fixture"
+          },
+          {
+            "event_id": "moon-003",
+            "sequence": 3,
+            "occurred_at_utc": "2026-11-16T09:00:00Z",
+            "speaker": "user",
+            "kind": "text",
+            "content": {
+              "text": "先从科幻小说开始。"
+            },
+            "provenance": "synthetic-design-fixture"
+          }
+        ]
+      },
+      "archives": [
+        {
+          "archive_id": "archive-moon-1",
+          "sequence_from": 1,
+          "sequence_to": 2,
+          "source_digest": "synthetic-digest-placeholder-not-cryptographic",
+          "generator_version": "mock-v0"
+        }
+      ],
+      "summaries": [
+        {
+          "summary_id": "summary-moon-1",
+          "archive_id": "archive-moon-1",
+          "summary": "用户希望按主题整理阅读计划。",
+          "topics": [
+            "阅读"
+          ],
+          "source_event_ids": [
+            "moon-001",
+            "moon-002"
+          ],
+          "generator_version": "mock-v0",
+          "status": "valid"
+        }
+      ]
+    }
+  ],
+  "attachments": [],
+  "checksums": [],
+  "limitations": [
+    "No actual encrypted ZIP, file integrity hashes, credentials, remote storage, or real LLM summary is included."
+  ]
+}

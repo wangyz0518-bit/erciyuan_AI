@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | [0001](0001-mobile-stack.md) | 移动端技术栈选型 | 已接受（Flutter + Dart） | 2026-11-12 |
 | [0002](0002-three-platform-scope.md) | 三端范围确认 | 已接受：首版 Android/iOS，原生鸿蒙后续适配 | 2026-11-11 |
+| [0004](0004-person-centered-memory-architecture.md) | 人物中心记忆与正式工程边界 | **提议：待 #35 启动前确认** | 2026-11-18 |
 
 ## 状态说明
 

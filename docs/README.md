@@ -7,7 +7,7 @@
 | 目录 / 文档 | 用途 |
 | --- | --- |
 | [process/](process/README.md) | 文档规范及稳定的协作流程 |
-| [design/](design/README.md) | 人物中心产品原则、界面参考和可点击原型（设计讨论稿） |
+| [design/](design/README.md) | 人物中心产品原则、正式 Flutter/三层记忆架构设计、可点击原型与设计测试数据 |
 | [research/](research/README.md) | 调研、选型和技术评估；结论不自动构成决策 |
 | [decisions/](decisions/README.md) | 已提出或已确认的架构、技术决策（ADR） |
 | [guides/](guides/README.md) | 环境配置、开发和排障指南 |
