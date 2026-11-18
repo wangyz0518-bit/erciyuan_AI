@@ -52,9 +52,10 @@ final class AudioSessionController extends ChangeNotifier {
   }
 
   Future<void> _deleteClips() async {
-    final paths = <String?>[_pendingPath, recordedPath]
-        .whereType<String>()
-        .toSet();
+    final paths = <String?>[
+      _pendingPath,
+      recordedPath,
+    ].whereType<String>().toSet();
     _pendingPath = null;
     recordedPath = null;
     for (final filename in paths) {
