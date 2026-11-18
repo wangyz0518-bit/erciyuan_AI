@@ -40,13 +40,6 @@ jobs:
       - name: Install dependencies
         working-directory: apps/mobile
         run: flutter pub get
-      - name: Capture resolved dependency lock for review
-        working-directory: apps/mobile
-        run: |
-          echo LOCK_BEGIN
-          base64 -w0 pubspec.lock
-          echo
-          echo LOCK_END
       - name: Format
         working-directory: apps/mobile
         run: dart format --output=none --set-exit-if-changed lib test
