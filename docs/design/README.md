@@ -9,6 +9,6 @@
 
 ## 打开原型
 
-直接在浏览器打开 HTML 文件即可，无需安装依赖或启动服务。文件内 CSS 和 JavaScript 均为内嵌内容，可直接编辑。
+优先使用[浏览器预览](https://htmlpreview.github.io/?https://github.com/wangyz0518-bit/erciyuan_AI/blob/design/mobile-home-prototype/docs/design/mobile-home-prototype-20261118.html)。该预览由第三方 HTML Preview 服务提供；若服务不可用，可检出仓库后直接在浏览器打开 HTML 文件，无需安装依赖或启动服务。文件内 CSS 和 JavaScript 均为内嵌内容，可直接编辑。
 
 原型中的角色形象、消息、语音入口均为本地演示内容，不调用真实 AI、录音、TTS 或网络服务。
