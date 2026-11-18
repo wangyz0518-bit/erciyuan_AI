@@ -25,9 +25,8 @@ final class CharacterSelectionController extends ChangeNotifier {
 
   PersonScope get activeScope => _activeScope;
 
-  Character get activeCharacter => characters.firstWhere(
-    (character) => character.scope == _activeScope,
-  );
+  Character get activeCharacter =>
+      characters.firstWhere((character) => character.scope == _activeScope);
 
   String draftFor(PersonScope scope) {
     _requireOwnedCharacter(scope);
