@@ -31,6 +31,7 @@ Future<void> writeFrame(
   HttpResponse response,
   Map<String, Object?> frame,
 ) async {
+  response.encoding = utf8;
   response.write('data: ' + jsonEncode(frame) + '\n\n');
   await response.flush();
 }
