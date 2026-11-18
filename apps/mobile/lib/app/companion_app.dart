@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../features/characters/application/character_selection_controller.dart';
 import '../features/characters/presentation/character_home_page.dart';
