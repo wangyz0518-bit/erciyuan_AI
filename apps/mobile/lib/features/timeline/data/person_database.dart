@@ -367,7 +367,7 @@ final class PersonDatabase {
       );
       if (changed != 1) throw StateError('Redactable event not found');
       await PersonMemoryRepository.invalidateSourceInTransaction(
-        txn, scope, eventId,
+        txn, scope, eventId, purgeContent: true,
       );
     });
   }
