@@ -5,7 +5,8 @@
 | 文档 | 用途 |
 | --- | --- |
 | [product-plan.md](product-plan.md) | 产品定位、目标用户、核心体验、功能范围、阶段路线、质量要求和待决策事项 |
-| [mobile-mvp-execution-plan-20261118.md](mobile-mvp-execution-plan-20261118.md) | Flutter AI 陪伴 MVP 的跨 Issue 执行计划、A～K 任务拆分、依赖关系及已有 PR 复用清单 |
+| [mobile-mvp-execution-plan-20261118.md](mobile-mvp-execution-plan-20261118.md) | 记忆优先主线 #34→#35→#36→#47→#38→#39，A～L 任务、复用边界及 #31 暂缓说明 |
+| [issue-34-memory-architecture-20261118.md](issue-34-memory-architecture-20261118.md) | #34 架构设计的拆分任务、交付清单、验收与下一项确认门槛 |
 
 ## 使用边界
 
