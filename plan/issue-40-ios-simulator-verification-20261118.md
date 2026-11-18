@@ -6,7 +6,7 @@
 
 ## 实施
 
-1. `.github/workflows/official-mobile-ios.yml` 使用 `macos-26`、Flutter 3.50.0 和本机 Xcode，运行 `flutter build ios --simulator --debug --no-codesign`。
+1. `.github/workflows/official-mobile-ios.yml` 使用 `macos-15`（因 macOS 26 首次与重跑均未进入任务步骤即 cancelled）、Flutter 3.50.0 和本机 Xcode，运行 `flutter build ios --simulator --debug --no-codesign`。
 2. `apps/mobile/tool/run_ios_simulator_ci.sh` 选取可用 iPhone Simulator、启动、安装 `Runner.app`、执行 `simctl launch` 并截取实际模拟器画面。
 3. 若正式工程包含 `integration_test/acceptance_test.dart`、`storage_failure_test.dart`，对同一 Simulator 运行真实 SQLite/人物隔离集成测试；如果尚无该测试（在 #37 合并前的旧 main），明确打印未执行，不代替验收。
 4. 上传模拟器截图及未经签名的 `Runner.app` 压缩产物作为证据，不上传私有凭据、不进行公网部署。
@@ -25,3 +25,9 @@
 正式工程 `apps/mobile/ios/` 采用 Flutter 3.50 模板及 Swift Package Manager，不重新复制 PoC 工程。历史 PR #16/#21/#22 的经验仅作为兼容性参考。无可用授权的第三方资源不会进入此任务。
 
 本记录只说明项目技术与真实测试范围，不包含个人账号操作偏好或审批规则。
+
+## 2026-11-19 执行器故障与重试
+
+- Actions [#44344176615](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44344176615) attempt 1 / attempt 2 均记录为 failure；唯一 macOS job 为 cancelled，未分配运行器，无任何 build/test steps 或可下载 job log。
+- 两次结果不能用作 iOS 代码错误证据，也不能据此宣称 iOS 已运行。
+- 将 `runs-on` 调整为 GitHub 官方支持的 `macos-15`，触发一次独立构建/模拟器测试；是否真正通过以新作业的完整步骤为准。
