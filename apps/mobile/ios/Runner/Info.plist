@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>仅在你主动点击设备端语音识别时请求系统识别权限；结果必须由你编辑确认后发送。</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>仅当你按住录音时使用麦克风，音频暂存在本机供试听，可随时取消或删除。</string>
 	<key>CFBundleDisplayName</key>
