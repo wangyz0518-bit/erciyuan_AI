@@ -461,7 +461,9 @@ final class PersonDatabase {
         );
         if (existing.isNotEmpty) {
           final event = _rawEvent(existing.single);
-          if (event.eventId == eventId && event.content == content) return event;
+          if (event.eventId == eventId && event.content == content) {
+            return event;
+          }
         }
         throw StateError('Generation already completed with a different reply');
       }
