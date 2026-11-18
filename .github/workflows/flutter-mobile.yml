@@ -71,9 +71,13 @@ jobs:
       - name: Install dependencies
         working-directory: apps/mobile
         run: flutter pub get
-      - name: Check Dart formatting
+      - name: Normalize and inspect Dart adapter formatting (temporary diagnostic)
         working-directory: apps/mobile
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          dart format lib test
+          echo "###FILE_START:lib/features/chat/data/model_gateway_adapter.dart"
+          cat lib/features/chat/data/model_gateway_adapter.dart
+          echo "###FILE_END:lib/features/chat/data/model_gateway_adapter.dart"
       - name: Analyze
         working-directory: apps/mobile
         run: flutter analyze
