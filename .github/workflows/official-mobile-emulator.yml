@@ -67,6 +67,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: erciyuan-official-android-emulator-logcat
-          path: android-official-ui-logcat.txt
+          path: |
+            android-official-ui-logcat.txt
+            artifacts/official-android-emulator-ui/device-logcat.txt
           if-no-files-found: ignore
           retention-days: 7
