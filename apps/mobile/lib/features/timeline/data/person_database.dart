@@ -6,15 +6,22 @@ import 'package:sqflite_common/sqlite_api.dart';
 
 import '../../characters/domain/character.dart';
 import '../../memory/data/person_memory_repository.dart';
+import '../../memory/domain/memory_models.dart';
 import '../domain/raw_event.dart';
 
 /// SQLite fact repository. All operations are scoped by owner + character.
 /// Account verification is NOT implemented by a local owner ID (#38).
 final class PersonDatabase {
-  PersonDatabase._(this._db);
+  PersonDatabase._(this._db, this._automaticSummarizer);
 
   static const int schemaVersion = 3;
   final Database _db;
+  final MemorySummarizer? _automaticSummarizer;
+  Object? _lastArchiveError;
+
+  /// A failed summary never rolls back already committed raw events.
+  /// The app can display or log this error and call memory.archiveReady again.
+  Object? get lastArchiveError => _lastArchiveError;
 
   /// Memory shares the same SQLite connection and atomic fact transactions.
   PersonMemoryRepository get memory => PersonMemoryRepository(_db);
@@ -22,6 +29,7 @@ final class PersonDatabase {
   static Future<PersonDatabase> open({
     DatabaseFactory? factory,
     String? databasePath,
+    MemorySummarizer? automaticSummarizer,
   }) async {
     final selectedFactory = factory ?? sqflite.databaseFactory;
     final location =
@@ -47,7 +55,7 @@ final class PersonDatabase {
         },
       ),
     );
-    return PersonDatabase._(db);
+    return PersonDatabase._(db, automaticSummarizer);
   }
 
   static Future<void> _createVersionOne(Database db) async {
@@ -215,7 +223,7 @@ final class PersonDatabase {
       throw ArgumentError.value(status, 'status');
     }
     final timestamp = (occurredAt ?? DateTime.now()).toUtc().toIso8601String();
-    return _db.transaction((txn) async {
+    final saved = await _db.transaction((txn) async {
       final timelines = await txn.query(
         'character_timelines',
         columns: ['next_sequence'],
@@ -269,6 +277,19 @@ final class PersonDatabase {
         revisionOf: revisionOf,
       );
     });
+    if (status == 'complete' && _automaticSummarizer != null) {
+      try {
+        await memory.archiveReady(
+          scope: scope,
+          summarizer: _automaticSummarizer,
+        );
+        _lastArchiveError = null;
+      } catch (error) {
+        // RawEvent has committed; retry later from the unchanged archive cursor.
+        _lastArchiveError = error;
+      }
+    }
+    return saved;
   }
 
   Future<List<RawEvent>> rawEventsFor({
