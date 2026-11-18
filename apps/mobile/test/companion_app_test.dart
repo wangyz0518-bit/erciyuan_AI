@@ -60,9 +60,10 @@ void main() {
   Future<void> settleDatabase(WidgetTester tester) async {
     await tester.pump();
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      () => Future<void>.delayed(const Duration(milliseconds: 650)),
     );
-    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump();
   }
 
   Future<void> mount(WidgetTester tester) async {
@@ -98,7 +99,12 @@ void main() {
       find.byKey(const ValueKey('character-draft')),
       '仅属于小星',
     );
-    await tester.tap(find.byKey(const ValueKey('send-message')));
+    await tester.pump();
+    final send = find.byKey(const ValueKey('send-message'));
+    expect(tester.widget<IconButton>(send).onPressed, isNotNull);
+    expect(send.hitTestable(), findsOneWidget);
+    await tester.tap(send.hitTestable());
+    await settleDatabase(tester);
     await settleDatabase(tester);
 
     expect(
@@ -136,10 +142,16 @@ void main() {
       ),
     );
     await mount(tester);
-    await tester.tap(find.byKey(const ValueKey('data-management')));
-    await tester.pump(const Duration(milliseconds: 350));
+    final dataButton = find.byKey(const ValueKey('data-management'));
+    expect(dataButton.hitTestable(), findsOneWidget);
+    await tester.tap(dataButton.hitTestable());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 850));
+    await tester.pump();
     expect(find.text('导出全部人物数据'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('export-all-person-data')));
+    final exportButton = find.byKey(const ValueKey('export-all-person-data'));
+    expect(exportButton.hitTestable(), findsOneWidget);
+    await tester.tap(exportButton.hitTestable());
     await settleDatabase(tester);
     expect(find.byKey(const ValueKey('export-summary')), findsOneWidget);
     expect(find.textContaining('原始记录：1'), findsOneWidget);
