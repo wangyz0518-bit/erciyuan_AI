@@ -77,6 +77,10 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('continue-timeline')));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
     await tester.pumpAndSettle();
     await expectLater(
       find.byType(MaterialApp),
