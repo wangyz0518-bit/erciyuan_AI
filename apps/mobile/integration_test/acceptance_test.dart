@@ -48,6 +48,37 @@ void main() {
         ownerId: star.ownerId,
         catalog: MockCharacterCatalog(people),
       );
+      // Flutter test input updates the TextEditingController before the
+      // next build; a new frame is necessary to enable the send button.
+      Future<void> submitText(String value) async {
+        await tester.enterText(
+          find.byKey(const ValueKey('character-draft')),
+          value,
+        );
+        await tester.pump();
+        final button = find.byKey(const ValueKey('send-message'));
+        expect(tester.widget<IconButton>(button).onPressed, isNotNull);
+        expect(button.hitTestable(), findsOneWidget);
+        await tester.tap(button.hitTestable());
+        await tester.pump();
+      }
+
+      // Native SQLite/platform messages need wall-clock time to complete.
+      // Keep asserting the exact 2-event pair; never skip the integration test.
+      Future<void> waitForSaved(PersonScope scope) async {
+        for (var i = 0; i < 30; i++) {
+          final events = await database.rawEventsFor(scope: scope);
+          if (events.length == 2) return;
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 300)),
+          );
+          await tester.pump(const Duration(milliseconds: 350));
+        }
+        final events = await database.rawEventsFor(scope: scope);
+        fail('Expected one saved user event and one Mock reply for '
+            '${scope.characterId}; observed ${events.length}');
+      }
+
       await tester.pumpWidget(
         CompanionApp(
           controller: selection,
@@ -63,15 +94,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('唯一持续时间线'), findsOneWidget);
       expect(find.textContaining('离线 Mock 模式'), findsOneWidget);
-      await tester.enterText(
-        find.byKey(const ValueKey('character-draft')),
-        '只属于小星的 Android 原始记录',
-      );
-      await tester.tap(find.byKey(const ValueKey('send-message')));
-      for (var i = 0; i < 25; i++) {
-        await tester.pump(const Duration(milliseconds: 200));
-        if ((await database.rawEventsFor(scope: star)).length == 2) break;
-      }
+      await submitText('只属于小星的 Android 原始记录');
+      await waitForSaved(star);
       final starHistory = await database.rawEventsFor(scope: star);
       expect(starHistory, hasLength(2));
       expect(starHistory.first.content, '只属于小星的 Android 原始记录');
@@ -88,15 +112,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('唯一持续时间线'), findsOneWidget);
       expect(find.textContaining('只属于小星的 Android 原始记录'), findsNothing);
-      await tester.enterText(
-        find.byKey(const ValueKey('character-draft')),
-        '小月自己的一条消息',
-      );
-      await tester.tap(find.byKey(const ValueKey('send-message')));
-      for (var i = 0; i < 25; i++) {
-        await tester.pump(const Duration(milliseconds: 200));
-        if ((await database.rawEventsFor(scope: moon)).length == 2) break;
-      }
+      await submitText('小月自己的一条消息');
+      await waitForSaved(moon);
       final moonHistory = await database.rawEventsFor(scope: moon);
       expect(moonHistory, hasLength(2));
       expect(moonHistory.first.content, '小月自己的一条消息');
