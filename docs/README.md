@@ -6,6 +6,7 @@
 
 | 目录 / 文档 | 用途 |
 | --- | --- |
+| [design/](design/README.md) | 产品界面参考、线框和可点击原型（讨论稿） |
 | [process/](process/README.md) | 文档规范及稳定的协作流程 |
 | [research/](research/README.md) | 调研、选型和技术评估；结论不自动构成决策 |
 | [decisions/](decisions/README.md) | 已提出或已确认的架构、技术决策（ADR） |
