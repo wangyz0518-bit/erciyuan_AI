@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>星伴 · 人物中心持续陪伴 A/B 原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #25263a;
+      --muted: #77798d;
+      --line: #e8e4ed;
+      --paper: #fbf9fc;
+      --card: #ffffff;
+      --accent: #9c78c8;
+      --accent-dark: #7654a4;
+      --pink: #e9a8bf;
+      --soft: #f1eaf8;
+      --shadow: 0 24px 70px rgba(30, 23, 49, .18);
+    }
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: #f1eef5; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(220, 198, 241, .55), transparent 32rem),
+        radial-gradient(circle at 88% 80%, rgba(247, 215, 226, .55), transparent 28rem),
+        #f5f2f7;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(156, 120, 200, .42);
+      outline-offset: 3px;
+    }
+    .page { max-width: 1160px; margin: 0 auto; padding: 30px 24px 42px; }
+    .eyebrow { color: #8768aa; font-size: 11px; font-weight: 800; letter-spacing: .18em; }
+    h1 { margin: 8px 0 7px; font-size: clamp(24px, 4vw, 34px); letter-spacing: -.04em; }
+    .intro { max-width: 700px; margin: 0; color: #6f7082; line-height: 1.65; font-size: 14px; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+      margin: 22px 0 24px; padding: 14px 16px; border: 1px solid rgba(225, 219, 233, .9);
+      border-radius: 18px; background: rgba(255,255,255,.74); backdrop-filter: blur(12px);
+    }
+    .control { display: flex; align-items: center; gap: 6px; }
+    .control-label { margin-right: 4px; color: #858396; font-size: 12px; font-weight: 700; }
+    .seg {
+      display: inline-flex; gap: 3px; padding: 3px; border-radius: 12px; background: #f0edf4;
+    }
+    .seg button {
+      border: 0; border-radius: 9px; padding: 8px 12px; color: #747185;
+      background: transparent; font-size: 12px; font-weight: 750;
+    }
+    .seg button[aria-pressed="true"] { color: #fff; background: #8061a8; box-shadow: 0 3px 9px rgba(100,72,140,.2); }
+    .toolbar-note { margin-left: auto; color: #8b8797; font-size: 11px; }
+    .workspace { display: grid; grid-template-columns: minmax(360px, 430px) minmax(280px, 1fr); gap: 42px; align-items: start; }
+    .phone-stage { display: flex; justify-content: center; }
+    .phone {
+      width: min(100%, 390px); height: 820px; padding: 10px; border: 1px solid #d6d1dc;
+      border-radius: 48px; background: #171725; box-shadow: var(--shadow);
+    }
+    .screen {
+      position: relative; display: flex; flex-direction: column; height: 100%; overflow: hidden;
+      border-radius: 39px; background: var(--paper);
+    }
+    .status {
+      height: 34px; flex: 0 0 34px; display: flex; align-items: center; justify-content: space-between;
+      padding: max(4px, env(safe-area-inset-top)) 23px 0; color: #333248; font-size: 11px; font-weight: 800;
+    }
+    .status-icons { display: flex; align-items: center; gap: 6px; }
+    .signal { width: 13px; height: 9px; border-bottom: 2px solid currentColor; border-radius: 0 0 3px 3px; }
+    .battery { width: 17px; height: 9px; border: 1.5px solid currentColor; border-radius: 3px; position: relative; }
+    .battery::before { content: ""; position: absolute; inset: 1.5px 3px 1.5px 1.5px; border-radius: 1px; background: currentColor; }
+    .battery::after { content: ""; position: absolute; right: -3px; top: 2px; width: 2px; height: 4px; border-radius: 0 2px 2px 0; background: currentColor; }
+    .app-header {
+      min-height: 58px; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 20px 10px; border-bottom: 1px solid rgba(230,225,235,.7);
+    }
+    .brand { display: flex; align-items: center; gap: 9px; }
+    .brand-mark {
+      width: 30px; height: 30px; display: grid; place-items: center; border-radius: 11px;
+      color: #fff; font-size: 15px; background: linear-gradient(135deg, #9c79c9, #d9a6c5);
+      box-shadow: 0 4px 10px rgba(142,107,184,.22);
+    }
+    .brand-name { font-size: 15px; font-weight: 850; letter-spacing: -.04em; }
+    .brand-sub { margin-top: 1px; color: #9893a3; font-size: 9px; letter-spacing: .08em; }
+    .header-actions { display: flex; gap: 7px; }
+    .icon-btn {
+      width: 34px; height: 34px; border: 1px solid #e9e4ee; border-radius: 12px;
+      color: #6d6680; background: #fff; font-size: 15px;
+    }
+    main { min-height: 0; flex: 1 1 auto; overflow: auto; scrollbar-width: thin; }
+    .home { padding: 16px 16px 18px; }
+    .greeting { margin: 3px 4px 13px; color: #8a8396; font-size: 11px; font-weight: 750; letter-spacing: .06em; }
+    .hero {
+      position: relative; overflow: hidden; min-height: 390px; padding: 16px 17px 18px;
+      border-radius: 25px; color: #fff; background: linear-gradient(155deg, #4e426c 0%, #8970a7 54%, #d39bb7 100%);
+      box-shadow: 0 12px 28px rgba(100,76,128,.2);
+    }
+    .hero::before, .hero::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
+    .hero::before { width: 210px; height: 210px; right: -65px; top: -70px; background: rgba(255,255,255,.10); }
+    .hero::after { width: 150px; height: 150px; left: -85px; bottom: 20px; background: rgba(255,255,255,.08); }
+    .hero-top { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; }
+    .hero-kicker { color: rgba(255,255,255,.78); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+    .placeholder-tag { padding: 5px 8px; border: 1px solid rgba(255,255,255,.32); border-radius: 99px; color: rgba(255,255,255,.82); font-size: 9px; }
+    .portrait-wrap { position: relative; height: 205px; margin: 4px auto 0; max-width: 260px; }
+    .portrait {
+      position: absolute; inset: 0; overflow: hidden; border-radius: 18px;
+      background: radial-gradient(circle at 50% 20%, rgba(255,255,255,.45), transparent 35%), linear-gradient(145deg, #d9c7ed, #8e79b7 68%, #665b91);
+    }
+    .portrait.moon { background: radial-gradient(circle at 50% 20%, rgba(255,255,255,.55), transparent 35%), linear-gradient(145deg, #c7d9ec, #7189b5 68%, #52678f); }
+    .portrait .halo { position: absolute; width: 170px; height: 170px; left: 50%; top: 7px; transform: translateX(-50%); border: 1px solid rgba(255,255,255,.45); border-radius: 50%; }
+    .portrait .body { position: absolute; width: 190px; height: 112px; left: 50%; bottom: -32px; transform: translateX(-50%); border-radius: 90px 90px 0 0; background: linear-gradient(90deg,#392d55,#74628f 50%,#403450); }
+    .portrait.moon .body { background: linear-gradient(90deg,#293c5d,#667ea7 50%,#2c405f); }
+    .portrait .hair { position: absolute; z-index: 2; width: 118px; height: 130px; left: 50%; top: 20px; transform: translateX(-50%); border-radius: 58% 58% 43% 43%; background: #332b48; }
+    .portrait.moon .hair { background: #28364f; }
+    .portrait .face { position: absolute; z-index: 3; width: 82px; height: 104px; left: 50%; top: 54px; transform: translateX(-50%); border-radius: 46% 46% 48% 48%; background: linear-gradient(145deg,#ffe3d7,#e9bdb6); }
+    .portrait .fringe { position: absolute; z-index: 4; width: 100px; height: 52px; left: 50%; top: 35px; transform: translateX(-50%) rotate(-5deg); border-radius: 55% 55% 40% 30%; background: #332b48; clip-path: polygon(0 0,100% 0,95% 75%,78% 50%,68% 100%,50% 53%,36% 92%,23% 48%,5% 80%); }
+    .portrait.moon .fringe { background: #28364f; }
+    .portrait .eyes { position: absolute; z-index: 5; left: 50%; top: 99px; transform: translateX(-50%); display: flex; gap: 26px; }
+    .portrait .eyes i { width: 5px; height: 8px; border-radius: 50%; background: #55415a; }
+    .portrait .smile { position: absolute; z-index: 5; left: 50%; top: 124px; width: 12px; height: 5px; transform: translateX(-50%); border-bottom: 1.5px solid #a96f78; border-radius: 50%; }
+    .portrait .spark { position: absolute; z-index: 6; color: rgba(255,255,255,.85); font-size: 18px; }
+    .portrait .spark.one { left: 23px; top: 30px; }
+    .portrait .spark.two { right: 26px; top: 68px; font-size: 12px; }
+    .portrait .spark.three { right: 48px; bottom: 30px; font-size: 10px; }
+    .hero-copy { position: relative; z-index: 2; margin-top: 3px; }
+    .hero-name { margin: 0; font-size: 23px; font-weight: 900; letter-spacing: -.04em; }
+    .hero-role { margin: 4px 0 0; color: rgba(255,255,255,.78); font-size: 11px; }
+    .hero-quote { margin: 10px 0 0; color: rgba(255,255,255,.93); font-size: 12px; line-height: 1.55; }
+    .home-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 14px; }
+    .primary {
+      min-height: 43px; border: 0; border-radius: 14px; padding: 0 16px; color: #55406e;
+      background: #fff; font-size: 12px; font-weight: 850; box-shadow: 0 5px 12px rgba(50,35,70,.12);
+    }
+    .secondary {
+      min-height: 43px; border: 1px solid rgba(255,255,255,.35); border-radius: 14px; padding: 0 13px;
+      color: #fff; background: rgba(255,255,255,.12); font-size: 11px; font-weight: 750;
+    }
+    .preview-card {
+      margin-top: 13px; padding: 14px 15px; border: 1px solid var(--line); border-radius: 18px; background: #fff;
+    }
+    .preview-head { display: flex; align-items: center; justify-content: space-between; }
+    .preview-title { color: #8c8498; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+    .preview-time { color: #aaa4b3; font-size: 9px; }
+    .preview-text { margin: 8px 0 0; color: #57566b; font-size: 12px; line-height: 1.55; }
+    .preview-link { display: inline-block; margin-top: 8px; padding: 0; border: 0; color: #8868ae; background: transparent; font-size: 11px; font-weight: 800; text-align: left; cursor: pointer; }
+    .chat-page { height: 100%; min-height: 0; display: flex; flex-direction: column; padding: 10px 13px 12px; }
+    .chat-role {
+      display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line);
+      border-radius: 16px; background: #fff;
+    }
+    .mini-avatar {
+      width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center; border-radius: 13px;
+      color: #fff; font-size: 17px; background: linear-gradient(140deg,#9e82c8,#e2a9c5);
+    }
+    .mini-avatar.moon { background: linear-gradient(140deg,#6685b8,#a7b8dc); }
+    .chat-role-copy { min-width: 0; flex: 1; }
+    .chat-role-name { font-size: 12px; font-weight: 850; }
+    .chat-role-sub { margin-top: 3px; color: #9691a1; font-size: 9px; }
+    .switch-link { border: 0; color: #8565a9; background: transparent; font-size: 10px; font-weight: 850; }
+    .messages { min-height: 0; flex: 1; overflow: auto; padding: 15px 2px 12px; }
+    .day-label { margin: 0 0 13px; color: #aaa4b1; text-align: center; font-size: 9px; }
+    .timeline-note { margin: 9px 0 2px; padding: 9px 11px; border: 1px solid #e9e2ef; border-radius: 12px; color: #81778f; background: #faf7fc; font-size: 9px; line-height: 1.55; }
+    .bubble-row { display: flex; gap: 7px; margin: 10px 0; align-items: flex-end; }
+    .bubble-row.user { justify-content: flex-end; }
+    .bubble-avatar { width: 25px; height: 25px; flex: 0 0 25px; display: grid; place-items: center; border-radius: 9px; color: #fff; background: #9b80be; font-size: 11px; }
+    .bubble {
+      max-width: 78%; padding: 10px 12px; border: 1px solid #eee9f2; border-radius: 15px 15px 15px 5px;
+      color: #57556a; background: #fff; font-size: 11px; line-height: 1.55; box-shadow: 0 3px 8px rgba(40,30,55,.03);
+    }
+    .user .bubble { border: 0; border-radius: 15px 15px 5px 15px; color: #fff; background: #8f70b5; }
+    .empty-chat {
+      display: flex; min-height: 270px; height: 100%; flex-direction: column; align-items: center; justify-content: center;
+      padding: 12px; text-align: center;
+    }
+    .empty-orb {
+      width: 76px; height: 76px; display: grid; place-items: center; border-radius: 26px; color: #fff;
+      background: linear-gradient(145deg,#a88bc9,#e5b4c9); box-shadow: 0 9px 22px rgba(151,119,187,.2); font-size: 28px;
+    }
+    .empty-title { margin: 15px 0 5px; font-size: 14px; font-weight: 850; }
+    .empty-copy { max-width: 220px; margin: 0; color: #9691a1; font-size: 10px; line-height: 1.6; }
+    .suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 13px; }
+    .suggestions button { border: 1px solid #e6ddeb; border-radius: 99px; padding: 7px 10px; color: #8468a5; background: #fff; font-size: 9px; }
+    .composer {
+      display: flex; align-items: center; gap: 7px; padding: 8px; border: 1px solid #e8e2ed;
+      border-radius: 17px; background: #fff; box-shadow: 0 4px 14px rgba(40,30,55,.04);
+    }
+    .composer input { width: 100%; min-width: 0; border: 0; outline: 0; color: #49465b; background: transparent; font-size: 11px; }
+    .composer input::placeholder { color: #aaa4b2; }
+    .voice-btn, .send-btn { width: 33px; height: 33px; flex: 0 0 33px; border: 0; border-radius: 11px; }
+    .voice-btn { color: #8869ad; background: #f1eaf7; }
+    .send-btn { color: #fff; background: #8c6cb3; font-weight: 900; }
+    .roles-page, .profile-page { padding: 18px 16px; }
+    .page-title { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: -.04em; }
+    .page-desc { margin: 6px 0 16px; color: #8e899b; font-size: 10px; line-height: 1.6; }
+    .role-card {
+      display: flex; align-items: center; gap: 12px; margin: 10px 0; padding: 12px;
+      border: 1px solid var(--line); border-radius: 18px; background: #fff;
+    }
+    .role-card .mini-avatar { width: 48px; height: 48px; flex-basis: 48px; border-radius: 16px; font-size: 20px; }
+    .role-info { flex: 1; min-width: 0; }
+    .role-info strong { display: block; font-size: 12px; }
+    .role-info span { display: block; margin-top: 4px; color: #9691a1; font-size: 9px; }
+    .role-card button { border: 0; border-radius: 10px; padding: 8px 10px; color: #fff; background: #8c6cb3; font-size: 10px; font-weight: 800; }
+    .profile-tile { margin: 10px 0; padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: #fff; color: #696579; font-size: 11px; line-height: 1.65; }
+    .layer-grid { display: grid; gap: 7px; margin-top: 10px; }
+    .layer-item { padding: 10px 11px; border: 1px solid #eee8f2; border-radius: 12px; background: #fbf9fc; }
+    .layer-item strong { display: block; color: #5e536d; font-size: 10px; }
+    .layer-item span { display: block; margin-top: 3px; color: #91899c; font-size: 9px; line-height: 1.5; }
+    .export-button { width: 100%; margin-top: 9px; border: 0; border-radius: 13px; padding: 12px 14px; color: #fff; background: #8c6cb3; font-size: 11px; font-weight: 850; }
+    .export-status { min-height: 14px; margin: 7px 0 0; color: #6d8a70; font-size: 9px; }
+    .bottom-nav {
+      flex: 0 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+      padding: 8px 12px max(11px, env(safe-area-inset-bottom)); border-top: 1px solid #eee9f1; background: rgba(255,255,255,.96);
+    }
+    .nav-btn { border: 0; border-radius: 12px; padding: 5px 2px 3px; color: #aaa4b2; background: transparent; font-size: 9px; font-weight: 750; }
+    .nav-btn span { display: block; margin-bottom: 4px; font-size: 16px; }
+    .nav-btn[aria-current="page"] { color: #8665ac; background: #f5eff9; }
+    .overlay {
+      position: absolute; inset: 0; z-index: 10; display: flex; align-items: flex-end; justify-content: center;
+      padding: 16px; background: rgba(32,27,43,.38);
+    }
+    .sheet {
+      width: 100%; padding: 20px; border-radius: 24px; background: #fff; box-shadow: 0 18px 55px rgba(20,15,30,.22);
+    }
+    .sheet-handle { width: 34px; height: 4px; margin: -8px auto 16px; border-radius: 99px; background: #e6e0ea; }
+    .sheet h3 { margin: 0 0 8px; font-size: 15px; }
+    .sheet p { margin: 0; color: #858092; font-size: 11px; line-height: 1.65; }
+    .sheet button { width: 100%; margin-top: 16px; border: 0; border-radius: 13px; padding: 12px; color: #fff; background: #8c6cb3; font-size: 11px; font-weight: 850; }
+    .phone-caption { margin: 12px 0 0; color: #9a95a3; text-align: center; font-size: 10px; }
+    .notes { padding: 12px 0; }
+    .notes-kicker { color: #8b6caf; font-size: 10px; font-weight: 850; letter-spacing: .14em; }
+    .notes h2 { margin: 7px 0 8px; font-size: 22px; letter-spacing: -.04em; }
+    .notes-lead { margin: 0 0 19px; color: #777487; font-size: 13px; line-height: 1.65; }
+    .note-card { margin: 12px 0; padding: 17px 18px; border: 1px solid #e4deea; border-radius: 18px; background: rgba(255,255,255,.76); }
+    .note-card h3 { margin: 0 0 9px; font-size: 13px; }
+    .note-card ul { margin: 0; padding-left: 17px; color: #737184; font-size: 11px; line-height: 1.8; }
+    .note-card p { margin: 0; color: #737184; font-size: 11px; line-height: 1.7; }
+    .note-chip { display: inline-block; margin: 0 5px 5px 0; padding: 5px 8px; border-radius: 99px; color: #76599a; background: #eee6f5; font-size: 9px; font-weight: 800; }
+    .disclaimer { margin-top: 18px; padding: 12px 14px; border-left: 3px solid #c4acd9; border-radius: 0 12px 12px 0; color: #898496; background: rgba(255,255,255,.55); font-size: 10px; line-height: 1.65; }
+    @media (max-width: 800px) {
+      .page { padding: 20px 14px 30px; }
+      .workspace { grid-template-columns: 1fr; gap: 20px; }
+      .phone { height: min(820px, 82vh); min-height: 650px; }
+      .notes { max-width: 520px; margin: 0 auto; }
+      .toolbar-note { width: 100%; margin-left: 0; }
+    }
+    @media (max-width: 430px) {
+      .phone { width: 100%; height: min(820px, 84vh); padding: 6px; border-radius: 36px; }
+      .screen { border-radius: 30px; }
+      .toolbar { padding: 11px; gap: 10px; }
+      .control { width: 100%; justify-content: space-between; }
+      .control-label { min-width: 54px; }
+      .seg button { padding: 8px 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="eyebrow">ERCIYUAN AI · PRODUCT DESIGN STUDY · 2026.11</div>
+      <h1>首屏结构对比</h1>
+      <p class="intro">以人物身份而非会话为中心：一个人物只有一条持续对话。比较「人物主页优先」与「最近对话优先」，体验首次使用、回访、人物切换和用户数据导出。</p>
+    </header>
+
+    <section class="toolbar" aria-label="原型控制">
+      <div class="control">
+        <span class="control-label">首屏方案</span>
+        <div class="seg" role="group" aria-label="选择首屏方案">
+          <button type="button" data-action="variant" data-value="A" aria-pressed="true">A · 角色主页</button>
+          <button type="button" data-action="variant" data-value="B" aria-pressed="false">B · 最近会话</button>
+        </div>
+      </div>
+      <div class="control">
+        <span class="control-label">使用状态</span>
+        <div class="seg" role="group" aria-label="选择使用状态">
+          <button type="button" data-action="mode" data-value="first" aria-pressed="false">首次使用</button>
+          <button type="button" data-action="mode" data-value="returning" aria-pressed="true">再次打开</button>
+        </div>
+      </div>
+      <span class="toolbar-note">合成演示数据保存在当前浏览器；可导出示例 JSON。</span>
+    </section>
+
+    <div class="workspace">
+      <section class="phone-stage" aria-label="手机预览">
+        <div>
+          <div class="phone">
+            <div class="screen">
+              <div class="status">
+                <span>9:41</span>
+                <span class="status-icons" aria-hidden="true"><span class="signal"></span><span>Wi-Fi</span><span class="battery"></span></span>
+              </div>
+              <div id="app-header" class="app-header"></div>
+              <main id="screen" aria-live="polite"></main>
+              <nav id="bottom-nav" class="bottom-nav" aria-label="主导航"></nav>
+              <div id="overlay"></div>
+            </div>
+          </div>
+          <p class="phone-caption">390 × 820 逻辑尺寸示意 · 顶部/底部预留系统安全区</p>
+        </div>
+      </section>
+
+      <aside class="notes" aria-live="polite">
+        <div class="notes-kicker">DESIGN NOTES</div>
+        <h2 id="notes-title">A · 角色主页优先</h2>
+        <p class="notes-lead" id="notes-lead">先建立角色印象，再由一个明确的主按钮进入聊天。</p>
+        <div class="note-card">
+          <h3>结构重点</h3>
+          <ul id="notes-points"></ul>
+        </div>
+        <div class="note-card">
+          <h3>适用场景</h3>
+          <p id="notes-fit"></p>
+        </div>
+        <div class="note-card">
+          <h3>需要评审的取舍</h3>
+          <p id="notes-tradeoff"></p>
+        </div>
+        <div class="note-card">
+          <h3>核心路径</h3>
+          <span class="note-chip">首次进入</span>
+          <span class="note-chip">继续上次对话</span>
+          <span class="note-chip">切换角色</span>
+          <span class="note-chip">查看语音入口</span>
+          <span class="note-chip">导出人物数据</span>
+        </div>
+        <div class="note-card"><h3>人物中心的三层数据</h3><p>原始记录保留完整历史；记忆层归纳并索引原始记录；身份层保存人物背景、性格与关系，每轮加载。需要细节时再从摘要回查原始记录。</p></div>
+        <div class="disclaimer">人物插画为 CSS 占位图，消息和记忆均为合成数据。浏览器本地存储及 JSON 下载仅用于演示；不代表正式记忆、云同步或生产级数据导出已经实现。语音入口不执行录音、TTS 或真实通话。</div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const characters = {
+      xing: {
+        id: "xing", name: "小星", title: "温柔的夜航员", quote: "今天也想听你说说话。", theme: "star",
+        icon: "✦", avatarClass: "",
+        identity: {
+          background: "温柔的夜航员，喜欢陪伴用户整理日常和发现生活中的小确幸。",
+          personality: ["温柔", "耐心", "善于倾听"],
+          speechStyle: "自然、温和，不急于给出结论。",
+          relationship: "长期陪伴者"
+        },
+        messages: [
+          { author: "assistant", text: "晚上好。今天过得怎么样？有什么想和我分享的吗？" },
+          { author: "user", text: "今天有点累，事情比想象中多。" },
+          { author: "assistant", text: "辛苦了。先不用急着解决所有事情，给自己一点喘息的时间也很好。" }
+        ],
+        memoryIndex: [{
+          id: "memory-xing-001",
+          summary: "用户最近工作比较忙，容易在一天结束时感到疲惫；比起立刻给方案，更希望先被倾听。",
+          topics: ["日常", "情绪支持", "工作压力"],
+          sourceEventIds: ["demo-xing-raw-001", "demo-xing-raw-002", "demo-xing-raw-003"],
+          confidence: "演示数据",
+          status: "synthetic-demo"
+        }]
+      },
+      yue: {
+        id: "yue", name: "小月", title: "安静的月光旅伴", quote: "慢慢说，我会认真听。", theme: "moon",
+        icon: "☾", avatarClass: "moon",
+        identity: {
+          background: "安静的月光旅伴，陪用户慢慢梳理想法和感受。",
+          personality: ["安静", "细致", "有边界感"],
+          speechStyle: "简洁、平和，给用户留出思考空间。",
+          relationship: "长期陪伴者"
+        },
+        messages: [
+          { author: "assistant", text: "我在。想聊聊今天，还是先安静地待一会儿？" },
+          { author: "user", text: "我想先整理一下今天的心情。" },
+          { author: "assistant", text: "好，我们不赶时间。你可以从最先想到的一件小事开始。" }
+        ],
+        memoryIndex: [{
+          id: "memory-yue-001",
+          summary: "用户更喜欢不被催促地整理心情，先表达感受，再决定是否需要建议。",
+          topics: ["情绪整理", "沟通偏好"],
+          sourceEventIds: ["demo-yue-raw-001", "demo-yue-raw-002", "demo-yue-raw-003"],
+          confidence: "演示数据",
+          status: "synthetic-demo"
+        }]
+      }
+    };
+
+    const STORAGE_KEY = "erciyuan-person-centered-prototype-v1";
+    function loadDemoState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || typeof saved !== "object") return {};
+        return {
+          variant: saved.variant === "B" ? "B" : "A",
+          mode: saved.mode === "first" ? "first" : "returning",
+          role: characters[saved.role] ? saved.role : "xing",
+          sent: {
+            xing: Array.isArray(saved.sent?.xing) ? saved.sent.xing : [],
+            yue: Array.isArray(saved.sent?.yue) ? saved.sent.yue : []
+          }
+        };
+      } catch (_) {
+        return {};
+      }
+    }
+    const savedState = loadDemoState();
+    const state = {
+      variant: savedState.variant || "A",
+      mode: savedState.mode || "returning",
+      screen: savedState.variant === "B" ? "chat" : "home",
+      role: savedState.role || "xing",
+      overlay: null,
+      exportStatus: "",
+      sent: savedState.sent || { xing: [], yue: [] }
+    };
+
+    function saveDemoState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          variant: state.variant, mode: state.mode, role: state.role, sent: state.sent
+        }));
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function createEventId(prefix) {
+      return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const currentRole = () => characters[state.role];
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[char]));
+    }
+
+    function avatar(role, extraClass) {
+      const theme = role.avatarClass || "";
+      return '<div class="portrait ' + theme + ' ' + (extraClass || "") + '" role="img" aria-label="' + escapeHtml(role.name) + ' 的示意占位形象">' +
+        '<span class="halo"></span><span class="body"></span><span class="hair"></span><span class="face"></span><span class="fringe"></span>' +
+        '<span class="eyes"><i></i><i></i></span><span class="smile"></span><span class="spark one">✦</span><span class="spark two">✧</span><span class="spark three">✦</span>' +
+        '</div>';
+    }
+
+    function renderHeader() {
+      const role = currentRole();
+      let title = '<div class="brand"><span class="brand-mark">✦</span><div><div class="brand-name">星伴</div><div class="brand-sub">一个人物，一段持续的对话</div></div></div>';
+      let actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><button class="icon-btn" type="button" data-action="navigate" data-value="roles" aria-label="切换角色">⇄</button></div>';
+      if (state.screen === "chat") {
+        title = '<div class="brand"><span class="mini-avatar ' + (role.avatarClass || "") + '">' + role.icon + '</span><div><div class="brand-name">' + role.name + '</div><div class="brand-sub">' + role.title + ' · 持续对话</div></div></div>';
+        actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><button class="icon-btn" type="button" data-action="navigate" data-value="roles" aria-label="切换角色">⇄</button></div>';
+      } else if (state.screen === "roles") {
+        title = '<div class="brand"><div><div class="brand-name">切换人物</div><div class="brand-sub">每个人物都有独立时间线</div></div></div>';
+        actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="navigate" data-value="' + (state.variant === "A" ? "home" : "chat") + '" aria-label="返回">←</button></div>';
+      } else if (state.screen === "profile") {
+        title = '<div class="brand"><div><div class="brand-name">我的</div><div class="brand-sub">数据归你所有</div></div></div>';
+        actions = '<div class="header-actions"><button class="icon-btn" type="button" data-action="navigate" data-value="home" aria-label="返回主页">⌂</button></div>';
+      }
+      $("app-header").innerHTML = title + actions;
+    }
+
+    function renderHome() {
+      const role = currentRole();
+      const returning = state.mode === "returning";
+      const timeline = role.messages.concat(state.sent[role.id]);
+      const latest = timeline[timeline.length - 1];
+      const cta = returning ? "继续与 TA 对话" : "开始认识 TA";
+      const preview = returning
+        ? '<section class="preview-card"><div class="preview-head"><span class="preview-title">最近聊到 · 同一条时间线</span><span class="preview-time">持续保存</span></div><p class="preview-text">' + escapeHtml(latest.text) + '</p><button class="preview-link" type="button" data-action="continue">继续这段对话 →</button></section>'
+        : '<section class="preview-card"><div class="preview-head"><span class="preview-title">从这里开始</span><span class="preview-time">新的人物关系</span></div><p class="preview-text">你还没有和' + role.name + '聊过天。先从今天的一件小事开始，之后的每次交流都会延续在同一条时间线上。</p><button class="preview-link" type="button" data-action="continue">开始认识 TA →</button></section>';
+      return '<div class="home"><div class="greeting">' + (returning ? "晚上好 · 今天也留一点时间给自己" : "欢迎来到星伴 · 先认识一位伙伴") + '</div>' +
+        '<section class="hero"><div class="hero-top"><span class="hero-kicker">ONE PERSON · ONE STORY</span><span class="placeholder-tag">示意占位形象</span></div>' +
+        '<div class="portrait-wrap">' + avatar(role) + '</div>' +
+        '<div class="hero-copy"><h2 class="hero-name">' + role.name + '</h2><p class="hero-role">' + role.title + '</p><p class="hero-quote">“' + role.quote + '”</p><p class="hero-quote">一位人物 · 一条持续对话 · 独立记忆</p></div>' +
+        '<div class="home-actions"><button class="primary" type="button" data-action="continue">' + cta + '　→</button><button class="secondary" type="button" data-action="navigate" data-value="roles">切换人物</button></div></section>' +
+        preview +
+        '<section class="preview-card"><div class="preview-head"><span class="preview-title">语音互动</span><span class="preview-time">功能示意</span></div><p class="preview-text">文字与语音属于同一个人物的持续对话，不会因为切换输入方式而新建对话。</p><button class="preview-link" type="button" data-action="voice">查看语音入口 →</button></section></div>';
+    }
+
+
+    function renderMessages() {
+      const role = currentRole();
+      const base = state.mode === "returning" ? role.messages : [];
+      const messages = base.concat(state.sent[state.role]);
+      if (messages.length === 0) {
+        return '<div class="empty-chat"><div class="empty-orb">' + role.icon + '</div><h3 class="empty-title">和' + role.name + '的故事，从这里开始</h3><p class="empty-copy">这会是你们唯一且持续的对话时间线。以后每次回来，都会从这里继续。</p><div class="suggestions"><button type="button" data-action="suggest" data-value="今天过得怎么样？">聊聊今天</button><button type="button" data-action="suggest" data-value="给我一点鼓励吧。">给我一点鼓励</button></div></div>';
+      }
+      return '<p class="day-label">与 ' + role.name + ' 的持续对话 · 历史不会因归档而消失</p>' + messages.map((message) => {
+        if (message.author === "user") {
+          return '<div class="bubble-row user"><div class="bubble">' + escapeHtml(message.text) + '</div></div>';
+        }
+        return '<div class="bubble-row"><span class="bubble-avatar">' + role.icon + '</span><div class="bubble">' + escapeHtml(message.text) + '</div></div>';
+      }).join("");
+    }
+
+
+    function renderChat() {
+      const role = currentRole();
+      return '<div class="chat-page"><div class="chat-role"><span class="mini-avatar ' + (role.avatarClass || "") + '">' + role.icon + '</span><div class="chat-role-copy"><div class="chat-role-name">' + role.name + '</div><div class="chat-role-sub">' + role.title + ' · 唯一持续对话</div></div><button class="switch-link" type="button" data-action="navigate" data-value="roles">切换人物</button></div>' +
+        '<div class="timeline-note">这是一条持续时间线。离开或再次打开，仍然是与 ' + role.name + ' 的同一段对话；后台可整理旧内容，但原始记录始终保留。</div>' +
+        '<div class="messages" id="messages">' + renderMessages() + '</div>' +
+        '<form class="composer" id="send-form"><button class="voice-btn" type="button" data-action="voice" aria-label="查看语音入口">♫</button><input id="message-input" name="message" autocomplete="off" placeholder="和 ' + role.name + ' 说点什么…" aria-label="输入消息"><button class="send-btn" type="submit" aria-label="发送消息">↑</button></form></div>';
+    }
+
+
+    function renderRoles() {
+      return '<div class="roles-page"><h2 class="page-title">切换人物</h2><p class="page-desc">你切换的是一个独立的人物身份。每个人物都拥有自己的唯一持续对话、原始记录和记忆，不会与其他人物混合。</p>' +
+        Object.values(characters).map((role) => '<article class="role-card"><span class="mini-avatar ' + (role.avatarClass || "") + '">' + role.icon + '</span><div class="role-info"><strong>' + role.name + (state.role === role.id ? " · 当前人物" : "") + '</strong><span>' + role.title + ' · 独立时间线</span></div><button type="button" data-action="select-role" data-value="' + role.id + '">' + (state.role === role.id ? "继续对话" : "切换到 TA") + '</button></article>').join("") +
+        '<p class="page-desc">不会出现同一人物的多个聊天窗口；历史整理由后台自动完成。</p></div>';
+    }
+
+
+    function exportAllData() {
+      const exportedCharacters = Object.values(characters).map((role) => {
+        const seedEvents = role.messages.map((message, index) => ({
+          event_id: "demo-" + role.id + "-raw-" + String(index + 1).padStart(3, "0"),
+          created_at: "2026-11-17T21:" + String(30 + index).padStart(2, "0") + ":00+08:00",
+          speaker: message.author,
+          content: { type: "text", text: message.text },
+          provenance: "synthetic-demo"
+        }));
+        const newEvents = state.sent[role.id].map((message) => ({
+          event_id: message.id,
+          created_at: message.createdAt,
+          speaker: message.author,
+          content: { type: "text", text: message.text },
+          provenance: "synthetic-demo"
+        }));
+        const rawEvents = seedEvents.concat(newEvents);
+        return {
+          character_id: role.id,
+          identity_layer: {
+            base_identity: role.identity,
+            evolving_state: {
+              relationship: role.identity.relationship,
+              source: "synthetic-demo",
+              version: 1
+            }
+          },
+          persistent_timeline: {
+            logical_thread_id: "demo-thread-" + role.id,
+            raw_events: rawEvents
+          },
+          archive_segments: [{
+            archive_id: "demo-archive-" + role.id + "-001",
+            summary_id: role.memoryIndex[0].id,
+            source_event_ids: role.memoryIndex[0].sourceEventIds,
+            status: "synthetic-demo"
+          }],
+          memory_index: role.memoryIndex
+        };
+      });
+      const payload = {
+        format: "erciyuan-ai-user-data",
+        format_version: "0.1-demo",
+        exported_at: new Date().toISOString(),
+        owner: "当前浏览器中的演示用户",
+        scope: "all-characters",
+        notice: "仅包含合成演示数据，不是真实用户数据或正式产品导出。",
+        characters: exportedCharacters
+      };
+      try {
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "erciyuan-ai-demo-user-data.json";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function renderProfile() {
+      return '<div class="profile-page"><h2 class="page-title">你的数据，由你掌控</h2><p class="page-desc">人物身份、完整原始对话和派生记忆都属于用户数据，不应被模型或服务供应商锁定。</p>' +
+        '<div class="profile-tile"><strong>当前人物</strong><br>' + currentRole().name + ' · ' + currentRole().title + '</div>' +
+        '<div class="profile-tile"><strong>人物的三层数据</strong><div class="layer-grid">' +
+        '<div class="layer-item"><strong>第一层 · 原始记录</strong><span>完整保留每次互动，归档不会删除原文。</span></div>' +
+        '<div class="layer-item"><strong>第二层 · 记忆索引</strong><span>归纳历史并保留来源引用；先查摘要，需要细节时再回查原始记录。</span></div>' +
+        '<div class="layer-item"><strong>第三层 · 人物身份</strong><span>背景、性格、关系与稳定状态，每轮对话都会加载。</span></div></div></div>' +
+        '<div class="profile-tile"><strong>一键导出全部人物数据</strong><br>示例导出包含所有人物身份、原始对话、归档摘要和来源索引。正式产品还需包含附件、完整元数据与版本清单。<button class="export-button" type="button" data-action="export-data">导出全部人物数据（JSON）</button><p class="export-status" aria-live="polite">' + escapeHtml(state.exportStatus) + '</p></div>' +
+        '<div class="profile-tile"><strong>当前原型边界</strong><br>人物、消息和记忆均为合成示例；本地存储和 JSON 下载只用于验证交互，不代表正式数据层、自动归档或三层记忆已经接通。</div>' +
+        '<div class="profile-tile"><strong>尚未接入</strong><br>真实 AI、ASR、TTS、账户和云同步。</div></div>';
+    }
+
+
+    function renderNav() {
+      const items = [
+        { id: "home", icon: "⌂", label: "陪伴" },
+        { id: "roles", icon: "✧", label: "人物" },
+        { id: "profile", icon: "○", label: "我的" }
+      ];
+      const active = state.screen === "roles" ? "roles" : state.screen === "profile" ? "profile" : "home";
+      $("bottom-nav").innerHTML = items.map((item) => '<button class="nav-btn" type="button" data-action="navigate" data-value="' + item.id + '" ' + (active === item.id ? 'aria-current="page"' : "") + '><span>' + item.icon + '</span>' + item.label + '</button>').join("");
+    }
+
+
+    function renderNotes() {
+      const a = state.variant === "A";
+      $("notes-title").textContent = a ? "A · 人物主页优先" : "B · 最近对话优先";
+      $("notes-lead").textContent = a ? "先认识人物身份，再进入同一条持续时间线。" : "直接打开最近使用人物的时间线，但不创建新会话。";
+      $("notes-points").innerHTML = (a
+        ? ["人物形象、背景和性格占据首屏主要面积。", "「继续与 TA 对话」进入该人物唯一的持续时间线。", "最近内容只是同一条时间线的预览；人物切换才会切换数据边界。"]
+        : ["打开即看到最近使用人物的原始时间线。", "人物身份和切换入口固定在顶部。", "历史归档在后台完成，用户不需要管理多个聊天窗口。"]
+      ).map((item) => "<li>" + item + "</li>").join("");
+      $("notes-fit").textContent = a
+        ? "更适合把人物身份、关系和长期陪伴作为产品核心；首次使用更容易理解“我正在认识谁”。"
+        : "更适合高频回访用户，少一步操作即可继续同一个人物的长期对话。";
+      $("notes-tradeoff").textContent = a
+        ? "回访用户多一次点击；需要让最近聊到的内容和主操作足够醒目。"
+        : "首次使用时人物介绍空间较少；需要用空状态解释人物身份和长期关系。";
+    }
+
+
+    function renderControls() {
+      document.querySelectorAll('[data-action="variant"]').forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.value === state.variant));
+      });
+      document.querySelectorAll('[data-action="mode"]').forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.value === state.mode));
+      });
+    }
+
+    function render() {
+      renderControls();
+      renderNotes();
+      renderHeader();
+      const content = state.screen === "home" ? renderHome()
+        : state.screen === "chat" ? renderChat()
+        : state.screen === "roles" ? renderRoles()
+        : renderProfile();
+      $("screen").innerHTML = content;
+      renderNav();
+      $("overlay").innerHTML = state.overlay === "voice"
+        ? '<div class="overlay" data-action="close-overlay"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="voice-title"><div class="sheet-handle"></div><h3 id="voice-title">语音入口 · 原型示意</h3><p>正式产品可在这里选择语音朗读或语音输入。当前 PoC 尚未接入正式 ASR/TTS；本原型不会请求麦克风权限，也不会播放声音。</p><button type="button" data-action="close-overlay">返回文字聊天</button></section></div>'
+        : "";
+    }
+
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+      const action = button.dataset.action;
+      const value = button.dataset.value;
+      if (action === "variant") {
+        state.variant = value;
+        state.screen = value === "A" ? "home" : "chat";
+        saveDemoState();
+      } else if (action === "mode") {
+        state.mode = value;
+        state.screen = state.variant === "A" ? "home" : "chat";
+        saveDemoState();
+      } else if (action === "navigate") {
+        state.screen = value;
+      } else if (action === "continue") {
+        state.screen = "chat";
+      } else if (action === "select-role") {
+        state.role = value;
+        state.screen = state.variant === "A" ? "home" : "chat";
+        state.exportStatus = "";
+        saveDemoState();
+      } else if (action === "voice") {
+        state.overlay = "voice";
+      } else if (action === "export-data") {
+        state.exportStatus = exportAllData() ? "已生成演示 JSON 下载。正式产品将导出用户全部原始记录和三层数据。" : "浏览器未能生成文件，请检查下载权限。";
+      } else if (action === "close-overlay") {
+        if (event.target === button || button.classList.contains("sheet")) state.overlay = null;
+      } else if (action === "suggest") {
+        const input = $("message-input");
+        if (input) {
+          input.value = value;
+          input.focus();
+        }
+      }
+      render();
+    });
+
+    document.addEventListener("submit", (event) => {
+      if (event.target.id !== "send-form") return;
+      event.preventDefault();
+      const input = $("message-input");
+      const text = input ? input.value.trim() : "";
+      if (!text) return;
+      state.sent[state.role].push({ id: createEventId("demo-" + state.role), author: "user", text, createdAt: new Date().toISOString() });
+      state.sent[state.role].push({ id: createEventId("demo-" + state.role), author: "assistant", text: "我听到了。这个回复是本地模拟内容，正式服务尚未接入。", createdAt: new Date().toISOString() });
+      saveDemoState();
+      render();
+      const messages = $("messages");
+      if (messages) messages.scrollTop = messages.scrollHeight;
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && state.overlay) {
+        state.overlay = null;
+        render();
+      }
+      if ((event.key === "Enter" || event.key === " ") && event.target.matches('[data-action="voice"][role="button"]')) {
+        event.preventDefault();
+        state.overlay = "voice";
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
