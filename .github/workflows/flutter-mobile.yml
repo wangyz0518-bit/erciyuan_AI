@@ -74,9 +74,9 @@ jobs:
       - name: Check Dart formatting
         working-directory: apps/mobile
         run: |
-          if ! dart format --output=none --set-exit-if-changed lib test; then
-            dart format lib test
-            git --no-pager diff -- lib test
+          if ! dart format --output=none --set-exit-if-changed lib test test_screenshots; then
+            dart format lib test test_screenshots
+            git --no-pager diff -- lib test test_screenshots
             exit 1
           fi
       - name: Analyze
@@ -85,6 +85,16 @@ jobs:
       - name: Unit and Widget tests
         working-directory: apps/mobile
         run: flutter test
+      - name: Render Flutter UI previews (375px)
+        working-directory: apps/mobile
+        run: flutter test --update-goldens test_screenshots/official_ui_preview_test.dart
+      - name: Upload Flutter UI preview images
+        uses: actions/upload-artifact@v4
+        with:
+          name: erciyuan-mobile-ui-preview-375px
+          path: apps/mobile/test_screenshots/goldens/*.png
+          if-no-files-found: error
+          retention-days: 7
       - name: Build Android debug APK
         working-directory: apps/mobile
         run: flutter build apk --debug
