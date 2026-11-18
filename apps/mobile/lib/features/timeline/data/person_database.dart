@@ -250,10 +250,10 @@ final class PersonDatabase {
     if (afterSequence < 0 || limit < 1 || limit > 1000) {
       throw ArgumentError('Invalid pagination');
     }
+    final contextFilter = contextOnly ? " AND status = 'complete'" : '';
     final rows = await _db.query(
       'raw_events',
-      where: 'owner_id = ? AND character_id = ? AND sequence > ?' +
-          (contextOnly ? " AND status = 'complete'" : ''),
+      where: 'owner_id = ? AND character_id = ? AND sequence > ?$contextFilter',
       whereArgs: [..._args(scope), afterSequence],
       orderBy: 'sequence ASC',
       limit: limit,
