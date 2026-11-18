@@ -12,7 +12,9 @@
 - [x] GitHub Actions Android Debug APK 构建、APK artifact 上传成功（同上 Run）
 - [ ] iOS 只有工程模板，未在 macOS/Xcode 验证；#40 单独处理
 - [x] PR #52 变更文件检查：apps/mobile/ 76 项，PoC 0 项，其他仅专属 workflow 与计划，未触碰其他开发者 PR
-- [ ] 自审和最终 CI/PR 记录齐全（合并前填写）
+- [x] 自审和最终 CI/PR 记录齐全：最终通过 [Run 44292495873](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44292495873)；PR #52 变更文件检查、来源/权限、安全和平台限制已记录。
+
+最终 CI：Flutter 3.50.0 / Java 17；`dart format` 11 files / 0 changed；`flutter analyze` 无警告；单元/Widget 测试通过；Android Debug APK 构建及 artifact 上传成功。未执行 Android 模拟器集成测试（#31 暂缓）。
 
 CI 首轮失败：格式 4 处；第二轮静态分析提示 material.dart 不适用于 Flutter 3.50；已根据日志修正为 material_ui，最新成功 Run 如上。依赖锁文件来自该成功 Run 的 flutter pub get 解析结果。iOS 构建/真机尚未测试。
 
