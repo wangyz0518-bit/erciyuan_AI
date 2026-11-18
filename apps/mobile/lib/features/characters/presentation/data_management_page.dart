@@ -86,10 +86,7 @@ class _DataManagementPageState extends State<DataManagementPage> {
           if (_message != null)
             Padding(
               padding: const EdgeInsets.only(top: 14),
-              child: Text(
-                _message!,
-                key: const ValueKey('export-status'),
-              ),
+              child: Text(_message!, key: const ValueKey('export-status')),
             ),
           if (_lastExport != null) ...[
             const SizedBox(height: 20),
