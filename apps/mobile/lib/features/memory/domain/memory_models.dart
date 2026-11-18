@@ -38,9 +38,9 @@ final class DeterministicSummarizer implements MemorySummarizer {
     for (final event in sourceEvents) {
       final content = event.content.replaceAll(RegExp(r'\s+'), ' ').trim();
       final excerpt = content.length > 180
-          ? content.substring(0, 180) + '…'
+          ? '${content.substring(0, 180)}…'
           : content;
-      lines.add(event.speaker + ': ' + excerpt);
+      lines.add('${event.speaker}: $excerpt');
       for (final match in RegExp(
         r'[a-zA-Z0-9_]+|[\u4e00-\u9fff]+',
       ).allMatches(content.toLowerCase())) {
