@@ -53,7 +53,7 @@ jobs:
           script: bash tool/run_official_ui_preview_ci.sh
       - name: Save emulator logcat
         if: always()
-        run: adb logcat -d -v time > android-official-ui-logcat.txt || true
+        run: timeout --signal=TERM --kill-after=3s 20s adb logcat -d -t 2500 -v time > android-official-ui-logcat.txt || true
       - name: Upload actual emulator UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
