@@ -410,7 +410,9 @@ final class PersonMemoryRepository {
     for (final table in ['identity_candidates', 'persona_identity_versions']) {
       final rows = await txn.query(
         table,
-        where: "owner_id = ? AND character_id = ? AND status IN ('proposed','active')",
+        where: purgeContent
+            ? "owner_id = ? AND character_id = ? AND status IN ('proposed','active','invalidated')"
+            : "owner_id = ? AND character_id = ? AND status IN ('proposed','active')",
         whereArgs: _scope(scope),
       );
       for (final row in rows) {
@@ -513,6 +515,37 @@ final class PersonMemoryRepository {
       sourceSummaryIds: List.unmodifiable(refs),
       status: 'proposed',
     );
+  }
+
+  /// Candidates are inspectable before the user approves or rejects them.
+  Future<List<PersonaCandidate>> candidatesFor(PersonScope scope) async {
+    final rows = await _db.query(
+      'identity_candidates',
+      where: 'owner_id = ? AND character_id = ?',
+      whereArgs: _scope(scope),
+      orderBy: 'created_at_utc DESC, candidate_id ASC',
+    );
+    return List.unmodifiable(rows.map((row) => PersonaCandidate(
+      candidateId: row['candidate_id'] as String,
+      scope: scope,
+      proposedJson: row['proposed_json'] as String,
+      sourceSummaryIds: List.unmodifiable(
+        (jsonDecode(row['source_summary_ids_json'] as String) as List)
+            .cast<String>(),
+      ),
+      status: row['status'] as String,
+    )));
+  }
+
+  /// Full audit versions, including invalidated versions, remain inspectable.
+  Future<List<Map<String, Object?>>> identityHistory(PersonScope scope) async {
+    final rows = await _db.query(
+      'persona_identity_versions',
+      where: 'owner_id = ? AND character_id = ?',
+      whereArgs: _scope(scope),
+      orderBy: 'version DESC',
+    );
+    return List.unmodifiable(rows);
   }
 
   /// Explicit user confirmation only; never called by archiving.
