@@ -3,8 +3,8 @@
 > 状态：**ADR-0004 与本计划已获批准；等待剩余任务批量计划统一审阅，尚未实施 #35**
 > 日期：2026-11-18
 > 前置：[#34 人物中心架构](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) 已完成（[PR #50](https://github.com/wangyz0518-bit/erciyuan_AI/pull/50)）
-> 决策门槛：[ADR-0004 提议](../docs/decisions/0004-person-centered-memory-architecture.md) 需与本计划一并由项目发起人确认
-> 记忆优先顺序：#34（完成）→ **#35（待批准）** → #36 → #47 → #38 → #39
+> 决策：项目发起人已接受 [ADR-0004](../docs/decisions/0004-person-centered-memory-architecture.md) 和本计划；开始代码前需先通过[剩余任务总计划](remaining-issues-batch-execution-20261118.md)的统一审核
+> 记忆优先顺序：#34（完成）→ **#35（已批准、未开始）** → #36 → #47 → #38 → #39
 > PR 权限：仅修改、审核、合并执行账号 `keeyangyy` 的 PR；`wangyz0518-bit` 的 #15～#24 仅只读参考。
 
 ## 1. 已批准的架构选择
