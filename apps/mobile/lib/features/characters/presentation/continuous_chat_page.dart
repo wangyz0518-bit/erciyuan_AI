@@ -219,7 +219,9 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                             onSpeak:
                                 event.speaker == 'assistant' &&
                                     event.status == 'complete'
-                                ? () => unawaited(_requestSystemSpeak(event.content))
+                                ? () => unawaited(
+                                    _requestSystemSpeak(event.content),
+                                  )
                                 : null,
                           );
                         },
