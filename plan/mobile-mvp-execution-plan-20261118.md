@@ -1,10 +1,10 @@
 # Flutter AI 陪伴 MVP 专项执行计划
 
-> 状态：2026-11-18 已批准记忆优先顺序；#25/#14 已完成，#34 为当前任务；#31 暂缓
+> 状态：2026-11-18 已批准 ADR-0004 与 #35；11 项剩余任务的批量执行总计划待统一审核；#25/#14/#34 完成；#31 暂缓
 > 日期：2026-11-18
 > 当前起点：main `bdda1714f5a467b7f3028f981777f2405316a0bc`（后续以 GitHub 实时 HEAD 为准）
 > 范围：记忆优先 #34 → #35 → #36 → #47 → #38 → #39；其余 Issue 继续保留，不删除
-> 原则：只合并执行账号 `keeyangyy` 自己提交的 PR；外部贡献者的 PR #15～#24 只读参考，不修改、合并或关闭；每完成一个 Issue，下一项须重新经项目发起人确认
+> 原则：只合并执行账号 `keeyangyy` 自己提交的 PR；外部贡献者的 PR #15～#24 只读参考，不修改、合并或关闭；统一执行总计划获批准后逐项实施、验收、自审和合并，无需逐项重审；重大范围/外部授权另行确认
 
 ## 1. 目的与范围
 
@@ -13,7 +13,7 @@
 执行顺序：
 
 1. **已完成**：[Issue #25 协作基线](https://github.com/wangyz0518-bit/erciyuan_AI/issues/25)、[Issue #14 人物中心首页原型](https://github.com/wangyz0518-bit/erciyuan_AI/issues/14)。
-2. **记忆优先主线（已授权顺序）**：[Issue #34 架构](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) → [#35 最小正式工程](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) → [#36 人物时间线和导出](https://github.com/wangyz0518-bit/erciyuan_AI/issues/36) → [#47 离线可测试的三层记忆引擎](https://github.com/wangyz0518-bit/erciyuan_AI/issues/47) → [#38 AI/后端设计](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38) → [#39 真实文字模型接入与记忆联调](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39)。
+2. **记忆优先主线（既定优先顺序；总计划批准后逐项连续执行）**：[Issue #34 架构](https://github.com/wangyz0518-bit/erciyuan_AI/issues/34) → [#35 最小正式工程](https://github.com/wangyz0518-bit/erciyuan_AI/issues/35) → [#36 人物时间线和导出](https://github.com/wangyz0518-bit/erciyuan_AI/issues/36) → [#47 离线可测试的三层记忆引擎](https://github.com/wangyz0518-bit/erciyuan_AI/issues/47) → [#38 AI/后端设计](https://github.com/wangyz0518-bit/erciyuan_AI/issues/38) → [#39 真实文字模型接入与记忆联调](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39)。
 3. **暂缓**：[Issue #31 模拟器 CI](https://github.com/wangyz0518-bit/erciyuan_AI/issues/31)。其早期 PR #32 仍开放，计划 PR #49 仍为 Draft，均不在记忆主线期间修改/合并/关闭；回到 #31 前重新提交计划。
 4. **其他后续**：正式 UI #37、iOS #40、Android 真机 #41、音频 #42、ASR/TTS #43、形象 #44；保留原 Issue，按主线完成情况重新提交计划获确认后执行。
 
@@ -21,8 +21,8 @@
 
 ## 1.1 记忆优先的完成边界与依赖解耦
 
-- #34 只交付经自审的架构设计、模块/数据契约、部署边界与 PoC 迁移方案，不写正式工程业务代码。
-- #35 建立可运行最小 Flutter 正式工程（含可测试核心层）；#36 提供原始数据持久化与可导出结构。
+- #34 已通过 [PR #50](https://github.com/wangyz0518-bit/erciyuan_AI/pull/50) 完成设计交付；[ADR-0004](../docs/decisions/0004-person-centered-memory-architecture.md) 的方案 2 已于 2026-11-18 获用户明确批准。
+- #35 计划见 [issue-35-mobile-foundation-plan-20261118.md](issue-35-mobile-foundation-plan-20261118.md)，该计划已批准；但依用户最新执行模式要求，先统一审核[剩余任务批量执行总计划](remaining-issues-batch-execution-20261118.md)，再开始工程实施。#36 提供原始数据持久化与可导出结构。
 - #47 **先实现供应商无关的离线记忆内核**：使用可替换的本地确定性摘要器/Mock、时间线归档、来源索引、人物身份变更审核、上下文装配及自动化测试；不依赖真实模型服务就能验收这部分功能。真实模型效果和缓存命中率只记录为“待 #38/#39 联调”，不能宣称通过。
 - #38 在 #47 的接口边界上确定部署、供应商、鉴权/多用户隔离和可观测性；#39 对已实现的记忆内核接入真实 LLM 并实测检索质量、延迟、Token、缓存与费用。#39 的服务/控制器/测试可以先无完整 Flutter 聊天 UI；正式交互 UI 由后续 #37 承接，避免循环依赖。
 - **依赖图无环**：#34 → #35 → #36 → #47 → #38 → #39。#37 依赖 #35/#36（完整 AI 接入可在 #39 后做 UI 联调），不作为 #39 的前置条件。
@@ -362,10 +362,10 @@
                     └── #37 正式人物/聊天 UI（后续独立计划）
 
 #40 iOS、#41 Android 真机、#42 音频、#43 ASR/TTS、#44 形象动画：
-保留原 Issue，不阻塞当前记忆主线，后续单独确认。
+保留原 Issue，不阻塞当前记忆主线；已列入[剩余任务批量执行计划](remaining-issues-batch-execution-20261118.md)，待其统一审核后连续实施。
 ```
 
-上述为现阶段实施顺序和依赖边界；每完成一项 Issue，下一项计划仍需项目发起人确认。若外部设备、服务或安全/许可条件阻塞，必须记录真实证据并请求调整，不得用模拟结果冒充生产能力。
+上述为现阶段实施顺序和依赖边界；若剩余任务批量计划获项目发起人批准，则每完成一项 Issue 不再逐项等待确认。若外部设备、服务或安全/许可条件阻塞，必须记录真实证据并请求必要授权，不得用模拟结果冒充生产能力。
 
 ## 7. Issue / PR 执行规则
 
@@ -376,13 +376,13 @@
 - PR 自审需记录变更范围、已复用资产、测试、已知限制和剩余风险；自审不等同于外部人员 Review。
 - PR 权限特例由项目发起人于 2026-11-18 明确：只操作 `keeyangyy` 的 PR；仓库所有者 `wangyz0518-bit` 的 PR #15～#24 本轮也只作为阅读参考，不修改、合并或关闭。
 - 合并前必须核对所有必需 CI、代码差异、冲突、Review 意见和 Issue 验收。
-- 每完成一个 Issue，更新 Issue 与本计划，再把下一项计划提交给项目发起人确认；未确认前不启动下一项长任务。
+- 批量总计划获批后，每完成一个 Issue 更新 Issue 与验证证据，接着实施其下一项；无需逐项申请批准。外部付费、生产部署、真实设备和许可等保留单独授权门槛。
 - 不使用强推覆盖他人分支，不在他人 PR 上直接修改，不关闭他人 PR。
 
 ## 8. 当前状态快照（2026-11-18）
 
-- #25、#14 已完成并关闭；#34 当前获准实施。
+- #25、#14、#34 已完成并关闭；#34 的 PR #50 已合并，#35 仅提交执行计划草案、尚未实施。
 - #31 处于暂缓状态；PR #32 开放且未合并，PR #49 为本执行账号的 Draft 计划，均保持不动。
 - A～K 为 Issue #34～#44；记忆 L 为 [#47](https://github.com/wangyz0518-bit/erciyuan_AI/issues/47)，其核心验收提前至 #38/#39 之前。
 - PR #15～#24 属于 `wangyz0518-bit`，全部只读参考，不作写操作。
-- 每一项 Issue 完成后暂停，提交下一项计划请用户确认。
+- 用户已接受 ADR-0004 和 #35 计划；其余 11 项统一列出供审核，未获批之前不开始工程。获批后逐项实施并在最后集中交付报告。
