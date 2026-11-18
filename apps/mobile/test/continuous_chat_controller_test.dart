@@ -36,67 +36,76 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test('offline send persists one real user and one clearly marked mock reply', () async {
-    final chat = ContinuousChatController(
-      database: database,
-      scope: star,
-      characterName: '星',
-    );
-    await chat.load();
-    await chat.send('今天怎样');
-    expect(chat.isMock, isTrue);
-    expect(chat.events, hasLength(2));
-    expect(chat.events.first.speaker, 'user');
-    expect(chat.events.last.speaker, 'assistant');
-    expect(chat.events.last.content, contains('离线 Mock'));
-    expect(await database.rawEventsFor(scope: moon), isEmpty);
-    chat.dispose();
-  });
+  test(
+    'offline send persists one real user and one clearly marked mock reply',
+    () async {
+      final chat = ContinuousChatController(
+        database: database,
+        scope: star,
+        characterName: '星',
+      );
+      await chat.load();
+      await chat.send('今天怎样');
+      expect(chat.isMock, isTrue);
+      expect(chat.events, hasLength(2));
+      expect(chat.events.first.speaker, 'user');
+      expect(chat.events.last.speaker, 'assistant');
+      expect(chat.events.last.content, contains('离线 Mock'));
+      expect(await database.rawEventsFor(scope: moon), isEmpty);
+      chat.dispose();
+    },
+  );
 
-  test('mock cancellation saves user input but never partial assistant answer', () async {
-    final chat = ContinuousChatController(
-      database: database,
-      scope: star,
-      characterName: '星',
-    );
-    final sending = chat.send('可取消');
-    // Chat enters a pending state synchronously before the SQLite calls.
-    expect(chat.isSending, isTrue);
-    await chat.cancel();
-    await sending;
-    expect(chat.isSending, isFalse);
-    expect(chat.events.where((e) => e.speaker == 'user'), hasLength(1));
-    expect(chat.events.where((e) => e.speaker == 'assistant'), isEmpty);
-    expect(chat.canRetry, isTrue);
-    await chat.retry();
-    expect(chat.events.where((e) => e.speaker == 'user'), hasLength(1));
-    expect(chat.events.where((e) => e.speaker == 'assistant'), hasLength(1));
-    chat.dispose();
-  });
+  test(
+    'mock cancellation saves user input but never partial assistant answer',
+    () async {
+      final chat = ContinuousChatController(
+        database: database,
+        scope: star,
+        characterName: '星',
+      );
+      final sending = chat.send('可取消');
+      // Chat enters a pending state synchronously before the SQLite calls.
+      expect(chat.isSending, isTrue);
+      await chat.cancel();
+      await sending;
+      expect(chat.isSending, isFalse);
+      expect(chat.events.where((e) => e.speaker == 'user'), hasLength(1));
+      expect(chat.events.where((e) => e.speaker == 'assistant'), isEmpty);
+      expect(chat.canRetry, isTrue);
+      await chat.retry();
+      expect(chat.events.where((e) => e.speaker == 'user'), hasLength(1));
+      expect(chat.events.where((e) => e.speaker == 'assistant'), hasLength(1));
+      chat.dispose();
+    },
+  );
 
-  test('reload and independent controller read the same durable timeline', () async {
-    final first = ContinuousChatController(
-      database: database,
-      scope: moon,
-      characterName: '月',
-    );
-    await first.send('月的秘密');
-    first.dispose();
-    final reopened = ContinuousChatController(
-      database: database,
-      scope: moon,
-      characterName: '月',
-    );
-    await reopened.load();
-    expect(reopened.events.first.content, '月的秘密');
-    final other = ContinuousChatController(
-      database: database,
-      scope: star,
-      characterName: '星',
-    );
-    await other.load();
-    expect(other.events, isEmpty);
-    reopened.dispose();
-    other.dispose();
-  });
+  test(
+    'reload and independent controller read the same durable timeline',
+    () async {
+      final first = ContinuousChatController(
+        database: database,
+        scope: moon,
+        characterName: '月',
+      );
+      await first.send('月的秘密');
+      first.dispose();
+      final reopened = ContinuousChatController(
+        database: database,
+        scope: moon,
+        characterName: '月',
+      );
+      await reopened.load();
+      expect(reopened.events.first.content, '月的秘密');
+      final other = ContinuousChatController(
+        database: database,
+        scope: star,
+        characterName: '星',
+      );
+      await other.load();
+      expect(other.events, isEmpty);
+      reopened.dispose();
+      other.dispose();
+    },
+  );
 }
