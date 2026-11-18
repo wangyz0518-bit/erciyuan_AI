@@ -17,7 +17,7 @@ class AvatarFallbackScene extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: characterName + '静态角色占位，Live2D 未配置',
+    label: '${characterName}静态角色占位，Live2D 未配置',
     child: AnimatedScale(
       key: const ValueKey('avatar-fallback-motion'),
       duration: const Duration(milliseconds: 280),
