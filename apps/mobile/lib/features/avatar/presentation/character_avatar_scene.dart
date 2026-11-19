@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path_provider/path_provider.dart';
@@ -59,7 +60,7 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
     super.initState();
     _visible = this;
     WidgetsBinding.instance.addObserver(this);
-    if (Platform.isAndroid) unawaited(_attach());
+    if (!kIsWeb && Platform.isAndroid) unawaited(_attach());
   }
 
   Future<void> _attach() => _queue(() async {

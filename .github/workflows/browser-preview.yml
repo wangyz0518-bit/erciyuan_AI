@@ -1,0 +1,47 @@
+name: Companion browser preview
+on:
+  pull_request:
+    paths: ['apps/mobile/**', 'packages/live2d_avatar/**', '.github/workflows/browser-preview.yml']
+  push:
+    branches: [main]
+    paths: ['apps/mobile/**', 'packages/live2d_avatar/**', '.github/workflows/browser-preview.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: companion-pages-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          cache: true
+      - working-directory: apps/mobile
+        run: |
+          flutter pub get
+          dart run sqflite_common_ffi_web:setup
+          flutter build web --release --target lib/main_preview.dart --base-href /erciyuan_AI/ --no-web-resources-cdn
+          test -s build/web/sqlite3.wasm
+          test -s build/web/sqflite_sw.js
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: apps/mobile/build/web
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - id: publish
+        uses: actions/deploy-pages@v4

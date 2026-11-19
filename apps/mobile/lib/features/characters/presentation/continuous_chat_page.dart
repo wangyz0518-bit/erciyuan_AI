@@ -1,5 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../../audio/data/reply_player.dart'
+    if (dart.library.js_interop) '../../../web/browser_pcm.dart';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../audio/application/audio_session_controller.dart';
@@ -73,7 +78,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     _voice = widget.voiceAssist ?? createDeviceVoiceAssist();
     _roleSpeech = widget.gateway?.createSpeechPlayback(
       widget.scope,
-      NativePcmPlayback(
+      createReplyPlayer(
         inCall: () => (_call?.calling ?? false) && !(_call?.muted ?? false),
       ),
     );
@@ -216,7 +221,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
       builder: (dialog) => AlertDialog(
         title: const Text('选择语音交流方式'),
         content: const Text(
-          '两种模式都会把语音发给识别服务，可能产生费用。按住模式在松开后发送，可滑出取消。连续通话会持续收音、在停顿后发送并用角色音色回答，可以插话或挂断。演示服务使用固定转写和测试音。',
+          kIsWeb ? '按住麦克风时，小段语音会经本机网关送到百炼识别。松开后发送，滑出可取消本条消息。' : '两种模式都会把语音发给识别服务，可能产生费用。按住模式在松开后发送，可滑出取消。连续通话会持续收音、在停顿后发送并用角色音色回答，可以插话或挂断。演示服务使用固定转写和测试音。',
         ),
         actions: [
           TextButton(
@@ -227,10 +232,11 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
             onPressed: () => Navigator.pop(dialog, 'hold'),
             child: const Text('启用按住说话'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialog, 'call'),
-            child: const Text('开始连续通话'),
-          ),
+          if (!kIsWeb)
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog, 'call'),
+              child: const Text('开始连续通话'),
+            ),
         ],
       ),
     );
@@ -264,7 +270,19 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialog, true),
+            onPressed: () async {
+              try {
+                await unlockReplyPlayer(_roleSpeech?.player);
+                if (dialog.mounted) Navigator.pop(dialog, true);
+              } catch (_) {
+                if (dialog.mounted) Navigator.pop(dialog, false);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请允许浏览器播放声音后再开启朗读')),
+                  );
+                }
+              }
+            },
             child: const Text('开启角色朗读'),
           ),
         ],
@@ -541,8 +559,14 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
           ),
         ),
         const SizedBox(width: 8),
-        _recordButton(),
-        _recognizeButton(),
+        if (!kIsWeb || _holdToSend) _recordButton(),
+        if (!kIsWeb) _recognizeButton(),
+        if (kIsWeb && !_holdToSend)
+          IconButton(
+            tooltip: '启用按住说话',
+            onPressed: _chooseVoiceInput,
+            icon: const Icon(Icons.mic_none, color: Colors.white),
+          ),
         const SizedBox(width: 6),
         IconButton.filled(
           key: const ValueKey('send-message'),
