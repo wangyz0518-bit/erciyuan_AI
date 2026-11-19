@@ -134,7 +134,7 @@ class CharacterReplyPlayback extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    unawaited(stop());
+    unawaited(stop().whenComplete(player.dispose));
     super.dispose();
   }
 }

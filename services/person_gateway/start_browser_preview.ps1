@@ -22,6 +22,9 @@ $env:PERSON_ASR_MODE = 'live'
 $env:PERSON_VOICE_MODE = 'live'
 $env:PERSON_GATEWAY_CHARACTERS = 'star,moon'
 $env:COMPANION_PREVIEW_PAGE = $Page
+if (-not $env:GATEWAY_VOICE_PROXY -and $env:HTTPS_PROXY) {
+    $env:GATEWAY_VOICE_PROXY = $env:HTTPS_PROXY
+}
 $env:NO_PROXY = (@($env:NO_PROXY) + @('localhost','127.0.0.1','api.deepseek.com','dashscope.aliyuncs.com','maas.aliyuncs.com')) -join ','
 $folder = New-Item -ItemType Directory -Path $RuntimeDirectory -Force
 $env:PERSON_GATEWAY_LEDGER = Join-Path $folder.FullName 'preview.sqlite'

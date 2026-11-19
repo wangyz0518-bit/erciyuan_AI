@@ -6,6 +6,10 @@
 </style></head><body><main id="welcome"><h1>星伴</h1><p id="state">与小星对话，听她用已绑定的声音回答。</p>
 <a id="link" href="http://127.0.0.1:18791/start">连接本机，进入聊天</a><small>请在运行网关的电脑上打开。首次连接时，请允许浏览器访问本地网络。</small></main>
 <script>
+addEventListener('flutter-first-frame', () => document.getElementById('welcome')?.remove(), {once:true});
+addEventListener('hashchange', () => {
+  if (new URLSearchParams(location.hash.slice(1)).has('grant')) location.reload();
+});
 (async () => {
   const base='http://127.0.0.1:18791', fragment=new URLSearchParams(location.hash.slice(1));
   const grant=fragment.get('grant');

@@ -10,7 +10,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse, RedirectResponse
 
 from character_speech import CharacterSpeech
-from gateway import Settings, create_app
+from gateway import DeepSeekProvider, Settings, create_app
 
 
 class BrowserPreview:
@@ -118,7 +118,8 @@ def preview_app():
     if settings.mode != "live" or speech.mode != "live":
         raise RuntimeError("Browser preview requires live text and live character speech")
     speech.binding("local-dev-owner", "star")
-    return BrowserPreview(create_app(settings, speech=speech), token,
+    provider = DeepSeekProvider(settings.deepseek_api_key, model=os.environ.get("DEEPSEEK_MODEL", "deepseek-flash"))
+    return BrowserPreview(create_app(settings, provider=provider, speech=speech), token,
                           os.environ.get("COMPANION_PREVIEW_PAGE", "https://wangyz0518-bit.github.io/erciyuan_AI/"), 18791)
 
 
