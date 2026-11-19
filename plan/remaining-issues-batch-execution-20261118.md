@@ -126,3 +126,25 @@
 - #42 正式音频代码与 Android 模拟器回归已合并，真实听音/iOS 未验收。
 - #39 的真实模型联调仍需真实凭据、成本与隐私授权；端到端离线模拟不能替代。
 - #43/#44 保持平台、角色音色/模型许可的未验收边界；不把系统 TTS 或静态图标当作人物专属语音或 Live2D。
+
+
+## 任务会话 6 阶段边界更新（2026-11-19）
+
+本文件前文是 2026-11-18 的技术路线历史快照；当前阶段的真实状态以 [批次交付与结项报告](batch-delivery-report-20261119.md) 文末的「任务会话 6 当前阶段结项」为准。
+
+### 当前阶段结论
+
+- 当前阶段四个目标 Issue **#39、#42、#43、#44 全部已关闭**，关闭说明分别记录本阶段实际交付范围与下一阶段移交项。
+- #40 iOS Simulator 工具链已关闭（此前已有实际 iOS Simulator 成功证据）；#41 Android 真机原 Issue 已按阶段拆分关闭，真实设备验收目标已迁移至 #78。两项都不代表 Android/iPhone 物理设备验收完成。
+- 当前阶段已交付的主要 PR：#57、#63、#64、#65、#66、#68、#71、#72、#73、#76、#81 均已合并；#81 合并提交为 `8baf687bd3ef554ab9d942674db6f4770512bfaa`，完成 ASR listening/TTS speaking 与人物静态场景状态联动。
+- [PR #70](https://github.com/wangyz0518-bit/erciyuan_AI/pull/70) 是当前阶段唯一仍开放的自有代码 PR，head `32df3b6fc8eac99ce92a6d411767197be862eb84`。Flutter 官方验证、Python gateway 离线测试、Android APK 与 Android 模拟器集成已成功；iOS macOS-15 job [#44524321399](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321399) 仍 queued 且无 runner 分配，因此 PR 不合并，待 iOS Simulator 真正编译/运行成功后再合并。
+
+### 下一阶段剩余任务（仅 3 个开放 Issue）
+
+| Issue | 范围 | 明确不属于当前阶段 |
+| --- | --- | --- |
+| [#78](https://github.com/wangyz0518-bit/erciyuan_AI/issues/78) | Android/iPhone 物理设备安装、导航、SQLite 恢复、中文输入/返回键/后台、真实录音/播放/PCM end-drain/路由/中断、ASR/TTS 真实设备效果；若 PR #70 iOS macOS CI 仍无法分配 runner，先在可用 Mac/Xcode 主机补模拟器构建与 MethodChannel 回归 | 不能把模拟器或 CI 脚本存在当成真机通过 |
+| [#79](https://github.com/wangyz0518-bit/erciyuan_AI/issues/79) | 经批准的真实 LLM/ASR/TTS 供应商调用、Token/费用/质量/时延、用户数据上传授权、角色 voice profile/声音授权/删除、真实供应商 PCM 分片与 NativePcmPlayback 对接 | 当前不调用外部 API，不产生费用，不上传真实私人聊天/录音 |
+| [#80](https://github.com/wangyz0518-bit/erciyuan_AI/issues/80) | Cubism SDK/Core 许可、授权角色模型、正式 ZIP 导入安装/替换/回滚、Flutter Live2D 渲染、动作/表情/生命周期及双平台验证 | 当前静态形象、manifest/ZIP 预检和语义状态动画不等于正式 Live2D |
+
+当前阶段的代码和离线/模拟器测试与真实设备、真实服务、第三方 SDK/模型授权明确分离。下一阶段三个 Issue 保持开放；PR #70 在 iOS CI 证据补齐前保持开放，不因 Issue 关闭而自动合并。
