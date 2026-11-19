@@ -65,6 +65,7 @@ for file in "$SCREENSHOTS"/*.png; do
   sha256sum "$file"
 done
 
-# Device tests are additional evidence, not a replacement for widget tests.
-timeout --signal=TERM --kill-after=10s 540s flutter test integration_test/acceptance_test.dart -d "$ANDROID_SERIAL" --reporter expanded
-timeout --signal=TERM --kill-after=10s 360s flutter test integration_test/storage_failure_test.dart -d "$ANDROID_SERIAL" --reporter expanded
+# Run all native integration suites in one runner session, including the
+# actual PCM MethodChannel sink. A single invocation avoids repeated
+ # XCTest/VM service attach cycles and bounds the total integration time.
+timeout --signal=TERM --kill-after=10s 900s flutter test integration_test -d "$ANDROID_SERIAL" --reporter expanded --timeout 5m

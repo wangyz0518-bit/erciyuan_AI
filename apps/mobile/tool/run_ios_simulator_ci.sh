@@ -49,8 +49,22 @@ test -s "$ARTIFACTS/ios-person-home.png"
 # present. On a base revision predating #37, record the missing suite;
 # #40 cannot be closed until the post-#37 integration run actually succeeds.
 if [[ -f integration_test/acceptance_test.dart ]]; then
-  flutter test integration_test/acceptance_test.dart -d "$SIM_ID" --reporter expanded
-  flutter test integration_test/storage_failure_test.dart -d "$SIM_ID" --reporter expanded
+  # PR #70: run all integration suites in one invocation, including the native PCM sink. A second
+  # flutter test process against the same booted iOS Simulator can leave the
+  # XCTest/VM service attach waiting indefinitely after the first suite.
+  # Bound each suite and the whole run so CI reports a useful failure
+  # instead of consuming the full 60-minute macOS job timeout.
+  SIM_ID="$SIM_ID" python3 - <<'PY'
+import subprocess
+try:
+    subprocess.run(
+        ["flutter", "test", "integration_test", "-d", __import__("os").environ["SIM_ID"], "--reporter", "expanded", "--timeout", "5m"],
+        check=True,
+        timeout=20 * 60,
+    )
+except subprocess.TimeoutExpired:
+    raise SystemExit("iOS integration suite exceeded 20-minute safety timeout")
+PY
 else
   echo "NOTICE: official integration tests are absent on this baseline; simulator launch only is verified"
 fi
