@@ -49,3 +49,35 @@
 ## 结果定义
 
 “已提交代码”、“已合并 PR”、“自动化 CI 成功”、“Android 模拟器运行”、“iOS 模拟器运行”、“Android/iPhone 物理真机”、“真实付费模型”、“许可合规”分别记录。任何一项不能代替另一项。所有开放的验收条件继续由各 Issue 跟踪。
+
+## 任务会话 6 追加核验（2026-11-19，原批次之上的后续记录）
+
+> 以上章节保留任务会话 5 的历史状态快照。本节反映后来实际发生的 GitHub 合并、iOS 验收和仍未满足的条件，不覆盖旧证据。此时 main 基线为 `f1d3be69fa1904e03422160f5327d2cdfdfc3e01`。
+
+### 新增主线交付及验证
+
+| Issue | PR / main commit | 完成范围与证据 | 验收结论 |
+| --- | --- | --- | --- |
+| #42 | [#68](https://github.com/wangyz0518-bit/erciyuan_AI/pull/68)，`07eb9b8a3bda610f3ec02ffa3a112ec57c0b5dd2` | 60 秒上限及计时器取消、自动停止保留试听、重复结束幂等；[Flutter](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44374453211) 与 [Android 模拟器](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44374453167) 通过 | 尚未双端真机录音/回听 |
+| #44 | [#71](https://github.com/wangyz0518-bit/erciyuan_AI/pull/71)，`9a73d01481beda1ede80f7d4c50e52489e786959` | 离线、只读 ZIP 包结构/文件数量/大小/路径/重复项/符号链接/CRC/JSON 重复键预检；[Flutter CI](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44472898047)、[Android 模拟器](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44472898136) 均成功 | 非 Flutter 包导入器或授权 Live2D |
+| #39 | [#73](https://github.com/wangyz0518-bit/erciyuan_AI/pull/73)，`7ef98e7ffdeaf372970a85da89292f8a7fe1f367` | 修复模型请求在 ledger 已 claim 后、SSE 尚未迭代时取消仍可能启动 Provider 的竞态；[Gateway CI](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44474006378)、[Flutter CI](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44474006457) 通过 | 假 Provider 调用次数为零，未做真实付费调用 |
+| #43 | [#72](https://github.com/wangyz0518-bit/erciyuan_AI/pull/72)，`be43bc7e7530712811c526b7a974d5fc61dbbfb8` | 设备 ASR 开始时立即清除被中断系统 TTS 的旧状态，测试迟到回调；[Flutter CI](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44473560920)、[Android 模拟器](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44473560904) 通过 | 非角色专属声音、无真机听感 |
+| #40 | [#74](https://github.com/wangyz0518-bit/erciyuan_AI/pull/74)，`f1d3be69fa1904e03422160f5327d2cdfdfc3e01` | 将实际 iOS Simulator 成功记录写回 [#40 计划](issue-40-ios-simulator-verification-20261118.md) | **Issue #40 已关闭**，不代表 iPhone 签名/真机 |
+
+**iOS 模拟器成功证据**：
+
+- [main iOS run #44471228989](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44471228989) 在 `07eb9b8a` 上 **success**：Xcode/Flutter 构建 Runner.app、iPhone 16 Pro Simulator boot/install/launch/实际截图、`acceptance_test.dart` 与 `storage_failure_test.dart` 均输出 `All tests passed!`；截图/App artifact ID 14504846550。
+- [main iOS run #44474070987](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44474070987) 在 `9a73d014` 上再次 **success**，实际日志亦确认两个集成套件分别 `All tests passed!`。这两条是可复查的正式 iOS 模拟器验收，不是此前的 runner cancelled 状态。
+- 后续部分 macOS 作业虽能编译和运行第一项测试，仍可能在第二个 Flutter 集成测试启动时卡住并被作业超时取消；取消作业不视为第二项成功。排查与音频增量分别追踪。
+
+**待合并/独立复测**：[#70](https://github.com/wangyz0518-bit/erciyuan_AI/pull/70) 属于 #42，选择性复用现有 PoC 的 Swift `ConversationPlayer`（仅 AVAudioEngine PCM16LE 24 kHz 输出，不复用受限制模型、ONNX 或云供应商代码），接到正式 iOS Runner 的 Flutter channel。其 [Flutter](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44472978741) 和 [Android 模拟器](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44472978755) 成功；首次 [iOS run](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44472978608) 显示 Xcode 编译/安装/截图/首个集成测试成功，但第二套件执行阶段超时取消，**不得认定 #70 全套 iOS CI 已成功**。已发起重跑，合并前再次核验最新提交和检查。
+
+### 尚未关闭的五项及精确阻塞
+
+- **#39**：真实且经批准的 DeepSeek/同级模型凭据、成本预算、上传内容与隐私授权、完整实际 SSE/记忆联调。只执行了 MockTransport，无供应商费用。
+- **#41**：可连接物理 Android 手机以及型号/系统版本、安装、中文输入、Back、后台、权限与 SQLite 恢复实测；模拟器绝不能充当真机。
+- **#42**：双端真实录音和音频路由/中断/试听质量、iOS Swift PCM 编译与实机音频验证（#70）；尚不能宣称主观听感。
+- **#43**：角色专属音色来源/明确授权/撤销与删除流程，以及 Android/iOS 真实 ASR/TTS 中文准确率、延迟、网络策略和听感。
+- **#44**：Cubism Core 和模型包合法分发许可、正式 Flutter 导入/回滚和 Native 渲染集成、双端动作/生命周期验收。ZIP 预检不是安装器，静态人物不是 Live2D。
+
+本批新合并的功能均保持按 `owner_id + character_id` 隔离的单人物持续时间线设计，不附加个人审批规则到公共仓库规范。未获取付费模型凭据、未部署服务、未上传私人数据、未引入不明确授权的 Cubism SDK 或角色素材。
