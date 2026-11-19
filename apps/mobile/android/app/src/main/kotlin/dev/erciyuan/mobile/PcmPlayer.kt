@@ -41,6 +41,8 @@ class PcmPlayer(messenger: BinaryMessenger) {
                 stop()
                 val id = call.argument<String>("id") ?: ""
                 val buffer = call.argument<Int>("bufferMs") ?: 400
+                val usage = if (call.argument<Boolean>("communication") == true)
+                    AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA
                 if (id.isEmpty() || buffer !in 100..1000) {
                     result.error("INVALID_PCM", "Invalid stream", null)
                 } else {
@@ -53,7 +55,7 @@ class PcmPlayer(messenger: BinaryMessenger) {
                             val size = maxOf(AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_MONO,
                                 AudioFormat.ENCODING_PCM_16BIT), rate * 2 / 2)
                             val created = AudioTrack.Builder()
-                                .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setAudioAttributes(AudioAttributes.Builder().setUsage(usage)
                                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
                                 .setAudioFormat(AudioFormat.Builder().setSampleRate(rate)
                                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
