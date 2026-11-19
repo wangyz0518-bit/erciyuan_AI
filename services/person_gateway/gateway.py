@@ -564,12 +564,15 @@ def create_app(settings: Settings | None = None, provider: Provider | None = Non
             app.state.active_requests[key] = cancel_event
             provider_task: asyncio.Task | None = None
             cancel_task: asyncio.Task | None = None
-            yield frame("message.started", character_id=character_id)
             queue: asyncio.Queue[tuple[str, object]] = asyncio.Queue()
             buffer = ""
 
             async def pump_provider() -> None:
                 try:
+                    # Cancellation can arrive before the SSE generator is resumed.
+                    # Never begin a provider request once its cancellation is known.
+                    if cancel_event.is_set():
+                        return
                     async for chunk in selected.stream(messages):
                         if not isinstance(chunk, str):
                             raise ModelFailure("MODEL_PROTOCOL_ERROR")
@@ -581,6 +584,20 @@ def create_app(settings: Settings | None = None, provider: Provider | None = Non
                     await queue.put(("error", exc))
 
             try:
+                # The request is claimed before StreamingResponse starts iteration.
+                # A cancellation in that gap must not open a paid provider stream.
+                current = await ledger.status(owner, character_id, turn.request_id)
+                if current["status"] != "running" or cancel_event.is_set():
+                    yield frame(
+                        "turn.status",
+                        character_id=character_id,
+                        status=current["status"],
+                        content=current["content"],
+                        code=current["error"],
+                    )
+                    return
+
+                yield frame("message.started", character_id=character_id)
                 provider_task = asyncio.create_task(pump_provider())
                 cancel_task = asyncio.create_task(cancel_event.wait())
                 while True:
