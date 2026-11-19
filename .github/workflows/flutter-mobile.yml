@@ -71,6 +71,9 @@ jobs:
       - name: Install dependencies
         working-directory: apps/mobile
         run: flutter pub get
+      - name: Avatar ZIP archive security preflight regression
+        working-directory: apps/mobile
+        run: python3 -m unittest discover -s tool -p 'test_avatar_zip_preflight.py' -v
       - name: Check Dart formatting
         working-directory: apps/mobile
         run: |
