@@ -25,7 +25,11 @@ $env:COMPANION_PREVIEW_PAGE = $Page
 if (-not $env:GATEWAY_VOICE_PROXY -and $env:HTTPS_PROXY) {
     $env:GATEWAY_VOICE_PROXY = $env:HTTPS_PROXY
 }
-$env:NO_PROXY = (@($env:NO_PROXY) + @('localhost','127.0.0.1','api.deepseek.com','dashscope.aliyuncs.com','maas.aliyuncs.com')) -join ','
+$bypass = @($env:NO_PROXY -split ',' | Where-Object { $_ })
+if ($env:HTTPS_PROXY) {
+    $bypass = @($bypass | Where-Object { $_.Trim() -notmatch '^(\*|.*deepseek\.com)$' })
+}
+$env:NO_PROXY = ($bypass + @('localhost', '127.0.0.1')) -join ','
 $folder = New-Item -ItemType Directory -Path $RuntimeDirectory -Force
 $env:PERSON_GATEWAY_LEDGER = Join-Path $folder.FullName 'preview.sqlite'
 $process = Start-Process -FilePath $Python -ArgumentList 'browser_preview.py' -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -PassThru -RedirectStandardError (Join-Path $folder.FullName 'preview-stderr.log') -RedirectStandardOutput (Join-Path $folder.FullName 'preview-stdout.log')
