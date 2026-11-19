@@ -81,3 +81,9 @@
 - **#44**：Cubism Core 和模型包合法分发许可、正式 Flutter 导入/回滚和 Native 渲染集成、双端动作/生命周期验收。ZIP 预检不是安装器，静态人物不是 Live2D。
 
 本批新合并的功能均保持按 `owner_id + character_id` 隔离的单人物持续时间线设计，不附加个人审批规则到公共仓库规范。未获取付费模型凭据、未部署服务、未上传私人数据、未引入不明确授权的 Cubism SDK 或角色素材。
+
+### 任务会话 6 后续增量与合并前 CI 状态
+
+- **#41 / [PR #76](https://github.com/wangyz0518-bit/erciyuan_AI/pull/76) 已合并**：main `3bc8e64a4c1bbac58a8240723f8e707c071b41c3`。对显式提供的 ADB 序列号增加 `get-state == device` 授权检查，避免离线/未授权设备进入 Flutter 构建；Linux GitHub Actions 运行假的 ADB/Flutter 进行五种拒绝路径回归。[Flutter 官方验证 #44510713171](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44510713171) 和 [Android 模拟器 #44510713477](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44510713477) **success**。这不提供实际连接物理手机的证据，#41 保持开放；[具体计划](issue-41-android-physical-acceptance-20261118.md) 已补录。
+- **#42 / [PR #70](https://github.com/wangyz0518-bit/erciyuan_AI/pull/70) 未合并**：首次 macOS iOS 工作流确实编译 Swift、启动模拟器、截图且第一项集成测试通过，第二项 Flutter 测试超时导致 job `cancelled`。随后请求的第二次重跑在执行步骤之前取消、没有可取得的 job log；已再请求第三次运行，当前仍等待 macOS 运行器。**不得将部分测试成功或排队当作完整 iOS 通过**。Android/Flutter CI 成功不等于新 iOS PCM 真机声音已验收。
+- 其他仍开放 Issue 继续保持上一节标出的外部依赖。不额外消耗付费 API，不在缺少真实设备或许可时伪造通过，也不关闭不满足验收条件的任务。
