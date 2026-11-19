@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' if (dart.library.js_interop) '../../../web/browser_http.dart';
 
 import '../../characters/domain/character.dart';
 import '../../audio/domain/audio_ports.dart';

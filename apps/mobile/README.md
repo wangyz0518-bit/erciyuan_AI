@@ -50,6 +50,12 @@ Android 形象测试在 `integration_test/character_avatar_test.dart`。默认�
 
 ## Storage
 
+### 浏览器体验
+
+[打开 GitHub Pages 体验版](https://wangyz0518-bit.github.io/erciyuan_AI/)。页面复用正式 Flutter 聊天、SQLite 人物时间线和内置动态形象。请在运行本机网关的电脑上使用 Edge 或 Chrome，点击“连接本机，进入聊天”。选择小星，打开聊天页右上角的角色朗读，再发送消息。麦克风按钮可启用按住说话。
+
+网关入口为 `services/person_gateway/start_browser_preview.ps1`，从已有本地 DPAPI 配置与音色目录启动。传入 `-KeyRoot`、`-VoiceConfigRoot`、`-VoiceCatalog`、`-RuntimeDirectory` 及装有网关依赖的 `-Python`。它监听本机回环端口 18791。GitHub 托管网页，DeepSeek 回复和 CosyVoice 克隆朗读由本机网关请求。浏览器聊天记录由本站的 IndexedDB 保存。关闭本机网关后，网页会提示重新连接。
+
 Architecture: `lib/bootstrap.dart` owns object assembly, UI under
 `features/characters/presentation/` observes
 `features/characters/application/`; domain owns `PersonScope` and the

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io'
+    if (dart.library.js_interop) '../../../web/browser_socket.dart';
 import 'dart:typed_data';
 
 /// A single utterance. Closing without a commit discards its result.
