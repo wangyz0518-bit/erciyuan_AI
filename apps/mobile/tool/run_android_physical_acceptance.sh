@@ -19,6 +19,13 @@ if [[ -z "$SERIAL" ]]; then
   echo "No authorized physical Android device found. Connect and unlock a USB-debugging-enabled phone." >&2
   exit 2
 fi
+# Explicit ANDROID_SERIAL must not bypass ADB authorization. An offline or
+# unauthorized serial should fail *before* a Flutter build is started.
+ADB_STATE="$(adb -s "$SERIAL" get-state 2>/dev/null || true)"
+if [[ "$ADB_STATE" != "device" ]]; then
+  echo "ADB serial is not connected and authorized (state: ${ADB_STATE:-unavailable})." >&2
+  exit 2
+fi
 if [[ "$SERIAL" == emulator-* ]] ||
    [[ "$(adb -s "$SERIAL" shell getprop ro.kernel.qemu | tr -d '\r')" == "1" ]]; then
   echo "Refusing Android emulator as #41 physical-device evidence." >&2

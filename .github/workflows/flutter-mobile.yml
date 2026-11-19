@@ -68,6 +68,8 @@ jobs:
           flutter --version
           dart --version
           java -version
+      - name: Guard physical device acceptance (fake ADB, rejection cases only)
+        run: bash apps/mobile/tool/test_android_physical_preflight.sh
       - name: Install dependencies
         working-directory: apps/mobile
         run: flutter pub get
