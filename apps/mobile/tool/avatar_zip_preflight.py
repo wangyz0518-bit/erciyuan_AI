@@ -23,7 +23,7 @@ MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_RATIO = 100
 _SEGMENT = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9_.-]*$")
 _PACKAGE_ID = re.compile(r"^[a-z][a-z0-9_-]{2,63}$")
-_VERSION = re.compile(r"^[0-9]+\\.[0-9]+\\.[0-9]+$")
+_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
 
 class UnsafeAvatarArchive(ValueError):
@@ -36,7 +36,7 @@ def _valid_path(name: str, *, directory: bool) -> bool:
     return (
         0 < len(name) <= 255
         and ".." not in name
-        and "\\\\" not in name
+        and "\\" not in name
         and ":" not in name
         and not name.startswith("/")
         and all(_SEGMENT.fullmatch(piece) for piece in name.split("/"))
