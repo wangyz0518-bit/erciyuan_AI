@@ -31,3 +31,16 @@
 - Actions [#44344176615](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44344176615) attempt 1 / attempt 2 均记录为 failure；唯一 macOS job 为 cancelled，未分配运行器，无任何 build/test steps 或可下载 job log。
 - 两次结果不能用作 iOS 代码错误证据，也不能据此宣称 iOS 已运行。
 - 将 `runs-on` 调整为 GitHub 官方支持的 `macos-15`，触发一次独立构建/模拟器测试；是否真正通过以新作业的完整步骤为准。
+
+## 2026-11-19 已完成的正式 iOS Simulator 验收
+
+真实 GitHub Actions 执行记录：[Official Flutter iOS Simulator #44471228989](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44471228989)，针对 main 提交 `07eb9b8a3bda610f3ec02ffa3a112ec57c0b5dd2`（#68 合并后），**workflow / macOS job / 所有步骤均 success**：
+
+- Flutter 3.50.0、macOS/Xcode 环境成功安装和检测，`flutter build ios --simulator --debug --no-codesign` 构建成功，实际产出 `build/ios/iphonesimulator/Runner.app`。
+- 选取 iPhone 16 Pro iOS Simulator，执行 `simctl boot`、安装、启动应用（bundle id `dev.erciyuan.mobile`）；生成 `ios-person-home.png` 实际截图。
+- `flutter test integration_test/acceptance_test.dart -d <simulator-udid>`：`All tests passed!`，覆盖人物持续时间线、隔离及数据库重开。
+- `flutter test integration_test/storage_failure_test.dart -d <simulator-udid>`：`All tests passed!`，覆盖写入失败、事务回滚和重复事实/作用域隔离。
+- Actions artifact `erciyuan-official-ios-simulator` ID `14504846550`（上传截图、无签名 Runner.app 压缩文件），存储有效期至 2026-11-26，归档过期不影响执行记录。
+- 已检查 `apps/mobile/ios/Runner/Info.plist` 的麦克风与语音识别权限说明；Xcode 项目最低 iOS 目标为 15.0；没有新增放宽 ATS 的网络例外。构建日志提示 `flutter_tts` 插件未支持原生 Swift Package Manager，当前 Flutter 工具版本仍可编译；未来 Flutter 版本需要关注插件升级/兼容。
+
+**边界**：本证据证明当时正式 App 的 iOS Simulator 构建、启动及两项集成测试通过；未使用真实 iPhone、Apple 签名或 App Store 发布。后续变更（特别是 PR #70 新增 Swift PCM）必须单独在其提交上构建测试，不得把本记录作为该新代码的编译/音质证明。#40 的原始 iOS Simulator 验收目标已有可核查成功记录；后续 iOS 特性回归分别由相关 Issue 跟踪。
