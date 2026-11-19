@@ -10,6 +10,8 @@
 *.key
 credentials.json
 secrets.json
+.model-local/
+/test-voices.json
 
 # Python environments and caches
 .venv/

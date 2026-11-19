@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>角色聊天 · Windows 测试版</title>
+<link rel="stylesheet" href="/conversation-lab/style.css">
+<main>
+  <header><div><small>陪伴实验室 · Windows 测试版</small><h1>和角色聊一聊</h1></div>
+    <select id="character" aria-label="选择角色"><option value="xing">小星 · 星空旅伴</option><option value="yue">小月 · 月光伙伴</option></select></header>
+  <section class="connection"><span id="connection">未连接</span><button id="connect">连接</button><button id="microphone">启用麦克风</button></section>
+  <section class="voice"><label>角色声音 <select id="voice"><option value="">默认声音</option></select></label><button id="applyVoice">应用声音</button><span id="voiceStatus"></span></section>
+  <section id="messages" aria-live="polite"><p class="empty">打字、按住说话，或者开始一段连续通话。</p></section>
+  <div id="transcript" aria-live="polite"></div>
+  <div id="status" role="status">先连接服务。启用麦克风后，可以发送语音或连续通话。</div>
+  <section class="composer"><textarea id="text" rows="2" maxlength="2000" placeholder="想聊些什么？" aria-label="消息"></textarea><button id="send" class="primary">发送</button></section>
+  <section class="actions"><button id="hold">按住说话 · 松开发送</button><button id="call" class="primary">连续通话</button><button id="mute" disabled>静音麦克风</button><button id="stop">停止朗读</button><label><input id="speak" type="checkbox" checked> 自动朗读</label></section>
+  <p class="hint">按住说话时向上拖动可取消。通话期间直接开口即可打断；切换角色或离开页面会结束通话。识别与回复会调用云服务；语音消息的原录音保存在本机，连续通话默认只保留文字。</p>
+  <details><summary>连接与验证信息</summary><label>本机访问令牌 <input id="token" type="password" autocomplete="off"></label><pre id="metrics"></pre><p>模型请求会发往已配置的云服务。外放回声、误打断及真人听感仍需实测。</p></details>
+</main>
+<script src="/conversation-assets/ort/ort.wasm.min.js"></script>
+<script src="/conversation-assets/vad/bundle.min.js"></script>
+<script type="module" src="/conversation-lab/app.js"></script>
+</html>

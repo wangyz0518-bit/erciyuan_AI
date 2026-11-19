@@ -51,6 +51,12 @@ void main() {
         await until(() => chat.selected == id && !chat.switching);
       }
 
+      // Keep the original capability regression through the retained tools UI.
+      await tap(const Key('open-menu'));
+      await tap(const Key('menu-settings'));
+      await tap(const Key('open-tools'));
+      await tester.pump(const Duration(milliseconds: 500));
+
       expect(
         tester.widget<FilledButton>(find.byKey(const Key('send'))).onPressed,
         isNull,
