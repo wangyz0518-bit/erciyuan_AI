@@ -64,7 +64,15 @@ def test_poc_catalog_binding_scope_and_role(tmp_path):
     with pytest.raises(HTTPException):
         synth.binding("different-owner", "star")
     with pytest.raises(HTTPException):
-        CharacterSpeech("live", "wrong", catalog=str(path)).binding("local-dev-owner", "star")
+        CharacterSpeech("live", "wrong", catalog=str(path), star_voice="default").binding("local-dev-owner", "star")
+    with closing(sqlite3.connect(path)) as db:
+        db.execute("DELETE FROM bindings WHERE character='yue'")
+        db.commit()
+    defaults = CharacterSpeech("live", key, catalog=str(path), moon_voice="explicit-moon")
+    assert defaults.binding("local-dev-owner", "moon") == "explicit-moon"
+    assert defaults.binding("local-dev-owner", "star") == "clone-xing"
+    with pytest.raises(HTTPException):
+        synth.binding("local-dev-owner", "moon")
 
 
 def test_cosyvoice_wire_protocol_with_fake_socket(monkeypatch):

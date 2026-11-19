@@ -51,6 +51,7 @@ class CharacterSpeech:
             raise HTTPException(503, "VOICE_NOT_CONFIGURED")
         if self.workspace and not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9-]{0,127}", self.workspace):
             raise HTTPException(503, "VOICE_NOT_CONFIGURED")
+        voice = self.star_voice if character == "star" else self.moon_voice
         if self.catalog:
             scope = hashlib.sha256(json.dumps(
                 ["live", self.model, self.workspace, self.key], ensure_ascii=False
@@ -58,15 +59,15 @@ class CharacterSpeech:
             try:
                 with closing(sqlite3.connect(Path(self.catalog).resolve().as_uri() + "?mode=ro", uri=True)) as db:
                     row = db.execute(
-                        "SELECT p.provider_id FROM bindings b JOIN profiles p ON p.id=b.profile "
-                        "WHERE b.character=? AND p.status='ready' AND p.scope=?",
-                        ("xing" if character == "star" else "yue", scope),
+                        "SELECT b.profile, p.provider_id FROM bindings b LEFT JOIN profiles p "
+                        "ON p.id=b.profile AND p.status='ready' AND p.scope=? WHERE b.character=?",
+                        (scope, "xing" if character == "star" else "yue"),
                     ).fetchone()
             except sqlite3.Error:
                 raise HTTPException(503, "VOICE_CATALOG_UNAVAILABLE") from None
-            voice = row[0] if row else None
-        else:
-            voice = self.star_voice if character == "star" else self.moon_voice
+            if row and row[0]:
+                # An unavailable selected profile must not silently change voice.
+                voice = row[1]
         if not voice:
             raise HTTPException(409, "VOICE_NOT_BOUND")
         return voice
