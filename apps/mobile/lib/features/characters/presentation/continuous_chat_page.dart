@@ -231,12 +231,6 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
           '开启后，本页后续回复会交给已配置的语音服务合成，可能产生费用。测试网关仅播放提示音。切换人物或离开应用后自动关闭。',
         ),
         actions: [
-          if (_remoteInput != null)
-            IconButton(
-              tooltip: _holdToSend ? '恢复本地录音' : '语音输入方式',
-              onPressed: _chooseVoiceInput,
-              icon: Icon(_holdToSend ? Icons.mic : Icons.mic_none),
-            ),
           TextButton(
             onPressed: () => Navigator.pop(dialog, false),
             child: const Text('取消'),
@@ -280,6 +274,12 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
           ],
         ),
         actions: [
+          if (_remoteInput != null)
+            IconButton(
+              tooltip: _holdToSend ? '恢复本地录音' : '语音输入方式',
+              onPressed: _chooseVoiceInput,
+              icon: Icon(_holdToSend ? Icons.mic : Icons.mic_none),
+            ),
           if (_roleSpeech != null)
             IconButton(
               key: const ValueKey('character-reply-speech'),

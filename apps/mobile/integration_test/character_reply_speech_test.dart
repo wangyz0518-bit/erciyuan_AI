@@ -33,6 +33,13 @@ void main() {
       await tester.pumpAndSettle();
 
       Future<void> sendAndHear(String role) async {
+        await tester.tap(find.byTooltip('语音输入方式'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, '启用按住说话'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('voice-hold-send')), findsOneWidget);
+        await tester.tap(find.byTooltip('恢复本地录音'));
+        await tester.pumpAndSettle();
         expect(find.byTooltip('开启角色朗读'), findsOneWidget);
         await tester.tap(find.byTooltip('开启角色朗读'));
         await tester.pumpAndSettle();
