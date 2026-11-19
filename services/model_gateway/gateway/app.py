@@ -131,8 +131,10 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None,
     register_voices(app,voice_profiles,auth)
     register_conversations(app,conversations,auth)
     repo_root = Path(__file__).resolve().parents[3]
-    app.mount('/conversation-lab', StaticFiles(directory=repo_root/'apps/windows_conversation_lab', html=True), name='conversation-lab')
-    app.mount('/conversation-assets', StaticFiles(directory=repo_root/'.model-local/conversation-assets', check_dir=False), name='conversation-assets')
+    lab = repo_root / 'apps/windows_conversation_lab'
+    if lab.is_dir():
+        app.mount('/conversation-lab', StaticFiles(directory=lab, html=True), name='conversation-lab')
+        app.mount('/conversation-assets', StaticFiles(directory=repo_root/'.model-local/conversation-assets', check_dir=False), name='conversation-assets')
 
     @app.exception_handler(HTTPException)
     async def http_error(request, exc):

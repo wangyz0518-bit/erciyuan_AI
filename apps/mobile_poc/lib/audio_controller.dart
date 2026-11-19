@@ -13,6 +13,7 @@ class AudioController extends ChangeNotifier {
   final recorder = AudioRecorder();
   final player = AudioPlayer();
   final pcm = PcmPlayer();
+  void Function(Map<String, Object?>)? onStreamEvent;
   final streamMetrics = <String, Object?>{};
   bool recording = false;
   bool playing = false;
@@ -39,6 +40,7 @@ class AudioController extends ChangeNotifier {
         playing = true;
         status = '正在朗读角色回复';
       }
+      onStreamEvent?.call(event);
       streamMetrics.addAll(event);
       _notify();
     };

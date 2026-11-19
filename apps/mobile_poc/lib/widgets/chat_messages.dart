@@ -16,6 +16,8 @@ class ChatMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mine = message.author == 'user';
+    final session = chat.conversation;
+    final timing = session?.latency(message);
     final status = switch (message.status) {
       'pending' => '回复中…',
       'failed' => '回复失败',
@@ -45,6 +47,18 @@ class ChatMessage extends StatelessWidget {
               overflow: lines == null ? null : TextOverflow.ellipsis,
               textAlign: mine ? TextAlign.right : TextAlign.left,
               style: const TextStyle(fontSize: 15, height: 1.5),
+            ),
+          if (session?.hasRecording(message) ?? false)
+            TextButton(
+              onPressed: session!.inputBusy
+                  ? null
+                  : () => session.replay(message),
+              child: const Text('回听录音'),
+            ),
+          if (timing != null)
+            Text(
+              timing,
+              style: const TextStyle(fontSize: 11, color: Color(0xFFE0C9C3)),
             ),
           if (status.isNotEmpty)
             Text(

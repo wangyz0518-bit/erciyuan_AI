@@ -18,7 +18,7 @@ function page(){
   };
   const context=vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../app.js'),'utf8'),context);
-  sandbox.testSocket={readyState:1,bufferedAmount:0,send:raw=>sent.push(JSON.parse(raw))};
+  sandbox.testSocket={readyState:1,bufferedAmount:0,send:raw=>sent.push(typeof raw==='string'?JSON.parse(raw):raw)};
   vm.runInContext("state.connected=true;state.session='test-session';state.socket=testSocket",context);
   return {run:code=>vm.runInContext(code,context),sandbox,sent,tracks,nodes,created,get options(){return options}};
 }
@@ -126,4 +126,88 @@ test('busy-session explanation survives connection-close cleanup',async()=>{
   await p.run('state.socket.onclose()');
   assert.match(p.nodes.get('status').textContent,/关闭旧页面/);
   assert.equal(p.run('state.connected'),false);
+});
+
+async function callingPage(){
+  const p=page();
+  let id=0,now=0;
+  p.sandbox.crypto.randomUUID=()=>'voice-'+(++id);
+  p.sandbox.performance.now=()=>now;
+  await p.run('microphone()');p.run('state.calling=true');
+  p.at=t=>{now=t;};
+  p.frames=(n,value,prob=1)=>{
+    for(let i=0;i<n;i++){
+      now+=32;
+      p.options.onFrameProcessed({isSpeech:prob},new Float32Array(512).fill(value));
+    }
+  };
+  p.event=(event,data)=>p.run('receive('+JSON.stringify(JSON.stringify({event,session_id:'test-session',...data}))+')');
+  p.speech=(value)=>{
+    p.frames(1,value);p.options.onSpeechStart();p.frames(4,value);
+    p.options.onSpeechRealStart();p.frames(6,value);
+  };
+  p.silence=()=>{p.frames(Math.floor(p.options.redemptionMs/32),0,0);p.options.onSpeechEnd();};
+  p.save=(id,prompt)=>{
+    p.event('transcript.final',{input_id:id,text:prompt});
+    p.event('turn.saved',{turn:{id,prompt,kind:'call',state:'running',reply:''}});
+  };
+  p.samples=id=>p.sent.filter(x=>x instanceof ArrayBuffer).flatMap(x=>{
+    const v=new DataView(x),n=v.getUint32(0),h=JSON.parse(new TextDecoder().decode(new Uint8Array(x,4,n)));
+    return h.input_id===id?[v.getInt16(4+n,true)]:[];
+  });
+  return p;
+}
+test('two phrases with an in-turn pause reach the same ASR stream, with ordered frames and one commit',async()=>{
+  const p=await callingPage();
+  assert(p.options.redemptionMs>64*32);
+  p.speech(.25);p.frames(64,0,0);p.frames(12,.75);p.silence();
+  assert.deepEqual(p.sent.filter(x=>x.command).map(x=>x.command),['input.start','input.commit']);
+  const samples=p.samples('voice-1');
+  assert.deepEqual(samples,[...Array(11).fill(8192),...Array(64).fill(0),...Array(12).fill(24575),...Array(80).fill(0)]);
+});
+test('finished second utterance waits through late final until first turn is saved, retaining its beginning',async()=>{
+  const p=await callingPage();
+  p.speech(.25);p.silence();p.speech(.75);
+  p.event('transcript.final',{input_id:'voice-1',text:'第一句'});
+  p.silence();assert.deepEqual(p.sent.filter(x=>x.command).map(x=>x.command),['input.start','input.commit']);
+  p.event('turn.saved',{turn:{id:'voice-1',prompt:'第一句',kind:'call',state:'running',reply:''}});
+  p.save('voice-2','第二句');
+  assert.deepEqual(Array.from(p.run('state.rows.values()')).map(x=>x.prompt),['第一句','第二句']);
+  assert.deepEqual(p.sent.filter(x=>x.command==='input.commit').map(x=>x.input_id),['voice-1','voice-2']);
+  assert.equal(p.sent.some(x=>x.command==='input.abort'),false);
+  assert.deepEqual(p.samples('voice-2').filter(x=>x!==0),Array(11).fill(24575));
+  assert.equal(p.sent.filter(x=>x.command==='turn.interrupt')[0].reply_id,'voice-1');
+});
+test('a false speech start during pending recognition preserves the first turn',async()=>{
+  const p=await callingPage();p.speech(.25);p.silence();
+  p.options.onSpeechStart();p.frames(2,.1);p.options.onVADMisfire();p.save('voice-1','第一句');
+  assert.equal(p.run("state.rows.get('voice-1').prompt"),'第一句');
+  assert.equal(p.sent.filter(x=>x.command==='input.start').length,1);
+  assert(!p.sent.some(x=>x.command==='input.abort'||x.command==='turn.interrupt'));
+});
+test('confirmed barge-in stops playback immediately, before the new utterance ends',async()=>{
+  const p=await callingPage();p.speech(.25);p.silence();p.save('voice-1','先讲一个故事');
+  const audio=[];p.sandbox.playerMessage=m=>audio.push(m);
+  p.run('state.player.port.postMessage=playerMessage');
+  p.event('audio.started',{reply_id:'voice-1',format:'pcm_s16le',sample_rate:24000,channels:1});
+  p.options.onSpeechStart();
+  assert.equal(audio.at(-1).type,'pause');p.options.onSpeechRealStart();
+  assert.equal(audio.at(-1).type,'stop');assert(p.sent.some(x=>x.command==='turn.interrupt'&&x.reply_id==='voice-1'));
+  assert.equal(p.run("state.input.id"),'voice-2');
+});
+test('latency starts at last speech and the first rendered audio, even across later deltas',async()=>{
+  const p=await callingPage();p.speech(.25);p.silence();
+  p.at(3180);p.save('voice-1','第一句');
+  p.at(3380);p.event('reply.delta',{reply_id:'voice-1',delta:'你'});
+  p.at(3480);p.event('reply.delta',{reply_id:'voice-1',delta:'好'});
+  p.at(4280);p.run("state.player.port.onmessage({data:{type:'started',id:'voice-1'}})");
+  assert(p.created.some(n=>n.textContent==='说完到开始播放 3.93 秒'));
+  assert(p.created.some(n=>n.textContent==='等待断句 2.56 秒 · 确认转写 0.27 秒 · 等待首字 0.20 秒 · 首字到播放 0.90 秒'));
+});
+test('failed recognition releases queued utterance; hanging up drops its remaining buffered frames',async()=>{
+  const p=await callingPage();p.speech(.25);p.silence();p.speech(.75);
+  p.event('input.failed',{input_id:'voice-1',code:'ASR_TIMEOUT'});
+  assert.equal(p.samples('voice-2').filter(x=>x!==0).length,11);
+  p.silence();p.speech(.5);await p.run('endCall()');
+  p.save('voice-2','迟到');assert(!p.sent.some(x=>x.input_id==='voice-3'));
 });

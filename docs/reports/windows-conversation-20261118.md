@@ -1,6 +1,6 @@
 # Windows 连续语音阶段验证
 
-> 状态：评审中；Windows 人工验收和 Android 接入未完成
+> 状态：Windows 初版阶段记录。后续 Windows 停顿修复和 Android 联调分别见 [Windows 指南](../guides/windows-conversation-20261118.md) 与 [Android 指南](../guides/android-conversation-v3.md)。
 > 日期：2026-11-18
 > 负责人：待定
 > 关联：A/B/D、codex/continuous-voice-windows
@@ -60,4 +60,4 @@ v3、Windows 测试目录和本机数据库均独立；原有手机及 v1/v2 回
 真人按住录音、至少 5 轮连续通话、外放 5 次插话、回声误触发、耳机/扬声器听感、静音恢复和实际设备延迟均待按[指南](../guides/windows-conversation-20261118.md)检查。
 当前播放进度是渲染帧位置估计，没有逐字“已听内容”对齐。
 当前仍在完整文字生成后开始 TTS，尚未做短句提前合成。
-Android、iOS 未接入 v3。Windows 尚未获得人工确认，因此没有跨越用户要求的验证顺序。
+这份阶段记录在 Android 接入前形成。随后用户要求开始 Android 接入，模拟器和真机的验证进度见上方 Android 指南。

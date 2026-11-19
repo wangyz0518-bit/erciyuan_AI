@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'data.dart';
+import 'conversation_controller.dart';
 import 'model_gateway.dart';
 
 enum ReplyMode { normal, failure, delayed }
@@ -16,6 +17,7 @@ class ChatController extends ChangeNotifier {
   final LocalStore store;
   final Duration chunkDelay;
   final ModelGateway? gateway;
+  ConversationController? conversation;
   void Function(Message message, String requestId)? onReplyComplete;
   String? _requestId;
   List<Character> characters = [];
@@ -33,6 +35,15 @@ class ChatController extends ChangeNotifier {
   int _nextId() => ++_lastId;
   Character get character => characters.firstWhere((c) => c.id == selected);
 
+  void refreshConversation() {
+    final session = conversation;
+    if (session == null) return;
+    messages = session.messages;
+    busy = session.busy;
+    error = null;
+    notifyListeners();
+  }
+
   Future<void> init() async {
     characters = await store.characters();
     final saved = await store.preference('selected');
@@ -46,6 +57,10 @@ class ChatController extends ChangeNotifier {
     Message? retry,
     VoidCallback? onSaved,
   }) async {
+    final session = conversation;
+    if (session != null) {
+      return session.text(text, selected, saved: onSaved);
+    }
     text = text.trim();
     if (text.isEmpty || busy || switching) return false;
     final requestClock = Stopwatch()..start();
@@ -204,6 +219,10 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> cancel() {
+    if (conversation != null) {
+      conversation!.interrupt();
+      return Future<void>.value();
+    }
     final ongoing = _cancellation;
     if (ongoing != null) return ongoing;
     final pending = _active;
@@ -240,7 +259,11 @@ class ChatController extends ChangeNotifier {
     try {
       await cancel();
       selected = id;
-      messages = await store.messages(id);
+      if (conversation != null) {
+        await conversation!.load(id);
+      } else {
+        messages = await store.messages(id);
+      }
       await store.setPreference('selected', id);
       error = null;
     } finally {

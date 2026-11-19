@@ -19,7 +19,7 @@
 
 ## 进行中
 
-- `codex/continuous-voice-windows`：Windows 浏览器测试入口和会话 v3，实现打字、按住松开发送、连续通话及取消。真实合成参考 ASR→DeepSeek→CosyVoice、真实打断后新输入复测通过；54 项网关和 16 项浏览器/PCM 检查通过，实际启动脚本的独立目录冷启动已验证。真人收音、外放回声、听感和 Android/iOS 接入尚未完成；按用户要求先验收 Windows，再接 Android。见[阶段记录](reports/windows-conversation-20261118.md)和[启动指南](guides/windows-conversation-20261118.md)。
+- `codex/continuous-voice-windows` 的 Windows 和 Android 调试版支持文字、语音消息、连续通话、插话打断和每轮延迟。网关 55 项、浏览器与 PCM 22 项回归通过。Android 模拟器已验证合成语音两段间停约两秒后仍在同一轮转写并收到有声回复。Windows 真人外放复测和 Android 真机验收仍待完成。[Windows 阶段记录](reports/windows-conversation-20261118.md) · [Windows 启动指南](guides/windows-conversation-20261118.md) · [Android 验收指南](guides/android-conversation-v3.md)
 
 - 独立分支 `codex/recording-voice-cloning`：Windows 上传已有合成录音、CosyVoice Flash 复刻、试听、保存、应用角色、恢复默认与重开恢复已真实验证。20 轮热连接完整文字到设备出声 P50 0.939s、P95 0.954s；36 项网关与 9 项原聊天测试通过。只做录音基准，不做文字描述；人工相似度/电音听感、真实用户录音、Android/iOS 自定义声音 UI 待验收。详见[本轮记录](reports/recording-voice-cloning-20261116.md)；PR 保持草稿，不合并。
 

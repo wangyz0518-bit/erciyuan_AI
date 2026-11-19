@@ -15,8 +15,13 @@ class ChatComposer extends StatelessWidget {
     required this.call,
     required this.startHold,
     required this.endHold,
+    this.liveVoice = false,
+    this.capturing = false,
+    this.preparing = false,
+    this.captureSeconds = 0,
   });
-  final bool textMode, busy;
+  final bool textMode, busy, liveVoice, capturing, preparing;
+  final int captureSeconds;
   final TextEditingController input;
   final FocusNode focus;
   final AudioController audio;
@@ -57,10 +62,12 @@ class ChatComposer extends StatelessWidget {
                 textInputAction: TextInputAction.newline,
               )
             : HoldToRecord(
-                enabled: !busy && !audio.working,
+                enabled: !busy && !audio.working && !preparing && !capturing,
                 start: startHold,
                 end: endHold,
-                label: audio.recording ? '松开试听 · ${audio.seconds}s' : '按住说话',
+                label: liveVoice
+                    ? (capturing ? '松开发送 · ${captureSeconds}s' : '按住说话')
+                    : (audio.recording ? '松开试听 · ${audio.seconds}s' : '按住说话'),
               ),
       ),
       const SizedBox(width: 8),
@@ -77,8 +84,15 @@ class ChatComposer extends StatelessWidget {
             backgroundColor: const Color(0xFF24222F),
             foregroundColor: const Color(0xFFFAF0E8),
           ),
-          tooltip: '通话演示',
-          onPressed: audio.recording || audio.working ? null : call,
+          tooltip: liveVoice ? '连续通话' : '通话演示',
+          onPressed:
+              audio.recording ||
+                  audio.working ||
+                  preparing ||
+                  capturing ||
+                  (liveVoice && busy)
+              ? null
+              : call,
           icon: const Icon(Icons.call_outlined),
         ),
     ],

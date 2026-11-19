@@ -1,6 +1,6 @@
 # 连续语音会话 v3
 
-> 状态：评审中，Windows 验证实现；尚未接入手机
+> 状态：评审中。Windows 和 Android 已联调；iOS 已接入工程，待 Mac 编译签名和 iPhone 验收。
 > 日期：2026-11-18
 > 负责人：待定
 > 关联：A/B/D、流式 v2、录音音色 v0
@@ -72,7 +72,7 @@ call 原音频不落盘；语音识别及回复会发送给配置的云端供应
 ## 客户端控制
 
 客户端负责回声消除、人声检测和停播，服务器不承担本地实时停播。
-当前 Windows 使用浏览器请求 AEC/降噪、Silero VAD v5：有效人声门限 160 ms、结束等待 800 ms、预留前音 320 ms。这些是待真人校准的初始参数。
+当前 Windows 使用浏览器请求 AEC/降噪、Silero VAD v5：有效人声门限 160 ms、结束等待 2560 ms、预留前音 320 ms。这些是待真人校准的初始参数。
 疑似人声先暂停播报，确认有效人声再取消旧回复；误触发则放弃该输入并恢复播报。
 录音松开提交、上滑取消；连续通话自动提交；静音停止麦克风，挂断/换角色/隐藏页面结束采集。
 音色沿用 v0 绑定；在 v3 占用期间拒绝修改绑定，网页主动释放会话后修改，再连接。
@@ -82,3 +82,5 @@ call 原音频不落盘；语音识别及回复会发送给配置的云端供应
 - [Qwen 实时 ASR 交互](https://help.aliyun.com/zh/model-studio/qwen-asr-realtime-interaction-process)：使用 Manual 断句，turn_detection=null。
 - [VAD 浏览器 API](https://docs.vad.ricky0123.com/user-guide/api/)：实现以固定安装的 0.0.30 包为准。
 - [Windows 操作和验收](../guides/windows-conversation-20261118.md)。
+- [Android 调试接入和验收](../guides/android-conversation-v3.md)。
+- [iPhone 本地签名安装、测试网关与验收](../guides/ios-personal-team.md)。

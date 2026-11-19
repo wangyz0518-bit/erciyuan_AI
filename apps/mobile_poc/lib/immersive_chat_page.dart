@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'audio_controller.dart';
 import 'chat_controller.dart';
+import 'conversation_controller.dart';
 import 'poc_tools_page.dart';
 import 'reply_speech_controller.dart';
 import 'widgets/character_scene.dart';
@@ -36,6 +37,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
   ReplySpeechController? speech;
   ChatController get chat => widget.chat;
   AudioController get audio => widget.audio;
+  ConversationController? get session => chat.conversation;
   @override
   void initState() {
     super.initState();
@@ -43,7 +45,12 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     chat.addListener(refresh);
     audio.addListener(refresh);
     input.addListener(refresh);
-    if (chat.gateway != null) {
+    if (chat.gateway?.useV3 == true) {
+      final voice = ConversationController(chat.gateway!, audio);
+      chat.conversation = voice;
+      voice.addListener(chat.refreshConversation);
+      unawaited(voice.load(chat.selected));
+    } else if (chat.gateway != null) {
       speech = ReplySpeechController(chat.gateway!, audio)
         ..addListener(refresh);
       chat.onReplyComplete = (message, requestId) {
@@ -62,13 +69,26 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
   }
 
   void refresh() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (calling && session != null && !session!.calling) {
+      callTimer?.cancel();
+      callClock.stop();
+      calling = false;
+    }
+    setState(() {});
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     foreground = state == AppLifecycleState.resumed;
-    if (!foreground) {
+    if (session != null) {
+      if (state == AppLifecycleState.hidden ||
+          state == AppLifecycleState.paused ||
+          state == AppLifecycleState.detached) {
+        endCall();
+        unawaited(audio.stopAll());
+      }
+    } else if (!foreground) {
       endCall();
       unawaited(audio.stopAll());
     }
@@ -84,6 +104,12 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     focus.dispose();
     callTimer?.cancel();
     chat.onReplyComplete = null;
+    final voice = session;
+    if (voice != null) {
+      voice.removeListener(chat.refreshConversation);
+      chat.conversation = null;
+      unawaited(voice.shutdown());
+    }
     speech?.removeListener(refresh);
     speech?.dispose();
     unawaited(audio.stopAll());
@@ -95,7 +121,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     changingRole = true;
     drafts[chat.selected] = input.text;
     focus.unfocus();
-    endCall();
+    endCall(closeSession: false);
     refresh();
     try {
       await audio.stopAll();
@@ -126,6 +152,8 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
   }
 
   void changeMode() {
+    if (session?.inputBusy ?? false) return;
+    session?.interrupt();
     unawaited(audio.stopAll());
     setState(() => textMode = !textMode);
     if (textMode) {
@@ -139,8 +167,14 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
 
   Future<void> startCall() async {
     focus.unfocus();
-    await audio.stopAll();
-    if (!mounted || !foreground) return;
+    final voice = session;
+    if (voice != null) {
+      await voice.startCall(chat.selected);
+      if (!mounted || !voice.calling) return;
+    } else {
+      await audio.stopAll();
+      if (!mounted || !foreground) return;
+    }
     callClock.reset();
     callClock.start();
     setState(() {
@@ -152,7 +186,9 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     callTimer = Timer.periodic(const Duration(seconds: 1), (_) => refresh());
   }
 
-  void endCall() {
+  void endCall({bool closeSession = true}) {
+    final voice = session;
+    if (voice != null && closeSession) unawaited(voice.close());
     callTimer?.cancel();
     callClock.stop();
     calling = false;
@@ -258,11 +294,22 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
               unawaited(openTools());
             },
           ),
+          if (session != null)
+            ListTile(
+              leading: const Icon(Icons.record_voice_over_outlined),
+              title: const Text('角色声音'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                unawaited(showVoices());
+              },
+            ),
           ListTile(
             title: Text(chat.gateway == null ? '离线验证版' : '模型接口验证版'),
             subtitle: Text(
               chat.gateway == null
                   ? '回复为模拟内容；录音仅供试听，通话为交互演示。'
+                  : session != null
+                  ? '支持文字、按住说话和连续通话。'
                   : '文字通过后端生成，回复完成后朗读。录音仅本地试听，通话为演示。',
             ),
           ),
@@ -270,6 +317,45 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
       ],
     ),
   );
+  Future<void> showVoices() async {
+    final voice = session;
+    if (voice == null || voice.inputBusy || voice.busy) return;
+    try {
+      final role = chat.selected;
+      final catalog = await voice.transport.voices();
+      final binding = await voice.transport.binding(role);
+      if (!mounted || role != chat.selected) return;
+      final choices = [
+        <String, Object?>{'id': '', 'name': '默认声音'},
+        ...catalog.where((row) => row['status'] == 'ready'),
+      ];
+      final selected = await showDialog<String>(
+        context: context,
+        builder: (context) => SimpleDialog(
+          title: const Text('角色声音'),
+          children: [
+            for (final item in choices)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, item['id'] as String),
+                child: Text(item['name'] as String),
+              ),
+          ],
+        ),
+      );
+      if (selected != null && mounted && role == chat.selected) {
+        await voice.chooseVoice(
+          selected.isEmpty ? null : selected,
+          binding['revision'] as int,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('声音切换失败，请结束其他通话后重试。')));
+      }
+    }
+  }
+
   Future<void> openTools() async {
     toolsOpen = true;
     drafts[chat.selected] = input.text;
@@ -318,12 +404,13 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
               !calling &&
               !audio.recording &&
               audio.recordingPath == null &&
-              !audio.working,
+              !audio.working &&
+              !(session?.inputBusy ?? false),
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             if (menu) {
               setState(() => menu = false);
-            } else if (calling) {
+            } else if (calling || (session?.inputBusy ?? false)) {
               endCall();
             } else {
               unawaited(audio.stopAll());
@@ -360,11 +447,14 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                                   ),
                                 ),
                                 tooltip: '展开主菜单',
-                                onPressed: () {
-                                  focus.unfocus();
-                                  unawaited(audio.stopAll());
-                                  setState(() => menu = true);
-                                },
+                                onPressed: (session?.inputBusy ?? false)
+                                    ? null
+                                    : () {
+                                        focus.unfocus();
+                                        session?.interrupt();
+                                        unawaited(audio.stopAll());
+                                        setState(() => menu = true);
+                                      },
                                 icon: const Icon(Icons.menu),
                               ),
                             const SizedBox(width: 10),
@@ -438,10 +528,19 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                                   child: calling
                                       ? CallOverlay(
                                           seconds: callClock.elapsed.inSeconds,
-                                          muted: muted,
-                                          toggleMute: () =>
-                                              setState(() => muted = !muted),
-                                          end: endCall,
+                                          live: session != null,
+                                          status: session?.status,
+                                          subtitle: session?.subtitle,
+                                          muted: session?.muted ?? muted,
+                                          toggleMute: () {
+                                            final voice = session;
+                                            if (voice == null) {
+                                              setState(() => muted = !muted);
+                                            } else {
+                                              unawaited(voice.toggleMute());
+                                            }
+                                          },
+                                          end: () => endCall(),
                                         )
                                       : panelOpen
                                       ? const SizedBox.shrink()
@@ -512,6 +611,19 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                                                 ),
                                               ),
                                             ),
+                                            if (session?.status.isNotEmpty ??
+                                                false)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 6,
+                                                ),
+                                                child: Text(
+                                                  session!.status,
+                                                  key: const Key(
+                                                    'conversation-status',
+                                                  ),
+                                                ),
+                                              ),
                                             if (chat.error != null)
                                               Text(
                                                 chat.error!,
@@ -670,21 +782,35 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                                               input: input,
                                               focus: focus,
                                               audio: audio,
+                                              liveVoice: session != null,
+                                              captureSeconds:
+                                                  session?.recordingSeconds ??
+                                                  0,
+                                              capturing:
+                                                  session?.holding ?? false,
+                                              preparing:
+                                                  session?.preparing ?? false,
                                               busy:
                                                   chat.busy ||
                                                   chat.switching ||
-                                                  changingRole,
+                                                  changingRole ||
+                                                  (session?.inputBusy ?? false),
                                               mode: changeMode,
                                               send: () => unawaited(send()),
                                               call: () =>
                                                   unawaited(startCall()),
                                               startHold: () => unawaited(
-                                                audio.startRecording(),
+                                                session?.startHold(
+                                                      chat.selected,
+                                                    ) ??
+                                                    audio.startRecording(),
                                               ),
                                               endHold: (keep) => unawaited(
-                                                keep
-                                                    ? audio.finishRecording()
-                                                    : audio.stopAll(),
+                                                session?.finishHold(keep) ??
+                                                    (keep
+                                                        ? audio
+                                                              .finishRecording()
+                                                        : audio.stopAll()),
                                               ),
                                             ),
                                           ],

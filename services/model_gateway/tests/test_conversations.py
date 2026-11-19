@@ -292,3 +292,33 @@ def test_slow_asr_connection_buffers_normal_sized_capture(tmp_path):
         ws.send_json(dict(command='input.commit',input_id=RID))
         until(ws,'audio.completed')
         assert len(asr.received)==60*1024 and len(chat.calls)==1
+
+def test_next_call_can_start_while_previous_saved_event_is_in_flight(tmp_path, monkeypatch):
+    from gateway.conversations import Session
+
+    app, *_ = setup(tmp_path)
+    second = 'next-call-segment-0002'
+    emit = Session.emit
+    next_ready = asyncio.Event()
+
+    async def slow_saved(self, event, **fields):
+        await emit(self, event, **fields)
+        if event == 'turn.saved' and fields['turn']['id'] == RID:
+            await asyncio.wait_for(next_ready.wait(), 3)
+        if event == 'input.ready' and fields['input_id'] == second:
+            next_ready.set()
+
+    monkeypatch.setattr(Session, 'emit', slow_saved)
+    with TestClient(app) as client, client.websocket_connect('/v3/conversations/xing/stream') as ws:
+        hello(ws)
+        ws.send_json(dict(command='input.start', input_id=RID, kind='call'))
+        until(ws, 'input.ready')
+        pcm(ws)
+        ws.send_json(dict(command='input.commit', input_id=RID))
+        until(ws, 'turn.saved')
+        ws.send_json(dict(command='input.start', input_id=second, kind='call'))
+        assert receive(ws)['event'] == 'input.ready'
+        pcm(ws, rid=second)
+        ws.send_json(dict(command='input.commit', input_id=second))
+        assert until(ws, 'turn.saved')[-1]['turn']['id'] == second
+        assert [r['id'] for r in app.state.conversations.store.rows('xing')] == [RID, second]

@@ -14,9 +14,17 @@ class PcmPlayer {
       }
     });
   }
-  Future<void> start(String id, {int bufferMs = 400}) async {
+  Future<void> start(
+    String id, {
+    int bufferMs = 400,
+    bool communication = false,
+  }) async {
     active = id;
-    await channel.invokeMethod<void>('start', {'id': id, 'bufferMs': bufferMs});
+    await channel.invokeMethod<void>('start', {
+      'id': id,
+      'bufferMs': bufferMs,
+      'communication': communication,
+    });
   }
 
   Future<void> append(String id, Uint8List bytes) async {
@@ -30,6 +38,11 @@ class PcmPlayer {
       'id': id,
     });
     return result ?? {};
+  }
+
+  Future<int> progress(String id) async {
+    if (active != id) return 0;
+    return await channel.invokeMethod<int>('progress', {'id': id}) ?? 0;
   }
 
   Future<void> stop() async {

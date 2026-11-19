@@ -14,9 +14,14 @@ class GatewayException implements Exception {
 }
 
 class ModelGateway {
-  ModelGateway(this.baseUrl, this.token, {this.useV2 = false});
+  ModelGateway(
+    this.baseUrl,
+    this.token, {
+    this.useV2 = false,
+    this.useV3 = false,
+  });
   final String baseUrl, token;
-  final bool useV2;
+  final bool useV2, useV3;
   bool voiceEnabled = true;
   late final StreamingGateway streaming = StreamingGateway(baseUrl, token);
   final _turnClocks = <String, Stopwatch>{};
@@ -46,6 +51,7 @@ class ModelGateway {
       url,
       token,
       useV2: protocol == 'v2' && Platform.isAndroid,
+      useV3: protocol == 'v3' && (Platform.isAndroid || Platform.isIOS),
     );
   }
 

@@ -160,6 +160,10 @@ class Session:
             await self.interrupt(self.output)
         history = store.history(self.character)
         store.begin(rid, self.character, kind, text, recording, speak=speak)
+        # A client may send the next input as soon as it receives turn.saved,
+        # even while the WebSocket send is still yielding to the receive loop.
+        if self.input and self.input['id'] == rid:
+            self.input = None
         self.output = rid
         await self.emit('turn.saved', turn=store.public(store.get(rid)))
         if self.output == rid:
@@ -244,8 +248,6 @@ class Session:
             await self.emit('transcript.final', input_id=rid, text=text)
             await self.start_turn(rid, text, current['kind'],
                                   bytes(current['recording']) if current['kind']=='hold' else None)
-            if self.input is current:
-                self.input = None
         except asyncio.CancelledError:
             raise
         except Exception as exc:
