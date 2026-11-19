@@ -6,6 +6,7 @@ import '../../audio/application/audio_session_controller.dart';
 import '../../audio/data/platform_audio_adapters.dart';
 import '../../audio/domain/audio_ports.dart';
 import '../../avatar/presentation/avatar_fallback_scene.dart';
+import '../../avatar/presentation/character_avatar_scene.dart';
 import '../../chat/application/continuous_chat_controller.dart';
 import '../../chat/data/model_gateway_adapter.dart';
 import '../../timeline/data/person_database.dart';
@@ -341,6 +342,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
             children: [
               _CharacterScene(
                 character: character,
+                mouth: _voice.speaking ? 0.45 : (_roleSpeech?.mouthLevel ?? 0),
                 isReplying: _chat.isSending,
                 isSpeaking: _voice.speaking || (_roleSpeech?.speaking ?? false),
                 isListening:
@@ -781,12 +783,14 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 class _CharacterScene extends StatelessWidget {
   const _CharacterScene({
     required this.character,
+    required this.mouth,
     required this.isReplying,
     required this.isSpeaking,
     required this.isListening,
   });
 
   final Character character;
+  final double mouth;
   final bool isReplying;
   final bool isSpeaking;
   final bool isListening;
@@ -814,12 +818,15 @@ class _CharacterScene extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.08),
           ),
         ),
-        Center(
-          child: AvatarFallbackScene(
-            characterId: character.scope.characterId,
-            characterName: character.name,
-            motion: isReplying || isSpeaking
+        Positioned.fill(
+          child: CharacterAvatarScene(
+            key: ValueKey(character.scope),
+            character: character,
+            mouth: mouth,
+            motion: isSpeaking
                 ? AvatarSceneMotion.talking
+                : isReplying
+                ? AvatarSceneMotion.thinking
                 : isListening
                 ? AvatarSceneMotion.listening
                 : AvatarSceneMotion.idle,
@@ -837,14 +844,6 @@ class _CharacterScene extends StatelessWidget {
                 ? '${character.name}正在倾听…'
                 : '和${character.name}继续今天的故事',
             style: const TextStyle(color: Colors.white, fontSize: 13),
-          ),
-        ),
-        const Positioned(
-          right: 12,
-          top: 12,
-          child: Text(
-            '静态形象占位 · Live2D 待接入',
-            style: TextStyle(color: Color(0xFFE7E2F0), fontSize: 10),
           ),
         ),
       ],

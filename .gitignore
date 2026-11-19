@@ -19,6 +19,8 @@ __pycache__/
 .pytest_cache/
 
 # Dependency and build outputs
+.local/
+.cxx/
 node_modules/
 dist/
 build/

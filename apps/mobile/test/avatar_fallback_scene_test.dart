@@ -3,9 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  testWidgets('static fallback is available without Cubism binaries', (
-    tester,
-  ) async {
+  testWidgets('built-in character tracks the speaking level', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -13,6 +11,7 @@ void main() {
             characterId: 'star',
             characterName: '小星',
             motion: AvatarSceneMotion.talking,
+            mouth: 1,
           ),
         ),
       ),
@@ -27,6 +26,8 @@ void main() {
       find.byKey(const ValueKey('avatar-fallback-motion')),
     );
     expect(talking.scale, 1.08);
+    final mouth = tester.getSize(find.byKey(const ValueKey('avatar-mouth')));
+    expect(mouth.height, 9);
   });
 
   testWidgets(

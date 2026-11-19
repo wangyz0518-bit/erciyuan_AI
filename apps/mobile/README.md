@@ -1,7 +1,8 @@
-# erciyuan mobile · official foundation (#35)
+# erciyuan mobile · official app
 
-This is the **minimal official Flutter app**. The existing [PoC](../mobile_poc/)
-remains unchanged. Use Flutter **3.50.0** (Dart bundled with Flutter 3.50),
+The official app uses one persistent timeline per character. For role-specific
+speech, hold-to-talk and continuous calls, see the [person gateway guide](../../services/person_gateway/README.md).
+The earlier [PoC](../mobile_poc/) is a separate project. Use Flutter **3.50.0**,
 Java **17**, Android SDK/Gradle compatible with the checked-in native template.
 
 ```bash
@@ -14,12 +15,40 @@ flutter build apk --debug
 flutter run
 ```
 
-The Home screen intentionally uses **Mock** characters and an **in-memory
-character-scoped draft**. Its "continue" button always enters the same logical
-timeline for the selected character. This is not the eventual persistent chat.
-The visible home/chat page is still Mock and does not yet wire in the
-SQLite repositories, real AI, accounts, attachments, audio or avatar SDK.
-The persistence and memory APIs described below are available to later features.
+The starter characters 小星 and 小月 have separate SQLite timelines.
+Continue opens the selected character's saved conversation. The app starts
+in offline demo mode. A configured local gateway enables additional chat and
+voice modes. Imports and spoken replies are scoped to the selected character.
+
+## 动态形象与本机 Android 人物包
+
+普通 Android 和 iOS 构建使用 Flutter 内置形象。倾听、等待回复和朗读有不同的表现，
+角色语音播放时根据 PCM 音量估计开口幅度。GitHub 构建只发布内置形象版本。
+
+开发机可以为 Android 启用已有的 Cubism Native 5-r.5 SDK。在本机 PowerShell
+中指向已解压的 SDK 根目录，然后从 `apps/mobile` 启动应用。
+
+```powershell
+$env:ERCIYUAN_CUBISM_SDK = 'D:\local-sdk\CubismSdkForNative-5-r.5'
+flutter run -d emulator-5554
+```
+
+进入人物的聊天页，点击右上角人物形象菜单，选择 v0.1 人物 ZIP。
+导入经结构和 SDK 校验后生效，绑定随本机用户和人物保存。菜单中的“恢复内置形象”
+可以解除当前绑定。人物包和 SDK 由开发者本机提供，许可进度见 [#80](https://github.com/wangyz0518-bit/erciyuan_AI/issues/80)。
+在普通 PowerShell 会话中构建默认 APK，运行以下命令检查公开包内容。
+
+```sh
+flutter build apk --debug
+python tool/check_public_avatar_apk.py build/app/outputs/flutter-apk/app-debug.apk
+```
+
+Android 形象测试在 `integration_test/character_avatar_test.dart`。默认验证内置形象。
+私有 SDK 构建可通过 `--dart-define=AVATAR_TEST_ZIP=<设备端样包路径>` 验证导入、动作、
+人物切换和重新打开。可选的 `AVATAR_TEST_UPGRADE` 和 `AVATAR_TEST_INVALID`
+分别指定同一人物包的新版和无效样包，用于检查升级与失败回退。
+
+## Storage
 
 Architecture: `lib/bootstrap.dart` owns object assembly, UI under
 `features/characters/presentation/` observes
@@ -30,8 +59,7 @@ SQLite PersonDatabase now lives in `lib/features/timeline/data/person_database.d
 It stores character timelines and append-only raw events, including per-character
 transactional sequences, migrations v1→v2→v3 and vendor-independent owner export.
 `test/person_database_test.dart` runs native SQLite on Linux using an injected
-FFI database factory. The visible starter page remains clearly marked Mock;
-the formal UI/repository wiring belongs to #37. No account login is present.
+FFI database factory. The local starter owner has no account login.
 Offline memory (#47) lives in lib/features/memory/. It adds source-linked
 archive summaries, searchable terms, atomic archive cursors, user-confirmed
 identity versions, context assembly and transaction-consistent three-layer JSON

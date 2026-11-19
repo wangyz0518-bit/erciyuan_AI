@@ -3,6 +3,7 @@ name: Flutter official mobile validation
 on:
   pull_request:
     paths:
+      - "packages/live2d_avatar/**"
       - "apps/mobile/**"
       - "services/person_gateway/**"
       - "docs/接口/person-text-gateway-v1-20261118.md"
@@ -11,6 +12,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "packages/live2d_avatar/**"
       - "apps/mobile/**"
       - "services/person_gateway/**"
       - "docs/接口/person-text-gateway-v1-20261118.md"
@@ -90,6 +92,9 @@ jobs:
       - name: Build Android debug APK
         working-directory: apps/mobile
         run: flutter build apk --debug
+      - name: Check public avatar packaging
+        working-directory: apps/mobile
+        run: python3 tool/check_public_avatar_apk.py build/app/outputs/flutter-apk/app-debug.apk
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
