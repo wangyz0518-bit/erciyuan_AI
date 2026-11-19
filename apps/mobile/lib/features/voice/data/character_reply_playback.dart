@@ -17,6 +17,8 @@ class CharacterReplyPlayback extends ChangeNotifier {
   bool _disposed = false;
   String status = '';
   bool speaking = false;
+  double mouthLevel = 0;
+  final _mouthClock = Stopwatch();
 
   Future<void> play(String requestId) async {
     if (_disposed || _client != null) return;
@@ -72,6 +74,23 @@ class CharacterReplyPlayback extends ChangeNotifier {
           notifyListeners();
         }
         await player.append(requestId, bytes);
+        if (_client == client &&
+            (!_mouthClock.isRunning || _mouthClock.elapsedMilliseconds >= 75)) {
+          final samples = bytes.buffer.asByteData(
+            bytes.offsetInBytes,
+            bytes.length,
+          );
+          var total = 0, count = 0;
+          for (var i = 0; i < bytes.length; i += 32) {
+            total += samples.getInt16(i, Endian.little).abs();
+            count++;
+          }
+          mouthLevel = (total / count / 4500).clamp(0.0, 1.0);
+          _mouthClock
+            ..reset()
+            ..start();
+          notifyListeners();
+        }
       }
       throw const FormatException('Missing end frame');
     } catch (_) {
@@ -83,6 +102,7 @@ class CharacterReplyPlayback extends ChangeNotifier {
         if (_client == client) {
           _client = null;
           speaking = false;
+          mouthLevel = 0;
           if (!_disposed) notifyListeners();
         }
       }
@@ -104,6 +124,7 @@ class CharacterReplyPlayback extends ChangeNotifier {
     _client = null;
     client?.close(force: true);
     speaking = false;
+    mouthLevel = 0;
     status = '';
     final stopped = _stopNative();
     if (!_disposed && client != null) notifyListeners();

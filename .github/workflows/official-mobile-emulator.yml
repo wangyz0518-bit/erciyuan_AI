@@ -3,11 +3,13 @@ name: Official Flutter Android emulator UI
 on:
   pull_request:
     paths:
+      - "packages/live2d_avatar/**"
       - "apps/mobile/**"
       - ".github/workflows/official-mobile-emulator.yml"
   push:
     branches: [main]
     paths:
+      - "packages/live2d_avatar/**"
       - "apps/mobile/**"
       - ".github/workflows/official-mobile-emulator.yml"
   workflow_dispatch:

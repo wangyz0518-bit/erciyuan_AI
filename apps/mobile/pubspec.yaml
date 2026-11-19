@@ -19,6 +19,9 @@ dependencies:
   path_provider: ^2.1.6
   speech_to_text: ^7.5.0
   flutter_tts: ^4.2.5
+  file_picker: ^13.3.3
+  live2d_avatar:
+    path: ../../packages/live2d_avatar
 
 dev_dependencies:
   flutter_test:

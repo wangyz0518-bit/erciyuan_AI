@@ -1,0 +1,38 @@
+group = 'dev.erciyuan.live2d'
+version = '0.1.0'
+apply plugin: 'com.android.library'
+def sdkRoot = providers.environmentVariable('ERCIYUAN_CUBISM_SDK').orNull
+def shaderAssets = layout.buildDirectory.dir('generated/cubismAssets')
+if (sdkRoot) {
+    if (!file("${sdkRoot}/Core/include/Live2DCubismCore.h").isFile()) {
+        throw new GradleException('ERCIYUAN_CUBISM_SDK must point to the extracted Cubism Native 5-r.5 SDK')
+    }
+    def shaders = tasks.register('copyLocalCubismShaders', Sync) {
+        from("${sdkRoot}/Framework/src/Rendering/OpenGL/Shaders/StandardES") { into 'live2d_shaders' }
+        into shaderAssets
+    }
+    tasks.matching { it.name == 'preBuild' }.configureEach { dependsOn shaders }
+}
+android {
+    namespace = 'dev.erciyuan.live2d'
+    compileSdk = 36
+    ndkVersion = '28.2.13676358'
+    defaultConfig {
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+        minSdk = 24
+        if (sdkRoot) {
+            externalNativeBuild { cmake {
+                cppFlags '-std=c++17 -fexceptions -frtti'
+                arguments "-DCUBISM_SDK=${file(sdkRoot).absolutePath.replace('\\','/')}"
+            } }
+        }
+    }
+    if (sdkRoot) {
+        externalNativeBuild { cmake { path 'src/main/cpp/CMakeLists.txt'; version '3.22.1' } }
+        sourceSets.main.assets.srcDir shaderAssets.get().asFile
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
