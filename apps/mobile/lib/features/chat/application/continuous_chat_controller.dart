@@ -14,12 +14,14 @@ final class ContinuousChatController extends ChangeNotifier {
     required this.scope,
     required this.characterName,
     this.gateway,
+    this.onReplySaved,
   });
 
   final PersonDatabase database;
   final PersonScope scope;
   final String characterName;
   final ModelGatewayAdapter? gateway;
+  final void Function(String requestId)? onReplySaved;
 
   final List<RawEvent> _events = [];
   List<RawEvent> get events => List.unmodifiable(_events);
@@ -184,6 +186,7 @@ final class ContinuousChatController extends ChangeNotifier {
       switch (result.status) {
         case ModelTurnStatus.completed:
           statusMessage = isMock ? '离线 Mock · 已保存' : '已完成并保存';
+          if (!_disposed && !isMock) onReplySaved?.call(requestId);
           break;
         case ModelTurnStatus.failed:
           statusMessage = '回复失败，可点击重试';
