@@ -75,15 +75,21 @@ final class LocalAudioTemporaryFiles implements AudioTemporaryFiles {
   }
 }
 
-/// Android native implementation derived from PR #22. iOS intentionally uses
-/// file playback until a separate, tested native PCM implementation exists.
-final class AndroidPcmPlayback implements AudioPcmPlaybackPort {
-  AndroidPcmPlayback({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('dev.erciyuan/pcm');
+/// PCM playback on Android (AudioTrack) and iOS (AVAudioEngine).
+/// The native platform callbacks are scoped by stream ID; Flutter also
+/// invalidates pending starts before they can publish a stale active stream.
+/// This port does not request microphone access or generate chat messages.
+final class NativePcmPlayback implements AudioPcmPlaybackPort {
+  NativePcmPlayback({MethodChannel? channel, bool? isSupported})
+    : _channel = channel ?? const MethodChannel('dev.erciyuan/pcm'),
+      _supported = isSupported ?? (Platform.isAndroid || Platform.isIOS);
 
   final MethodChannel _channel;
+  final bool _supported;
   String? _active;
   bool _closed = false;
+  bool _starting = false;
+  int _epoch = 0;
 
   void _requireActive(String id) {
     if (_closed || _active != id) {
@@ -94,23 +100,32 @@ final class AndroidPcmPlayback implements AudioPcmPlaybackPort {
   @override
   Future<void> start(String streamId, {int bufferMs = 400}) async {
     if (_closed) throw StateError('PCM player was disposed');
-    if (!Platform.isAndroid) {
-      throw UnsupportedError('PCM streaming is not implemented on iOS');
+    if (!_supported) {
+      throw UnsupportedError('Native PCM playback requires Android or iOS');
     }
     if (streamId.isEmpty || bufferMs < 100 || bufferMs > 1000) {
       throw ArgumentError('Invalid PCM stream configuration');
     }
+    if (_starting) throw StateError('PCM start already in progress');
+    _starting = true;
+    final generation = ++_epoch;
     _active = null;
-    await _channel.invokeMethod<void>('stop');
-    await _channel.invokeMethod<void>('start', {
-      'id': streamId,
-      'bufferMs': bufferMs,
-    });
-    if (_closed) {
+    try {
       await _channel.invokeMethod<void>('stop');
-      return;
+      if (_closed || generation != _epoch) return;
+      await _channel.invokeMethod<void>('start', {
+        'id': streamId,
+        'bufferMs': bufferMs,
+      });
+      if (_closed || generation != _epoch) {
+        // A stop may have happened while a native start was in flight.
+        await _channel.invokeMethod<void>('stop');
+        return;
+      }
+      _active = streamId;
+    } finally {
+      _starting = false;
     }
-    _active = streamId;
   }
 
   @override
@@ -134,16 +149,21 @@ final class AndroidPcmPlayback implements AudioPcmPlaybackPort {
 
   @override
   Future<void> stop() async {
+    ++_epoch;
     _active = null;
-    if (Platform.isAndroid) await _channel.invokeMethod<void>('stop');
+    if (_supported) await _channel.invokeMethod<void>('stop');
   }
 
   @override
   Future<void> dispose() async {
+    if (_closed) return;
     _closed = true;
     await stop();
   }
 }
+
+/// Legacy name retained for existing clients; iOS is now also supported.
+typedef AndroidPcmPlayback = NativePcmPlayback;
 
 AudioSessionController createDeviceAudioSession() => AudioSessionController(
   capture: RecordAudioCapture(),
