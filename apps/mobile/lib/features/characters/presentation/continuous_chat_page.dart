@@ -184,6 +184,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
               _CharacterScene(
                 character: character,
                 isReplying: _chat.isSending,
+                isSpeaking: _voice.speaking,
                 isListening: _voice.listening,
               ),
               _modeRibbon(),
@@ -544,11 +545,13 @@ class _CharacterScene extends StatelessWidget {
   const _CharacterScene({
     required this.character,
     required this.isReplying,
+    required this.isSpeaking,
     required this.isListening,
   });
 
   final Character character;
   final bool isReplying;
+  final bool isSpeaking;
   final bool isListening;
 
   @override
@@ -578,7 +581,7 @@ class _CharacterScene extends StatelessWidget {
           child: AvatarFallbackScene(
             characterId: character.scope.characterId,
             characterName: character.name,
-            motion: isReplying
+            motion: isReplying || isSpeaking
                 ? AvatarSceneMotion.talking
                 : isListening
                 ? AvatarSceneMotion.listening
@@ -591,6 +594,8 @@ class _CharacterScene extends StatelessWidget {
           child: Text(
             isReplying
                 ? '${character.name}正在回应…'
+                : isSpeaking
+                ? '${character.name}正在朗读…'
                 : isListening
                 ? '${character.name}正在倾听…'
                 : '和${character.name}继续今天的故事',
