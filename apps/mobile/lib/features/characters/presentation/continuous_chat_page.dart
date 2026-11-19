@@ -12,6 +12,7 @@ import '../../timeline/data/person_database.dart';
 import '../../timeline/domain/raw_event.dart';
 import '../../voice/application/voice_assist_controller.dart';
 import '../../voice/data/system_voice_adapters.dart';
+import '../../voice/data/character_reply_playback.dart';
 import '../application/character_selection_controller.dart';
 import '../domain/character.dart';
 
@@ -46,6 +47,9 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   late final TextEditingController _input;
   late final AudioSessionController _audio;
   late final VoiceAssistController _voice;
+  CharacterReplyPlayback? _roleSpeech;
+  bool _readReplies = false;
+  bool _pageActive = true;
   bool _speechActivated = false;
   bool _slideCancelled = false;
   final ScrollController _scroll = ScrollController();
@@ -60,6 +64,10 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     WidgetsBinding.instance.addObserver(this);
     _audio = widget.audioSession ?? createDeviceAudioSession();
     _voice = widget.voiceAssist ?? createDeviceVoiceAssist();
+    _roleSpeech = widget.gateway?.createSpeechPlayback(
+      widget.scope,
+      NativePcmPlayback(),
+    );
     _chat = ContinuousChatController(
       database: widget.database,
       scope: widget.scope,
@@ -67,6 +75,14 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
           .firstWhere((character) => character.scope == widget.scope)
           .name,
       gateway: widget.gateway,
+      onReplySaved: (id) {
+        if (_readReplies &&
+            _pageActive &&
+            mounted &&
+            ModalRoute.of(context)?.isCurrent == true) {
+          unawaited(_roleSpeech?.play(id));
+        }
+      },
     );
     _input = TextEditingController(
       text: widget.selection.draftFor(widget.scope),
@@ -96,7 +112,9 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _pageActive = state == AppLifecycleState.resumed;
     if (state != AppLifecycleState.resumed) {
+      _disableRoleSpeech();
       unawaited(_audio.discard());
       unawaited(_voice.stopAll());
     }
@@ -104,6 +122,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 
   @override
   void dispose() {
+    _roleSpeech?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_audio.close());
     _audio.dispose();
@@ -119,6 +138,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 
   void _switchCharacter(PersonScope scope) {
     if (scope == widget.scope) return;
+    _disableRoleSpeech();
     FocusScope.of(context).unfocus();
     widget.selection.selectCharacter(scope);
     unawaited(_audio.discard());
@@ -138,9 +158,51 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   void _send() {
     final text = _input.text.trim();
     if (text.isEmpty || _chat.isSending) return;
+    unawaited(_roleSpeech?.stop());
     _input.clear();
     widget.selection.updateDraft(widget.scope, '');
     unawaited(_chat.send(text));
+  }
+
+  void _disableRoleSpeech() {
+    if (_readReplies && mounted) setState(() => _readReplies = false);
+    unawaited(_roleSpeech?.stop());
+  }
+
+  Future<void> _toggleRoleSpeech() async {
+    if (_readReplies) {
+      _disableRoleSpeech();
+      return;
+    }
+    final enabled = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: Text('用${_character.name}的音色朗读新回复？'),
+        content: const Text(
+          '开启后，本页后续回复会交给已配置的语音服务合成，可能产生费用。测试网关仅播放提示音。切换人物或离开应用后自动关闭。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('开启角色朗读'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || !_pageActive || enabled != true) return;
+    if (_voice.listening || _voice.speaking) await _voice.stopAll();
+    if (_audio.state == AudioSessionState.playing) await _audio.stopPlayback();
+    if (_audio.state == AudioSessionState.recording ||
+        _audio.state == AudioSessionState.requestingPermission) {
+      await _audio.discard();
+    }
+    if (mounted && _pageActive && ModalRoute.of(context)?.isCurrent == true) {
+      setState(() => _readReplies = true);
+    }
   }
 
   @override
@@ -163,6 +225,13 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
           ],
         ),
         actions: [
+          if (_roleSpeech != null)
+            IconButton(
+              key: const ValueKey('character-reply-speech'),
+              tooltip: _readReplies ? '关闭角色朗读' : '开启角色朗读',
+              onPressed: _toggleRoleSpeech,
+              icon: Icon(_readReplies ? Icons.volume_up : Icons.volume_off),
+            ),
           PopupMenuButton<PersonScope>(
             key: const ValueKey('chat-switch-character'),
             tooltip: '切换人物',
@@ -178,13 +247,13 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
       body: SafeArea(
         top: false,
         child: AnimatedBuilder(
-          animation: Listenable.merge([_chat, _audio, _voice]),
+          animation: Listenable.merge([_chat, _audio, _voice, _roleSpeech]),
           builder: (context, _) => Column(
             children: [
               _CharacterScene(
                 character: character,
                 isReplying: _chat.isSending,
-                isSpeaking: _voice.speaking,
+                isSpeaking: _voice.speaking || (_roleSpeech?.speaking ?? false),
                 isListening: _voice.listening,
               ),
               _modeRibbon(),
@@ -272,6 +341,11 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                   ),
                 ),
               _audioControls(),
+              if (_readReplies && (_roleSpeech?.status.isNotEmpty ?? false))
+                Text(
+                  _roleSpeech!.status,
+                  style: const TextStyle(color: Colors.white),
+                ),
               _speechControls(),
               _composer(),
             ],
@@ -362,6 +436,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     ),
   );
   Future<void> _requestSystemSpeak(String text) async {
+    _disableRoleSpeech();
     // The user must explicitly authorize each use of a potentially
     // network-backed OS speech engine before any chat text is supplied to it.
     final approved = await showDialog<bool>(
@@ -389,6 +464,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   }
 
   Future<void> _beginRecognition() async {
+    _disableRoleSpeech();
     _speechActivated = true;
     await _audio.discard();
     if (!mounted) return;
@@ -504,6 +580,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     button: true,
     label: '按住录音，松开保存本地试听，向左滑出取消',
     onTap: () {
+      _disableRoleSpeech();
       if (_audio.state == AudioSessionState.recording) {
         unawaited(_audio.finish());
       } else {
@@ -512,6 +589,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     },
     child: Listener(
       onPointerDown: (_) {
+        _disableRoleSpeech();
         _slideCancelled = false;
         unawaited(_voice.stopAll());
         unawaited(_audio.begin());

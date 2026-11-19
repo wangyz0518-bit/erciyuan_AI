@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Literal, Protocol
 
 import httpx
+from character_speech import CharacterSpeech
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -249,6 +250,12 @@ class RequestLedger:
         )
         # A process restart cannot prove whether the provider completed or billed.
         self.db.execute(
+            """CREATE TABLE IF NOT EXISTS reply_speech_requests (
+                owner_id TEXT NOT NULL, character_id TEXT NOT NULL, request_id TEXT NOT NULL,
+                PRIMARY KEY(owner_id,character_id,request_id)
+            )"""
+        )
+        self.db.execute(
             "UPDATE requests SET status='unknown', content='', error='SERVER_RESTARTED' "
             "WHERE status='running'"
         )
@@ -293,6 +300,15 @@ class RequestLedger:
             if not row:
                 raise HTTPException(404, "REQUEST_NOT_FOUND")
             return dict(row)
+
+    async def claim_speech(self, owner: str, character: str, request_id: str) -> bool:
+        async with self.lock:
+            with self.db:
+                cursor = self.db.execute(
+                    "INSERT OR IGNORE INTO reply_speech_requests VALUES (?,?,?)",
+                    (owner, character, request_id),
+                )
+                return cursor.rowcount == 1
 
     async def finish(
         self,
@@ -460,7 +476,8 @@ def _validate_context_budget(messages: list[dict[str, str]]) -> None:
         raise HTTPException(422, "CONTEXT_TOO_LARGE")
 
 
-def create_app(settings: Settings | None = None, provider: Provider | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, provider: Provider | None = None,
+               speech: CharacterSpeech | None = None) -> FastAPI:
     settings = settings or Settings.env()
     tokens = settings.local_tokens or {}
     if not tokens or any(len(token) < 24 for token in tokens):
@@ -476,6 +493,7 @@ def create_app(settings: Settings | None = None, provider: Provider | None = Non
         else MockProvider()
     )
     ledger = RequestLedger(settings.ledger_path)
+    speech = speech or CharacterSpeech.env()
     app = FastAPI(title="Person-scoped local model gateway", version="0.2.0")
     app.add_middleware(RequestBodyLimitMiddleware, max_bytes=MAX_REQUEST_BODY_BYTES)
     app.state.ledger = ledger
@@ -705,6 +723,22 @@ def create_app(settings: Settings | None = None, provider: Provider | None = Non
             frames(),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+        )
+
+    @app.post("/v1/characters/{character_id}/turns/{request_id}/speech")
+    async def speak(character_id: str, request_id: str, authorization: str = Header(default="")):
+        owner = owner_for_token(authorization)
+        validate_path_ids(character_id, request_id)
+        authorize_character(owner, character_id)
+        row = await ledger.status(owner, character_id, request_id)
+        if row["status"] != "completed":
+            raise HTTPException(409, "REPLY_NOT_COMPLETE")
+        voice = speech.binding(owner, character_id)
+        if not await ledger.claim_speech(owner, character_id, request_id):
+            raise HTTPException(409, "SPEECH_ALREADY_REQUESTED")
+        return StreamingResponse(
+            speech.frames(row["content"], voice), media_type="application/x-ndjson",
+            headers={"Cache-Control": "no-store", "X-Voice-Mode": speech.mode},
         )
 
     @app.get("/v1/characters/{character_id}/turns/{request_id}")

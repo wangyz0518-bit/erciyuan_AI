@@ -11,6 +11,7 @@ mkdir -p "$SCREENSHOTS"
 # runner action. The post-action ADB session is not always available.
 capture_device_evidence() {
   local result=$?
+  if [[ -n "${gateway_pid:-}" ]]; then kill "$gateway_pid" 2>/dev/null || true; fi
   if [[ "$result" -ne 0 ]]; then
     timeout --signal=TERM --kill-after=2s 15s adb exec-out screencap -p \
       > "$SCREENSHOTS/failure-state.png" || true
@@ -68,4 +69,19 @@ done
 # Run all native integration suites in one runner session, including the
 # actual PCM MethodChannel sink. A single invocation avoids repeated
  # XCTest/VM service attach cycles and bounds the total integration time.
-timeout --signal=TERM --kill-after=10s 900s flutter test integration_test -d "$ANDROID_SERIAL" --reporter expanded --timeout 5m
+# Run text and character-speech integration against the real FastAPI routes.
+# Use a temporary mock ledger, a synthetic token and role-specific test tones.
+export PERSON_GATEWAY_TOKEN="$(python -c 'import secrets; print(secrets.token_hex(24))')"
+export PERSON_GATEWAY_CHARACTERS=star,moon PERSON_GATEWAY_MODE=mock PERSON_VOICE_MODE=demo
+export PERSON_GATEWAY_LEDGER="$(mktemp -d)/requests.sqlite"
+python "$ROOT/services/person_gateway/gateway.py" &
+gateway_pid=$!
+for _ in {1..30}; do
+  if curl -fsS http://127.0.0.1:8788/health >/dev/null; then break; fi
+  sleep 1
+done
+curl -fsS http://127.0.0.1:8788/health >/dev/null
+adb -s "$ANDROID_SERIAL" reverse tcp:8788 tcp:8788
+timeout --signal=TERM --kill-after=10s 900s flutter test integration_test -d "$ANDROID_SERIAL" \
+  --dart-define=VOICE_TEST_URL=http://127.0.0.1:8788 \
+  --dart-define=VOICE_TEST_TOKEN="$PERSON_GATEWAY_TOKEN" --reporter expanded --timeout 5m

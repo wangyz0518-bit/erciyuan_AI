@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../characters/domain/character.dart';
+import '../../audio/domain/audio_ports.dart';
+import '../../voice/data/character_reply_playback.dart';
 import '../../memory/domain/memory_models.dart';
 import '../../timeline/data/person_database.dart';
 import '../../timeline/domain/raw_event.dart';
@@ -107,6 +109,15 @@ final class ModelGatewayAdapter {
   }
 
   static final RegExp _requestIdPattern = RegExp(r'^[A-Za-z0-9_-]{16,100}$');
+
+  CharacterReplyPlayback createSpeechPlayback(
+    PersonScope scope,
+    AudioPcmPlaybackPort player,
+  ) => CharacterReplyPlayback(
+    _endpoint('v1/characters/${Uri.encodeComponent(scope.characterId)}/turns/'),
+    _accessToken,
+    player,
+  );
   static final RegExp _identityVersionPattern = RegExp(
     r'^identity_version=(\d+)$',
     multiLine: true,

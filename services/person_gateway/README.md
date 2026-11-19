@@ -80,3 +80,32 @@ apps/mobile (#36/#47); the server never changes the user's logical timeline.
 Reuse reviewed: repository-owner PR #21 provider/streaming patterns and PR #22
 transport cancellation/retry principles. Other contributors' PRs are not
 modified or merged.
+
+## Try character reply playback on Android
+
+Use the same person gateway for text and audio. In PowerShell, from this directory with the requirements installed:
+
+```powershell
+$env:PERSON_GATEWAY_TOKEN = [guid]::NewGuid().ToString('N')
+$env:PERSON_GATEWAY_CHARACTERS = 'star,moon'
+$env:PERSON_GATEWAY_MODE = 'mock'
+$env:PERSON_VOICE_MODE = 'demo'
+adb reverse tcp:8788 tcp:8788
+$gateway = Start-Process -FilePath (Get-Command python).Source -ArgumentList 'gateway.py' -WindowStyle Hidden -PassThru
+```
+
+In the same terminal start the app. The child gateway and Flutter share the generated development token for this run.
+
+```powershell
+Push-Location ../../apps/mobile
+try {
+    flutter run --dart-define=PERSON_GATEWAY_URL=http://127.0.0.1:8788 --dart-define=PERSON_GATEWAY_DEV_TOKEN=$env:PERSON_GATEWAY_TOKEN
+} finally {
+    Pop-Location
+    if (!$gateway.HasExited) { $gateway.Kill() }
+}
+```
+
+Open 小星, tap the speaker in the title bar, confirm, then send a message. Demo mode returns mock text and a 440 Hz test tone. Switch to 小月 and enable her speaker to hear 660 Hz. Leaving the page or backgrounding the app stops the stream. The normal offline launch still works without a gateway.
+
+For authorized real synthesis, set `PERSON_VOICE_MODE=live` and supply server-side `DASHSCOPE_API_KEY`. Set `PERSON_VOICE_CATALOG` to the absolute path to your existing PoC `voice_profiles.sqlite` to use its current bindings read-only. 小星 maps to `xing` and 小月 to `yue`. The model, workspace and provider account must match the original catalogue. For a role without a selected catalogue profile, set its own server default (`COSYVOICE_VOICE_ID` for 小星, `COSYVOICE_YUE_VOICE_ID` for 小月). A role with neither a binding nor a default reports an error. A selected but unavailable profile must be fixed or unbound explicitly. The existing DeepSeek live opt-in controls text separately. Keep private databases, account identifiers, voice IDs and credentials outside Git.
