@@ -339,6 +339,87 @@ def test_cancel_endpoint_aborts_provider_task_and_does_not_commit_partial_text(t
     asyncio.run(run())
 
 
+def test_cancel_before_sse_iterator_never_starts_provider(tmp_path):
+    class CountingProvider:
+        def __init__(self):
+            self.calls = 0
+
+        async def stream(self, messages):
+            self.calls += 1
+            yield "should-not-be-requested"
+
+    async def run():
+        provider = CountingProvider()
+        app, client = await create_client(tmp_path, provider=provider)
+        route = next(
+            route
+            for route in app.routes
+            if getattr(route, "path", "") == "/v1/characters/{character_id}/turns"
+            and "POST" in getattr(route, "methods", set())
+        )
+        stream = await route.endpoint(
+            character_id="star",
+            turn=TurnInput.model_validate(request_body()),
+            authorization="Bearer " + TOKEN_A,
+        )
+        # FastAPI constructs a StreamingResponse before running its generator.
+        # Cancel during that gap, with a model provider that counts calls.
+        async with client:
+            cancelled = await client.post(
+                "/v1/characters/star/turns/test-request-0000001/cancel",
+                headers={"Authorization": "Bearer " + TOKEN_A},
+            )
+            assert cancelled.json()["status"] == "cancelled"
+            frames = [frame async for frame in stream.body_iterator]
+            assert parse_events("".join(frames))[-1]["status"] == "cancelled"
+            assert provider.calls == 0
+            assert not app.state.active_requests
+        app.state.ledger.close()
+
+    asyncio.run(run())
+
+
+def test_cancel_after_started_frame_before_provider_task_is_not_billed(tmp_path):
+    class CountingProvider:
+        def __init__(self):
+            self.calls = 0
+
+        async def stream(self, messages):
+            self.calls += 1
+            yield "should-not-be-requested"
+
+    async def run():
+        provider = CountingProvider()
+        app, client = await create_client(tmp_path, provider=provider)
+        route = next(
+            route
+            for route in app.routes
+            if getattr(route, "path", "") == "/v1/characters/{character_id}/turns"
+            and "POST" in getattr(route, "methods", set())
+        )
+        stream = await route.endpoint(
+            character_id="star",
+            turn=TurnInput.model_validate(request_body()),
+            authorization="Bearer " + TOKEN_A,
+        )
+        first = await anext(stream.body_iterator)
+        assert parse_events(first)[0]["event"] == "message.started"
+
+        async with client:
+            cancelled = await client.post(
+                "/v1/characters/star/turns/test-request-0000001/cancel",
+                headers={"Authorization": "Bearer " + TOKEN_A},
+            )
+            assert cancelled.json()["status"] == "cancelled"
+            remaining = [part async for part in stream.body_iterator]
+            assert parse_events("".join(remaining))[-1]["event"] == "message.cancelled"
+            assert provider.calls == 0
+            assert not app.state.active_requests
+        app.state.ledger.close()
+
+    asyncio.run(run())
+
+
 def test_cancel_and_status_are_owner_scoped(tmp_path):
     async def run():
         app, client = await create_client(tmp_path)
