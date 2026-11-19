@@ -186,7 +186,9 @@ final class ContinuousChatController extends ChangeNotifier {
       switch (result.status) {
         case ModelTurnStatus.completed:
           statusMessage = isMock ? '离线 Mock · 已保存' : '已完成并保存';
-          if (!_disposed && !isMock) onReplySaved?.call(requestId);
+          if (!_disposed && !isMock && !_cancelRequested) {
+            onReplySaved?.call(requestId);
+          }
           break;
         case ModelTurnStatus.failed:
           statusMessage = '回复失败，可点击重试';

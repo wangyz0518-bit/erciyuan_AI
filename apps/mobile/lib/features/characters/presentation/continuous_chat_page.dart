@@ -14,6 +14,8 @@ import '../../voice/application/voice_assist_controller.dart';
 import '../../voice/data/system_voice_adapters.dart';
 import '../../voice/data/character_reply_playback.dart';
 import '../../voice/application/voice_input_controller.dart';
+import '../../voice/application/continuous_call_controller.dart';
+import '../../voice/presentation/call_overlay.dart';
 import '../application/character_selection_controller.dart';
 import '../domain/character.dart';
 
@@ -52,6 +54,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   bool _readReplies = false;
   bool _pageActive = true;
   VoiceInputController? _remoteInput;
+  ContinuousCallController? _call;
   bool _holdToSend = false;
   bool _speechActivated = false;
   bool _slideCancelled = false;
@@ -69,7 +72,9 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     _voice = widget.voiceAssist ?? createDeviceVoiceAssist();
     _roleSpeech = widget.gateway?.createSpeechPlayback(
       widget.scope,
-      NativePcmPlayback(),
+      NativePcmPlayback(
+        inCall: () => (_call?.calling ?? false) && !(_call?.muted ?? false),
+      ),
     );
     _chat = ContinuousChatController(
       database: widget.database,
@@ -79,7 +84,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
           .name,
       gateway: widget.gateway,
       onReplySaved: (id) {
-        if (_readReplies &&
+        if ((_readReplies || (_call?.calling ?? false)) &&
+            !(_call?.hasUnsentSpeech ?? false) &&
             _pageActive &&
             mounted &&
             ModalRoute.of(context)?.isCurrent == true) {
@@ -92,6 +98,14 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     );
     final gateway = widget.gateway;
     if (gateway != null) {
+      _call = ContinuousCallController(
+        open: (partial) => gateway.openVoiceInput(widget.scope, partial),
+        submit: _chat.send,
+        interrupt: () {
+          unawaited(_roleSpeech?.stop());
+          if (_chat.isSending) unawaited(_chat.cancel());
+        },
+      );
       _remoteInput = VoiceInputController(
         open: (partial) => gateway.openVoiceInput(widget.scope, partial),
         submit: (text) => _chat.send(text),
@@ -133,6 +147,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 
   @override
   void dispose() {
+    _call?.dispose();
     _remoteInput?.dispose();
     _roleSpeech?.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -185,37 +200,49 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   }
 
   void _endVoiceMode() {
+    unawaited(_call?.stop());
     if (_holdToSend && mounted) setState(() => _holdToSend = false);
     unawaited(_remoteInput?.cancel());
   }
 
   Future<void> _chooseVoiceInput() async {
-    if (_holdToSend) {
+    if (_holdToSend || (_call?.calling ?? false)) {
       _endVoiceMode();
       return;
     }
-    final agreed = await showDialog<bool>(
+    final mode = await showDialog<String>(
       context: context,
       builder: (dialog) => AlertDialog(
-        title: const Text('按住说话，松开发送？'),
+        title: const Text('选择语音交流方式'),
         content: const Text(
-          '按住麦克风期间会把声音传给已配置的识别服务，可能产生费用。松开后发送最终转写，向左滑出可取消发送。演示模式返回固定测试文字。',
+          '两种模式都会把语音发给识别服务，可能产生费用。按住模式在松开后发送，可滑出取消。连续通话会持续收音、在停顿后发送并用角色音色回答，可以插话或挂断。演示服务使用固定转写和测试音。',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialog, false),
+            onPressed: () => Navigator.pop(dialog),
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialog, true),
+            onPressed: () => Navigator.pop(dialog, 'hold'),
             child: const Text('启用按住说话'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, 'call'),
+            child: const Text('开始连续通话'),
           ),
         ],
       ),
     );
-    if (!mounted || !_pageActive || agreed != true) return;
+    if (!mounted || !_pageActive || mode == null || _chat.isSending) return;
     if (_voice.listening || _voice.speaking) await _voice.stopAll();
-    if (mounted && _pageActive) setState(() => _holdToSend = true);
+    if (_audio.state == AudioSessionState.playing) await _audio.stopPlayback();
+    if (!mounted || !_pageActive) return;
+    if (mode == 'call') {
+      await _roleSpeech?.stop();
+      if (mounted && _pageActive) await _call?.start();
+    } else {
+      setState(() => _holdToSend = true);
+    }
   }
 
   Future<void> _toggleRoleSpeech() async {
@@ -308,6 +335,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
             _voice,
             _roleSpeech,
             _remoteInput,
+            _call,
           ]),
           builder: (context, _) => Column(
             children: [
@@ -316,7 +344,9 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                 isReplying: _chat.isSending,
                 isSpeaking: _voice.speaking || (_roleSpeech?.speaking ?? false),
                 isListening:
-                    _voice.listening || (_remoteInput?.holding ?? false),
+                    _voice.listening ||
+                    (_remoteInput?.holding ?? false) ||
+                    ((_call?.calling ?? false) && !(_call?.muted ?? false)),
               ),
               _modeRibbon(),
               Expanded(
@@ -416,7 +446,26 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                   style: const TextStyle(color: Colors.white),
                 ),
               _speechControls(),
-              _composer(),
+              if (_call?.calling ?? false)
+                CallOverlay(
+                  seconds: _call!.seconds,
+                  muted: _call!.muted,
+                  live: true,
+                  status: (_roleSpeech?.speaking ?? false)
+                      ? _roleSpeech!.status
+                      : _call!.status,
+                  subtitle: _call!.subtitle,
+                  toggleMute: () => unawaited(_call!.toggleMute()),
+                  end: _endVoiceMode,
+                )
+              else ...[
+                if (_call?.status.isNotEmpty ?? false)
+                  Text(
+                    _call!.status,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                _composer(),
+              ],
             ],
           ),
         ),

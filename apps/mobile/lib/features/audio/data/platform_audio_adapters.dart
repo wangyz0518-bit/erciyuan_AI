@@ -80,12 +80,13 @@ final class LocalAudioTemporaryFiles implements AudioTemporaryFiles {
 /// invalidates pending starts before they can publish a stale active stream.
 /// This port does not request microphone access or generate chat messages.
 final class NativePcmPlayback implements AudioPcmPlaybackPort {
-  NativePcmPlayback({MethodChannel? channel, bool? isSupported})
+  NativePcmPlayback({MethodChannel? channel, bool? isSupported, this.inCall})
     : _channel = channel ?? const MethodChannel('dev.erciyuan/pcm'),
       _supported = isSupported ?? (Platform.isAndroid || Platform.isIOS);
 
   final MethodChannel _channel;
   final bool _supported;
+  final bool Function()? inCall;
   String? _active;
   bool _closed = false;
   bool _starting = false;
@@ -116,6 +117,7 @@ final class NativePcmPlayback implements AudioPcmPlaybackPort {
       await _channel.invokeMethod<void>('start', {
         'id': streamId,
         'bufferMs': bufferMs,
+        if (inCall?.call() ?? false) 'communication': true,
       });
       if (_closed || generation != _epoch) {
         // A stop may have happened while a native start was in flight.
