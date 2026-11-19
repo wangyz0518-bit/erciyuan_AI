@@ -2,6 +2,7 @@
 
 | 文档 | 主题 | 日期 | 状态 | 主要结论 |
 | --- | --- | --- | --- | --- |
+| [on-device-voice-proposal-20261113.md](on-device-voice-proposal-20261113.md) | D 单角色端侧语音方案与验证计划 | 2026-11-13 | 评审中 | 平静、开心、安慰、疑惑四表达；先电脑后手机，待确认后实施 |
 | [mobile-stack-research-20261111.md](mobile-stack-research-20261111.md) | 移动端框架技术调研 | 2026-11-11 | 供参考 | Android/iOS 前提下建议 Flutter 优先 |
 | [mobile-stack-review-20261111.md](mobile-stack-review-20261111.md) | 三端需求复核 | 2026-11-11 | 待评审 | 含原生鸿蒙时建议 uni-app 优先，Flutter 备选 |
 
