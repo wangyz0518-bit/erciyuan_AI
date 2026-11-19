@@ -102,6 +102,24 @@ void main() {
     },
   );
 
+  test('recognition immediately clears previous TTS state and callback', () async {
+    await controller.speak('旧角色回复');
+    expect(controller.speaking, isTrue);
+    final oldTtsCompletion = tts.done!;
+
+    await controller.beginRecognition();
+    expect(controller.speaking, isFalse);
+    expect(controller.listening, isTrue);
+    expect(tts.stops, greaterThan(0));
+
+    oldTtsCompletion();
+    expect(controller.speaking, isFalse);
+    expect(controller.listening, isTrue);
+    asr.callback!('新的识别草稿', true);
+    expect(controller.editableCandidate, '新的识别草稿');
+    expect(controller.listening, isFalse);
+  });
+
   test('closing discards delayed recognizer callbacks', () async {
     await controller.beginRecognition();
     final callback = asr.callback!;
