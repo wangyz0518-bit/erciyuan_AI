@@ -1,6 +1,6 @@
 # Windows 三种聊天方式测试指南
 
-> 状态：评审中，Windows 人工验收待补，Android 已有调试接入
+> 状态：Windows 测试版已由用户选为当前声音基准。正式移动端接入见 [App 指南](../../apps/mobile/README.md)，iPhone 外放和打断需真机验证。
 > 日期：2026-11-18
 > 负责人：待定
 > 关联：A/B/D、[v3 契约](../接口/model-gateway-conversation-v3.md)
@@ -8,7 +8,7 @@
 ## 启动
 
 在本任务工作区双击 `apps/windows_conversation_lab/Launch.cmd`。脚本准备本地语音检测资源、启动 loopback 网关，再打开默认浏览器。请使用 Edge 或 Chrome。
-本机当前工作区为 `D:\codex\erciyuan_AI\.worktrees\continuous-voice`，真实服务默认端口 8788。
+真实服务默认端口为 8788。
 已有运行服务会复用，不重复启动。供应商密钥从主工作区已有 DPAPI 配置读取，不复制到客户端。
 默认 Python 为本工作区 `.model-local/conversation-venv/Scripts/python.exe`，使用独立环境和网关锁定依赖，避免影响原有测试台。此工作站环境已准备；新电脑须先按网关指南配置密钥并执行：
 

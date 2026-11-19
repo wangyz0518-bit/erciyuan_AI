@@ -20,10 +20,14 @@ class CharacterAvatarScene extends StatefulWidget {
     required this.character,
     required this.motion,
     required this.mouth,
+    this.fallback,
+    this.showMenu = true,
   });
   final Character character;
   final AvatarSceneMotion motion;
   final double mouth;
+  final Widget? fallback;
+  final bool showMenu;
   @override
   State<CharacterAvatarScene> createState() => CharacterAvatarSceneState();
 }
@@ -154,6 +158,11 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
     if (_current) setState(() {});
   });
 
+  bool get canImport => _available && !_busy;
+  bool get hasModel => _model != null;
+  Future<void> choosePackage() => _select('import');
+  Future<void> clearPackage() => _select('clear');
+
   Future<void> _select(String action) async {
     if (_busy || !_current) return;
     setState(() => _busy = true);
@@ -241,14 +250,15 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
                   child: Texture(textureId: _texture!),
                 ),
               )
-            : AvatarFallbackScene(
-                characterId: widget.character.scope.characterId,
-                characterName: widget.character.name,
-                motion: widget.motion,
-                mouth: widget.mouth,
-              ),
+            : widget.fallback ??
+                  AvatarFallbackScene(
+                    characterId: widget.character.scope.characterId,
+                    characterName: widget.character.name,
+                    motion: widget.motion,
+                    mouth: widget.mouth,
+                  ),
       ),
-      if (_available)
+      if (_available && widget.showMenu)
         Positioned(
           right: 6,
           top: 0,

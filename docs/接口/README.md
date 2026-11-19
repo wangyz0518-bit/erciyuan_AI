@@ -7,6 +7,8 @@
 
 本文定义客户端与对话服务之间的最小接口，用于协作开发时对齐字段和失败语义。具体协议（REST/SSE/WebSocket）、鉴权方式和部署形态由技术方案确定后补充。
 
+移动端声音模块采用[连续会话协议 v3](model-gateway-conversation-v3.md)，角色音色使用[录音复刻和绑定接口](recording-voice-profiles-v0.md)。
+
 ## 通用约定
 
 - 所有时间使用 ISO 8601 UTC，例如 `2026-11-11T12:00:00Z`。

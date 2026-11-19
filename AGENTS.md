@@ -14,10 +14,9 @@
 
 ## 当前工程
 
-- Flutter 本地验证工程位于 `apps/mobile_poc/`，用于承载已验证的 Android 基础能力和后续工程演进。
-- 当前聊天回复仍为本地模拟内容；角色形象为占位素材。不得将 PoC 能力描述为真实 AI、正式语音或正式产品功能。
-- Android API 36 模拟器已完成 Debug 构建、安装和运行验证；iOS 工程目录由 Flutter 模板生成，尚未构建、签名或真机验证。
-- 运行命令、依赖版本和已知限制见 [Flutter 开发与验证指南](docs/guides/flutter-poc-guide-20261112.md)；历史实测证据见 [Android PoC 报告](docs/reports/android-poc-report-20261112.md)。
+- 正式 Flutter App 位于 `apps/mobile/`。配置声音网关后使用 Windows 测试版确定的 v3 会话，支持文字、按住说话、连续通话、插话和每轮延迟。每个角色沿用正式 App 的 SQLite 时间线。
+- Windows 对照客户端位于 `apps/windows_conversation_lab/`，共用 `services/model_gateway/`。仅在服务端配置供应商凭据。入口见 [Windows 指南](docs/guides/windows-conversation-20261118.md)、[iPhone 安装指南](docs/guides/ios-personal-team.md) 和 [v3 会话契约](docs/接口/model-gateway-conversation-v3.md)。
+- 独立 Flutter PoC 位于 `apps/mobile_poc/`。模拟器、合成语音和真人外放验收分别记录。
 
 ## 协作
 

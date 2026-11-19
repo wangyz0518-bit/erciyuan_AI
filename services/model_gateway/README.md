@@ -1,13 +1,15 @@
-# Companion model gateway
+# 本机声音网关
 
-Python 3.12 + FastAPI。DeepSeek 生成完整回复后，CosyVoice Flash 合成朗读音频；录音转文字返回明确的未实现状态。
+手机沉浸聊天页使用Windows 测试版的 v3 会话实现。三种输入共享同一人物的上下文，文字由 DeepSeek 生成，按住说话和连续通话由 Qwen 实时转写，角色回复使用已绑定的 CosyVoice 克隆音色。协议及旧版接口见[原工程的 v3 契约](../../docs/接口/model-gateway-conversation-v3.md)。
 
-`requirements.txt` 列出直接依赖，`requirements-lock.txt` 记录本轮 Python 3.12 验证环境的完整版本，用于复现。
+在 Python 3.12 环境安装 `requirements-lock.txt`，然后从此目录运行：
 
-- [启动、密钥配置及 Android/iOS 联调](../../docs/guides/model-gateway-20261115.md)
-- [请求、事件、取消、重试与本机服务边界](../../docs/接口/model-gateway-v0.md)
-- [实际验收结果](../../docs/reports/model-gateway-20261115.md)
-- [v2 服务器统一调度协议](../../docs/接口/model-gateway-stream-v2.md) / [Android 流式验证指南](../../docs/guides/streaming-voice-20261115.md)
-- [录音复刻与角色绑定](../../docs/接口/recording-voice-profiles-v0.md) / [Windows 操作与验收](../../docs/guides/recording-voice-cloning-20261116.md)
+```powershell
+./run.ps1 -Mode live -Python <Python可执行文件> -KeyRoot <本机DeepSeek凭据目录> -VoiceConfigRoot <本机百炼凭据目录> -LocalRoot <本机运行目录>
+```
 
-测试：`python -m pytest -q`。启动：`python -m uvicorn gateway.app:create_app --factory --host 127.0.0.1 --port 8787 --no-access-log`，先配置 `.env.example` 列出的环境变量（模板不会自动加载）。Windows 可用 `run.ps1`。不要使用多个 worker，也不要直接暴露到公网。
+默认端口为 8787，监听本机回环地址。若使用本机已配置的 HTTPS 代理，添加 `-UseExistingProxy`。运行目录中的 `gateway-live/voice_profiles.sqlite` 保存音色绑定，`gateway-live/conversations-v3.sqlite` 保存 v3 对话和录音。已有绑定可使用原运行目录或一致的 SQLite 本机备份。网关生成的 `mobile-live.json` 仅供本机开发构建。
+
+从此目录运行 `python -m pytest -q` 可执行离线后端测试。浏览器预览使用[独立的浏览器网关](../person_gateway/README.md)。
+
+兼容接口和历史验收见 [v0](../../docs/接口/model-gateway-v0.md)、[v2](../../docs/接口/model-gateway-stream-v2.md) 和[音色复刻与角色绑定](../../docs/接口/recording-voice-profiles-v0.md)。

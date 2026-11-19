@@ -9,7 +9,9 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>仅在你主动点击设备端语音识别时请求系统识别权限；结果必须由你编辑确认后发送。</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>仅当你按住录音时使用麦克风，音频暂存在本机供试听，可随时取消或删除。</string>
+	<string>按住录音或开启连续通话时使用麦克风。使用语音网关时，录音会发送至配置的网关进行转写和回复。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>连接同一网络中的开发用 Mac，获取角色回复和语音。</string>
 	<key>CFBundleDisplayName</key>
 	<string>erciyuan AI</string>
 	<key>CFBundleExecutable</key>

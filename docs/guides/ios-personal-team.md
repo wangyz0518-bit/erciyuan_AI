@@ -1,17 +1,17 @@
 # 在 Mac 上把陪伴 App 装到自己的 iPhone
 
-在 Mac 上克隆语音 PoC 分支，然后从仓库根目录运行下文命令。使用单独的工程包时，解压后进入 `Companion-iPhone-Test` 即可。iPhone 通过 USB 安装，语音对话通过同一局域网访问 Mac 上的测试网关。
+从 Mac 克隆主线，进入仓库根目录。iPhone 通过 USB 安装，通过同一局域网访问 Mac 上的测试网关。
 
-```bash
-git clone --branch codex/ios-voice-handoff --single-branch https://github.com/wangyz0518-bit/erciyuan_AI.git
+~~~bash
+git clone --branch main https://github.com/wangyz0518-bit/erciyuan_AI.git
 cd erciyuan_AI
-```
+~~~
 
-### 给移植开发者
+### 正式 App 的声音模块
 
-- [Flutter 会话控制器](../../apps/mobile_poc/lib/conversation_controller.dart) 管理三种输入、断句、排队、打断和每轮延迟。相邻的 `conversation_capture.dart`、`conversation_transport.dart` 分别负责采集分帧和网关通信。
-- [iOS 原生入口](../../apps/mobile_poc/ios/Runner/AppDelegate.swift) 注册检测和播放通道。[本地 Swift 包](../../apps/mobile_poc/ios/ConversationVAD) 运行 Silero 检测，[流式播放器](../../apps/mobile_poc/ios/Runner/ConversationPlayer.swift) 负责播报、播放进度和停播。移植时一起复制 [ONNX 模型及许可](../../apps/mobile_poc/android/app/src/main/assets)，Xcode 的 Copy Bundle Resources 引用了该目录。
-- [会话 v3 契约](../接口/model-gateway-conversation-v3.md) 和 [测试网关](../../services/model_gateway/ios_test_gateway.py) 可用于独立联调。正式 App 位于主分支的 `apps/mobile`，移植时请对接其现有角色、权限和历史存储。
+- [Flutter 会话控制器](../../apps/mobile/lib/immersive/conversation_controller.dart) 处理打字、按住说话、连续对话、插话和每轮延迟。[时间线适配](../../apps/mobile/lib/immersive/chat_controller.dart) 将消息保存到当前人物的正式 SQLite 记录。
+- [iOS 原生入口](../../apps/mobile/ios/Runner/AppDelegate.swift) 注册 [Silero 人声检测](../../apps/mobile/ios/ConversationVAD) 和 [PCM 播放器](../../apps/mobile/ios/Runner/ConversationPlayer.swift)。
+- [会话 v3 契约](../接口/model-gateway-conversation-v3.md) 和 [测试网关](../../services/model_gateway/ios_test_gateway.py) 对应本次 Windows 验证版。安装脚本为正式 App 启用 v3。
 
 Git 克隆版可以直接启动模拟网关。真实语音可使用测试账号自己的默认音色。若要复用「蜜糖泡芙」和「晚棠」，把此前私下交付的工程包中的 `test-voices.json` 复制到仓库根目录；网关会查询当前百炼账号能访问的音色。该目录文件已加入 Git 忽略。
 
@@ -24,7 +24,7 @@ Git 克隆版可以直接启动模拟网关。真实语音可使用测试账号�
 
 ## 安装
 
-1. 打开终端，输入 `cd `，把解压后的文件夹拖入终端，按回车。启动网关并确认 Mac 的 Wi-Fi 地址。保持这个终端开着。
+1. 打开终端，输入 `cd `，把仓库文件夹拖入终端，按回车。启动网关并确认 Mac 的 Wi-Fi 地址。保持这个终端开着。
 
    ```bash
    bash tools/ios_mac/start-gateway.command

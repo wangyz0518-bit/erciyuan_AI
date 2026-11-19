@@ -20,6 +20,20 @@ Continue opens the selected character's saved conversation. The app starts
 in offline demo mode. A configured local gateway enables additional chat and
 voice modes. Imports and spoken replies are scoped to the selected character.
 
+## Windows 验证版语音接入
+
+Android 和 iOS 配置了 `MODEL_GATEWAY_URL` 和 `MODEL_GATEWAY_TOKEN` 时默认使用 v3。三种输入共用人物时间线。连续通话等待约 2.56 秒静音再提交，支持播报中插话、每轮延迟和按角色选音色。只配置人物网关时沿用原聊天入口。
+
+Android 模拟器先启动[本机声音网关](../../services/model_gateway/README.md)，在仓库根目录执行以下命令。
+
+~~~powershell
+adb -s emulator-5554 reverse tcp:8787 tcp:8787
+cd apps/mobile
+flutter run -d emulator-5554 --dart-define-from-file=../../.model-local/mobile-live.json
+~~~
+
+iPhone 使用 [Mac 签名安装指南](../../docs/guides/ios-personal-team.md)。Windows 对照客户端见 [Windows 运行指南](../../docs/guides/windows-conversation-20261118.md)。
+
 ## 动态形象与本机 Android 人物包
 
 普通 Android 和 iOS 构建使用 Flutter 内置形象。倾听、等待回复和朗读有不同的表现，

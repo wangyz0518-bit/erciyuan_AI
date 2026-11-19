@@ -14,6 +14,7 @@ const localOwnerId = 'local-device-owner-v1';
 Future<CompanionApp> bootstrapCompanionApp({
   String ownerId = localOwnerId,
   PersonDatabase? database,
+  CompanionHomeBuilder? homeBuilder,
   Uri? gatewayUri,
   String? gatewayToken,
 }) async {
@@ -58,6 +59,7 @@ Future<CompanionApp> bootstrapCompanionApp({
         );
 
   return CompanionApp(
+    homeBuilder: homeBuilder,
     database: store,
     gateway: gateway,
     controller: CharacterSelectionController(

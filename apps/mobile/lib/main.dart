@@ -1,11 +1,22 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'bootstrap.dart';
+import 'immersive/immersive_home.dart';
+import 'immersive/model_gateway.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
+    final voice = ModelGateway.configured();
     final app = await bootstrapCompanionApp(
+      homeBuilder: voice != null && voice.useV3
+          ? (selection, database, textGateway) => ImmersiveHome(
+              selection,
+              database,
+              textGateway,
+              voiceGateway: voice,
+            )
+          : null,
       gatewayUri: const String.fromEnvironment('PERSON_GATEWAY_URL').isEmpty
           ? null
           : Uri.parse(const String.fromEnvironment('PERSON_GATEWAY_URL')),

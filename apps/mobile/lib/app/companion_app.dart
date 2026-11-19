@@ -7,12 +7,19 @@ import '../features/characters/presentation/character_home_page.dart';
 import '../features/chat/data/model_gateway_adapter.dart';
 import '../features/timeline/data/person_database.dart';
 
+typedef CompanionHomeBuilder = Widget Function(
+  CharacterSelectionController,
+  PersonDatabase,
+  ModelGatewayAdapter?,
+);
+
 /// Owns the official local store, single-owner selection, and optional gateway.
 class CompanionApp extends StatefulWidget {
   const CompanionApp({
     required this.controller,
     required this.database,
     this.gateway,
+    this.homeBuilder,
     this.closeDatabaseOnDispose = true,
     super.key,
   });
@@ -21,6 +28,7 @@ class CompanionApp extends StatefulWidget {
   final PersonDatabase database;
   final ModelGatewayAdapter? gateway;
   final bool closeDatabaseOnDispose;
+  final CompanionHomeBuilder? homeBuilder;
 
   @override
   State<CompanionApp> createState() => _CompanionAppState();
@@ -46,10 +54,16 @@ class _CompanionAppState extends State<CompanionApp> {
         brightness: Brightness.dark,
       ),
     ),
-    home: CharacterHomePage(
-      controller: widget.controller,
-      database: widget.database,
-      gateway: widget.gateway,
-    ),
+    home:
+        widget.homeBuilder?.call(
+          widget.controller,
+          widget.database,
+          widget.gateway,
+        ) ??
+        CharacterHomePage(
+          controller: widget.controller,
+          database: widget.database,
+          gateway: widget.gateway,
+        ),
   );
 }

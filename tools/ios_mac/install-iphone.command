@@ -5,7 +5,7 @@ if [[ "$(uname -s)" != Darwin ]]; then echo "请在 Mac 上运行。"; exit 1; f
 root="$(pwd)"
 config="$root/.model-local/ios-mac/iphone.json"
 if [[ ! -f "$config" ]]; then echo "请先启动测试网关，保持其终端运行。"; exit 1; fi
-cd apps/mobile_poc
+cd apps/mobile
 flutter pub get --enforce-lockfile
 flutter build ios --config-only --release --no-codesign --dart-define-from-file="$config"
 open ios/Runner.xcworkspace
