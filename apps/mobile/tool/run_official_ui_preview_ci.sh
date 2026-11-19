@@ -72,7 +72,7 @@ done
 # Run text and character-speech integration against the real FastAPI routes.
 # Use a temporary mock ledger, a synthetic token and role-specific test tones.
 export PERSON_GATEWAY_TOKEN="$(python -c 'import secrets; print(secrets.token_hex(24))')"
-export PERSON_GATEWAY_CHARACTERS=star,moon PERSON_GATEWAY_MODE=mock PERSON_VOICE_MODE=demo
+export PERSON_GATEWAY_CHARACTERS=star,moon PERSON_GATEWAY_MODE=mock PERSON_VOICE_MODE=demo PERSON_ASR_MODE=demo
 export PERSON_GATEWAY_LEDGER="$(mktemp -d)/requests.sqlite"
 python "$ROOT/services/person_gateway/gateway.py" &
 gateway_pid=$!

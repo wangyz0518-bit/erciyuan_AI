@@ -89,3 +89,9 @@ Flutter 不保存供应商 API Key。真实日志默认不记录正文、稳定�
 成功响应是 `application/x-ndjson`，`X-Voice-Mode` 为 `live` 或 `demo`。每行是一个 JSON 对象。音频行的 `pcm` 为 base64 编码的 24 kHz 单声道 PCM16LE（每帧最多 9600 字节），成功以 `{"done":true}` 结束。流内失败以 `{"error":"VOICE_UNAVAILABLE"}` 结束。客户端遇到错误或缺失完成帧时停止播放，保留已保存的文字。
 
 未授权、越权、缺少请求或绑定时返回 4xx，未配置语音服务时返回 503。每个已完成回复最多受理一次合成。重传返回 409，断开后不自动重新计费。开发联调只为本机测试 owner 配置音色。
+
+## 9. 实时输入转写
+
+`WebSocket /v1/characters/{character_id}/voice-input` 使用与文字接口相同的 Authorization 请求头和人物权限。一条连接只处理一段语音。收到 `{"type":"ready","mode":"live"}` 或 `demo` 后发送 16 kHz 单声道 PCM16LE 二进制帧。每帧不超过 6400 字节，一段长 0.2 至 30 秒。松开发送文本帧 `commit`，滑出或挂断直接关闭连接。网关只转写；客户端仅把 `final` 交给正式人物时间线。识别中的 `partial` 只作字幕，错误返回 `error`。切换人物、离开页面或切到后台时，忽略迟到结果。
+
+本机开发网关可通过 `PERSON_ASR_MODE=demo` 演示接线，返回明确标出的固定测试文字。经授权的真实识别使用 `PERSON_ASR_MODE=live` 和服务端 `DASHSCOPE_API_KEY`；识别的 workspace 和代理设置与合成一致。每个 owner 最多四条同时活动的输入流。

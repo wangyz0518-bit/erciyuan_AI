@@ -90,6 +90,7 @@ $env:PERSON_GATEWAY_TOKEN = [guid]::NewGuid().ToString('N')
 $env:PERSON_GATEWAY_CHARACTERS = 'star,moon'
 $env:PERSON_GATEWAY_MODE = 'mock'
 $env:PERSON_VOICE_MODE = 'demo'
+$env:PERSON_ASR_MODE = 'demo'
 adb reverse tcp:8788 tcp:8788
 $gateway = Start-Process -FilePath (Get-Command python).Source -ArgumentList 'gateway.py' -WindowStyle Hidden -PassThru
 ```
@@ -107,5 +108,7 @@ try {
 ```
 
 Open 小星, tap the speaker in the title bar, confirm, then send a message. Demo mode returns mock text and a 440 Hz test tone. Switch to 小月 and enable her speaker to hear 660 Hz. Leaving the page or backgrounding the app stops the stream. The normal offline launch still works without a gateway.
+
+Select the voice input mode in the chat title bar to enable hold-to-send. Hold the composer microphone, speak, then release. Sliding outside cancels. In ASR demo mode the gateway labels the fixed transcript; live mode streams microphone audio to the configured Qwen realtime ASR service. The existing device recognizer still offers an editable draft.
 
 For authorized real synthesis, set `PERSON_VOICE_MODE=live` and supply server-side `DASHSCOPE_API_KEY`. Set `PERSON_VOICE_CATALOG` to the absolute path to your existing PoC `voice_profiles.sqlite` to use its current bindings read-only. 小星 maps to `xing` and 小月 to `yue`. The model, workspace and provider account must match the original catalogue. For a role without a selected catalogue profile, set its own server default (`COSYVOICE_VOICE_ID` for 小星, `COSYVOICE_YUE_VOICE_ID` for 小月). A role with neither a binding nor a default reports an error. A selected but unavailable profile must be fixed or unbound explicitly. The existing DeepSeek live opt-in controls text separately. Keep private databases, account identifiers, voice IDs and credentials outside Git.

@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../characters/domain/character.dart';
 import '../../audio/domain/audio_ports.dart';
 import '../../voice/data/character_reply_playback.dart';
+import '../../voice/data/voice_input_stream.dart';
 import '../../memory/domain/memory_models.dart';
 import '../../timeline/data/person_database.dart';
 import '../../timeline/domain/raw_event.dart';
@@ -109,6 +110,20 @@ final class ModelGatewayAdapter {
   }
 
   static final RegExp _requestIdPattern = RegExp(r'^[A-Za-z0-9_-]{16,100}$');
+
+  VoiceInputStream openVoiceInput(
+    PersonScope scope,
+    void Function(String) partial,
+  ) {
+    final endpoint = _endpoint(
+      'v1/characters/${Uri.encodeComponent(scope.characterId)}/voice-input',
+    );
+    return VoiceInputStream(
+      endpoint.replace(scheme: endpoint.scheme == 'https' ? 'wss' : 'ws'),
+      _accessToken,
+      partial,
+    );
+  }
 
   CharacterReplyPlayback createSpeechPlayback(
     PersonScope scope,
