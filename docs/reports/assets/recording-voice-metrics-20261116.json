@@ -1,0 +1,230 @@
+{
+  "date": "2026-11-16",
+  "clock": "PortAudio DAC estimate, not acoustic measurement",
+  "human_listening": "pending",
+  "warm_summary": {
+    "n": 20,
+    "p50_ms": 938.7906001647934,
+    "p95_ms": 954.3445999734104,
+    "max_ms": 966.4278000127524
+  },
+  "trials": [
+    {
+      "index": 0,
+      "error": "",
+      "reused": true,
+      "text_ms": 936.552,
+      "text_to_output_ms": 926.652,
+      "output_ms": 1863.204,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 1,
+      "error": "",
+      "reused": true,
+      "text_ms": 776.237,
+      "text_to_output_ms": 886.739,
+      "output_ms": 1662.976,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 2,
+      "error": "",
+      "reused": true,
+      "text_ms": 656.642,
+      "text_to_output_ms": 952.553,
+      "output_ms": 1609.195,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 3,
+      "error": "",
+      "reused": true,
+      "text_ms": 805.757,
+      "text_to_output_ms": 966.428,
+      "output_ms": 1772.185,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 4,
+      "error": "",
+      "reused": true,
+      "text_ms": 705.791,
+      "text_to_output_ms": 934.999,
+      "output_ms": 1640.789,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 5,
+      "error": "",
+      "reused": true,
+      "text_ms": 893.182,
+      "text_to_output_ms": 948.639,
+      "output_ms": 1841.821,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 6,
+      "error": "",
+      "reused": true,
+      "text_ms": 840.489,
+      "text_to_output_ms": 948.816,
+      "output_ms": 1789.306,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 7,
+      "error": "",
+      "reused": true,
+      "text_ms": 832.979,
+      "text_to_output_ms": 952.563,
+      "output_ms": 1785.541,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 8,
+      "error": "",
+      "reused": true,
+      "text_ms": 859.745,
+      "text_to_output_ms": 940.981,
+      "output_ms": 1800.726,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 9,
+      "error": "",
+      "reused": true,
+      "text_ms": 935.904,
+      "text_to_output_ms": 938.791,
+      "output_ms": 1874.695,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 10,
+      "error": "",
+      "reused": true,
+      "text_ms": 499.851,
+      "text_to_output_ms": 898.453,
+      "output_ms": 1398.304,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 11,
+      "error": "",
+      "reused": true,
+      "text_ms": 882.133,
+      "text_to_output_ms": 953.378,
+      "output_ms": 1835.511,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 12,
+      "error": "",
+      "reused": true,
+      "text_ms": 989.786,
+      "text_to_output_ms": 875.897,
+      "output_ms": 1865.682,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 13,
+      "error": "",
+      "reused": true,
+      "text_ms": 761.021,
+      "text_to_output_ms": 937.016,
+      "output_ms": 1698.037,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 14,
+      "error": "",
+      "reused": true,
+      "text_ms": 914.574,
+      "text_to_output_ms": 739.056,
+      "output_ms": 1653.63,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 15,
+      "error": "",
+      "reused": true,
+      "text_ms": 829.586,
+      "text_to_output_ms": 954.345,
+      "output_ms": 1783.931,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 16,
+      "error": "",
+      "reused": true,
+      "text_ms": 791.998,
+      "text_to_output_ms": 940.333,
+      "output_ms": 1732.331,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 17,
+      "error": "",
+      "reused": true,
+      "text_ms": 571.704,
+      "text_to_output_ms": 736.729,
+      "output_ms": 1308.433,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 18,
+      "error": "",
+      "reused": true,
+      "text_ms": 1099.875,
+      "text_to_output_ms": 928.242,
+      "output_ms": 2028.116,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 19,
+      "error": "",
+      "reused": true,
+      "text_ms": 725.066,
+      "text_to_output_ms": 921.357,
+      "output_ms": 1646.422,
+      "underflows": 0,
+      "starved_ms": 0.0
+    },
+    {
+      "index": 20,
+      "error": "",
+      "reused": true,
+      "text_ms": 879.019,
+      "text_to_output_ms": 944.87,
+      "output_ms": 1823.888,
+      "underflows": 0,
+      "starved_ms": 0.0
+    }
+  ],
+  "stop": {
+    "had_output": true,
+    "ms": 6.027800031006336,
+    "text_preserved": true
+  },
+  "history_reopened": true,
+  "other_role_unchanged": true
+}

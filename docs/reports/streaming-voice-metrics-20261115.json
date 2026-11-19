@@ -1,0 +1,177 @@
+{
+  "clock_boundary": "Android device output estimate; excludes host/remote audio link",
+  "benchmark_send_clock": "chat.send command emission, excludes initial SQLite/connect",
+  "live_send_clock": "ChatController.send acceptance, includes initial SQLite/connect",
+  "percentiles": "linear interpolation at (n-1)*p",
+  "fixed_style": "calm, rate=1.0, 24000Hz mono PCM16",
+  "cold": {
+    "samples": 24,
+    "valid_output_samples": 24,
+    "failed_or_missing_output": 0,
+    "ttsToOutputMs": {
+      "p50": 1014.087,
+      "p95": 1332.263,
+      "max": 1443.3309149999998
+    },
+    "sendToOutputMs": {
+      "p50": 1049.033,
+      "p95": 1387.712,
+      "max": 1530.4139149999999
+    },
+    "connection_setup_ms": {
+      "p50": 172.0,
+      "p95": 203.85,
+      "max": 219.0
+    },
+    "first_packet_ms": {
+      "p50": 820.5,
+      "p95": 888.6,
+      "max": 922.0
+    },
+    "before_drain_underrun_samples": 0,
+    "during_drain_underrun_samples": 24
+  },
+  "reuse_phase_initial_cold": {
+    "samples": 1,
+    "valid_output_samples": 1,
+    "failed_or_missing_output": 0,
+    "ttsToOutputMs": {
+      "p50": 1228.275,
+      "p95": 1228.275,
+      "max": 1228.275439
+    },
+    "sendToOutputMs": {
+      "p50": 1333.361,
+      "p95": 1333.361,
+      "max": 1333.361439
+    },
+    "connection_setup_ms": {
+      "p50": 141.0,
+      "p95": 141.0,
+      "max": 141.0
+    },
+    "first_packet_ms": {
+      "p50": 781.0,
+      "p95": 781.0,
+      "max": 781.0
+    },
+    "before_drain_underrun_samples": 0,
+    "during_drain_underrun_samples": 1
+  },
+  "warm": {
+    "samples": 23,
+    "valid_output_samples": 23,
+    "failed_or_missing_output": 0,
+    "ttsToOutputMs": {
+      "p50": 803.172,
+      "p95": 1014.39,
+      "max": 1228.529849
+    },
+    "sendToOutputMs": {
+      "p50": 881.534,
+      "p95": 1079.552,
+      "max": 1261.031849
+    },
+    "connection_setup_ms": {
+      "p50": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "first_packet_ms": {
+      "p50": 625.0,
+      "p95": 672.0,
+      "max": 687.0
+    },
+    "before_drain_underrun_samples": 0,
+    "during_drain_underrun_samples": 23
+  },
+  "live": {
+    "samples": 10,
+    "valid_output_samples": 10,
+    "failed_or_missing_output": 0,
+    "ttsToOutputMs": {
+      "p50": 821.467,
+      "p95": 949.297,
+      "max": 950.579864
+    },
+    "sendToOutputMs": {
+      "p50": 1557.581,
+      "p95": 1936.357,
+      "max": 2023.500072
+    },
+    "connection_setup_ms": {
+      "p50": 0.0,
+      "p95": 94.6,
+      "max": 172.0
+    },
+    "first_packet_ms": {
+      "p50": 578.0,
+      "p95": 713.85,
+      "max": 735.0
+    },
+    "before_drain_underrun_samples": 0,
+    "during_drain_underrun_samples": 10
+  },
+  "benchmark_rows": [
+    {"case":"01","mode":"cold","failed":false,"saved":true,"firstOutputMs":1248.905681,"clock":"AudioTrack.timestamp","frames":62880,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":8,"connection_setup_ms":156.0,"first_packet_ms":844.0,"firstChunkAtMs":858.64,"bytes":125760,"chunks":17,"ttsToOutputMs":1263.4596809999998,"sendToOutputMs":1317.9956809999999},
+    {"case":"02","mode":"cold","failed":false,"saved":true,"firstOutputMs":1300.742703,"clock":"AudioTrack.timestamp","frames":62880,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":9,"connection_setup_ms":188.0,"first_packet_ms":829.0,"firstChunkAtMs":852.89,"bytes":125760,"chunks":17,"ttsToOutputMs":1307.768703,"sendToOutputMs":1314.5807029999999},
+    {"case":"03","mode":"cold","failed":false,"saved":true,"firstOutputMs":983.656412,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":10,"connection_setup_ms":156.0,"first_packet_ms":812.0,"firstChunkAtMs":831.859,"bytes":198720,"chunks":27,"ttsToOutputMs":993.1264120000001,"sendToOutputMs":1011.993412},
+    {"case":"04","mode":"cold","failed":false,"saved":true,"firstOutputMs":902.34191,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":11,"connection_setup_ms":203.0,"first_packet_ms":735.0,"firstChunkAtMs":788.36,"bytes":198720,"chunks":27,"ttsToOutputMs":912.59391,"sendToOutputMs":966.36891},
+    {"case":"05","mode":"cold","failed":false,"saved":true,"firstOutputMs":1121.8112,"clock":"AudioTrack.timestamp","frames":153120,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":12,"connection_setup_ms":204.0,"first_packet_ms":891.0,"firstChunkAtMs":909.155,"bytes":306240,"chunks":41,"ttsToOutputMs":1128.2022,"sendToOutputMs":1135.3902},
+    {"case":"06","mode":"cold","failed":false,"saved":true,"firstOutputMs":1026.499427,"clock":"AudioTrack.timestamp","frames":153120,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":13,"connection_setup_ms":140.0,"first_packet_ms":812.0,"firstChunkAtMs":878.558,"bytes":306240,"chunks":41,"ttsToOutputMs":1036.4084269999998,"sendToOutputMs":1098.9654269999999},
+    {"case":"07","mode":"cold","failed":false,"saved":true,"firstOutputMs":1006.410471,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":14,"connection_setup_ms":187.0,"first_packet_ms":828.0,"firstChunkAtMs":843.802,"bytes":198720,"chunks":27,"ttsToOutputMs":1014.9614710000001,"sendToOutputMs":1023.809471},
+    {"case":"08","mode":"cold","failed":false,"saved":true,"firstOutputMs":838.237681,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":15,"connection_setup_ms":172.0,"first_packet_ms":672.0,"firstChunkAtMs":732.441,"bytes":198720,"chunks":27,"ttsToOutputMs":850.385681,"sendToOutputMs":914.722681},
+    {"case":"09","mode":"cold","failed":false,"saved":true,"firstOutputMs":997.003654,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":16,"connection_setup_ms":141.0,"first_packet_ms":812.0,"firstChunkAtMs":833.508,"bytes":198720,"chunks":27,"ttsToOutputMs":1003.243654,"sendToOutputMs":1019.3996539999999},
+    {"case":"10","mode":"cold","failed":false,"saved":true,"firstOutputMs":924.609753,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":17,"connection_setup_ms":219.0,"first_packet_ms":750.0,"firstChunkAtMs":808.764,"bytes":198720,"chunks":27,"ttsToOutputMs":932.9147529999999,"sendToOutputMs":989.1587529999999},
+    {"case":"11","mode":"cold","failed":false,"saved":true,"firstOutputMs":846.427604,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":18,"connection_setup_ms":156.0,"first_packet_ms":672.0,"firstChunkAtMs":738.707,"bytes":198720,"chunks":27,"ttsToOutputMs":856.138604,"sendToOutputMs":922.6316039999999},
+    {"case":"12","mode":"cold","failed":false,"saved":true,"firstOutputMs":1098.750122,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":19,"connection_setup_ms":188.0,"first_packet_ms":922.0,"firstChunkAtMs":944.395,"bytes":198720,"chunks":27,"ttsToOutputMs":1108.714122,"sendToOutputMs":1136.179122},
+    {"case":"13","mode":"cold","failed":false,"saved":true,"firstOutputMs":1021.090243,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":20,"connection_setup_ms":188.0,"first_packet_ms":860.0,"firstChunkAtMs":885.318,"bytes":198720,"chunks":27,"ttsToOutputMs":1029.859243,"sendToOutputMs":1060.419243},
+    {"case":"14","mode":"cold","failed":false,"saved":true,"firstOutputMs":1028.276376,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":21,"connection_setup_ms":187.0,"first_packet_ms":859.0,"firstChunkAtMs":872.784,"bytes":198720,"chunks":27,"ttsToOutputMs":1034.374376,"sendToOutputMs":1050.588376},
+    {"case":"15","mode":"cold","failed":false,"saved":true,"firstOutputMs":1028.850481,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":22,"connection_setup_ms":172.0,"first_packet_ms":875.0,"firstChunkAtMs":941.147,"bytes":198720,"chunks":27,"ttsToOutputMs":1042.058481,"sendToOutputMs":1114.567481},
+    {"case":"16","mode":"cold","failed":false,"saved":true,"firstOutputMs":822.931828,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":23,"connection_setup_ms":141.0,"first_packet_ms":656.0,"firstChunkAtMs":688.994,"bytes":198720,"chunks":27,"ttsToOutputMs":831.897828,"sendToOutputMs":862.841828},
+    {"case":"17","mode":"cold","failed":false,"saved":true,"firstOutputMs":1001.223164,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":24,"connection_setup_ms":156.0,"first_packet_ms":828.0,"firstChunkAtMs":912.035,"bytes":198720,"chunks":27,"ttsToOutputMs":1013.212164,"sendToOutputMs":1083.483164},
+    {"case":"18","mode":"cold","failed":false,"saved":true,"firstOutputMs":903.5951,"clock":"AudioTrack.timestamp","frames":97440,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":25,"connection_setup_ms":203.0,"first_packet_ms":719.0,"firstChunkAtMs":758.772,"bytes":194880,"chunks":27,"ttsToOutputMs":916.1751,"sendToOutputMs":953.6471},
+    {"case":"19","mode":"cold","failed":false,"saved":true,"firstOutputMs":945.800066,"clock":"AudioTrack.timestamp","frames":97440,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":26,"connection_setup_ms":156.0,"first_packet_ms":781.0,"firstChunkAtMs":865.218,"bytes":194880,"chunks":27,"ttsToOutputMs":959.222066,"sendToOutputMs":1039.057066},
+    {"case":"20","mode":"cold","failed":false,"saved":true,"firstOutputMs":1005.354554,"clock":"AudioTrack.timestamp","frames":97440,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":27,"connection_setup_ms":172.0,"first_packet_ms":875.0,"firstChunkAtMs":926.394,"bytes":194880,"chunks":27,"ttsToOutputMs":1020.0655539999999,"sendToOutputMs":1090.262554},
+    {"case":"21","mode":"cold","failed":false,"saved":true,"firstOutputMs":1002.430794,"clock":"AudioTrack.timestamp","frames":529440,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":28,"connection_setup_ms":156.0,"first_packet_ms":844.0,"firstChunkAtMs":875.947,"bytes":1058880,"chunks":144,"ttsToOutputMs":1011.7477939999999,"sendToOutputMs":1047.476794},
+    {"case":"22","mode":"cold","failed":false,"saved":true,"firstOutputMs":1428.661915,"clock":"AudioTrack.timestamp","frames":212640,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":29,"connection_setup_ms":172.0,"first_packet_ms":875.0,"firstChunkAtMs":963.013,"bytes":425280,"chunks":57,"ttsToOutputMs":1443.3309149999998,"sendToOutputMs":1530.4139149999999},
+    {"case":"23","mode":"cold","failed":false,"saved":true,"firstOutputMs":1324.384957,"clock":"AudioTrack.timestamp","frames":199200,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":30,"connection_setup_ms":156.0,"first_packet_ms":813.0,"firstChunkAtMs":838.962,"bytes":398400,"chunks":54,"ttsToOutputMs":1336.5859569999998,"sendToOutputMs":1400.0149569999999},
+    {"case":"24","mode":"cold","failed":false,"saved":true,"firstOutputMs":987.18752,"clock":"AudioTrack.timestamp","frames":178080,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":31,"connection_setup_ms":156.0,"first_packet_ms":812.0,"firstChunkAtMs":858.226,"bytes":356160,"chunks":49,"ttsToOutputMs":994.47452,"sendToOutputMs":1037.40952},
+    {"case":"01","mode":"reuse","failed":false,"saved":true,"firstOutputMs":1215.556439,"clock":"AudioTrack.timestamp","frames":62880,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":32,"connection_setup_ms":141.0,"first_packet_ms":781.0,"firstChunkAtMs":870.928,"bytes":125760,"chunks":17,"ttsToOutputMs":1228.275439,"sendToOutputMs":1333.361439},
+    {"case":"02","mode":"reuse","failed":false,"saved":true,"firstOutputMs":994.947971,"clock":"AudioTrack.timestamp","frames":62880,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":532.0,"firstChunkAtMs":573.291,"bytes":125760,"chunks":17,"ttsToOutputMs":1001.4149710000002,"sendToOutputMs":1033.3579710000001},
+    {"case":"03","mode":"reuse","failed":false,"saved":true,"firstOutputMs":815.097478,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":640.0,"firstChunkAtMs":715.046,"bytes":198720,"chunks":27,"ttsToOutputMs":825.761478,"sendToOutputMs":903.462478},
+    {"case":"04","mode":"reuse","failed":false,"saved":true,"firstOutputMs":844.643404,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":672.0,"firstChunkAtMs":764.97,"bytes":198720,"chunks":27,"ttsToOutputMs":857.9784040000001,"sendToOutputMs":951.0364040000001},
+    {"case":"05","mode":"reuse","failed":false,"saved":true,"firstOutputMs":855.95561,"clock":"AudioTrack.timestamp","frames":153120,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":641.0,"firstChunkAtMs":727.422,"bytes":306240,"chunks":41,"ttsToOutputMs":863.4816099999999,"sendToOutputMs":907.46561},
+    {"case":"06","mode":"reuse","failed":false,"saved":true,"firstOutputMs":702.147546,"clock":"AudioTrack.timestamp","frames":153120,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":485.0,"firstChunkAtMs":567.944,"bytes":306240,"chunks":41,"ttsToOutputMs":712.0055460000001,"sendToOutputMs":791.3335460000001},
+    {"case":"07","mode":"reuse","failed":false,"saved":true,"firstOutputMs":689.743142,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":516.0,"firstChunkAtMs":602.518,"bytes":198720,"chunks":27,"ttsToOutputMs":703.882142,"sendToOutputMs":788.940142},
+    {"case":"08","mode":"reuse","failed":false,"saved":true,"firstOutputMs":837.517539,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":656.0,"firstChunkAtMs":765.415,"bytes":198720,"chunks":27,"ttsToOutputMs":848.912539,"sendToOutputMs":943.018539},
+    {"case":"09","mode":"reuse","failed":false,"saved":true,"firstOutputMs":671.821082,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":485.0,"firstChunkAtMs":540.195,"bytes":198720,"chunks":27,"ttsToOutputMs":678.3580820000001,"sendToOutputMs":720.4110820000001},
+    {"case":"10","mode":"reuse","failed":false,"saved":true,"firstOutputMs":793.913341,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":625.0,"firstChunkAtMs":656.825,"bytes":198720,"chunks":27,"ttsToOutputMs":803.172341,"sendToOutputMs":828.0733409999999},
+    {"case":"11","mode":"reuse","failed":false,"saved":true,"firstOutputMs":855.916692,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":687.0,"firstChunkAtMs":707.071,"bytes":198720,"chunks":27,"ttsToOutputMs":863.700692,"sendToOutputMs":890.617692},
+    {"case":"12","mode":"reuse","failed":false,"saved":true,"firstOutputMs":690.541106,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":516.0,"firstChunkAtMs":601.339,"bytes":198720,"chunks":27,"ttsToOutputMs":700.831106,"sendToOutputMs":783.262106},
+    {"case":"13","mode":"reuse","failed":false,"saved":true,"firstOutputMs":651.809094,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":469.0,"firstChunkAtMs":558.28,"bytes":198720,"chunks":27,"ttsToOutputMs":662.129094,"sendToOutputMs":746.226094},
+    {"case":"14","mode":"reuse","failed":false,"saved":true,"firstOutputMs":818.766936,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":656.0,"firstChunkAtMs":744.289,"bytes":198720,"chunks":27,"ttsToOutputMs":832.680936,"sendToOutputMs":932.303936},
+    {"case":"15","mode":"reuse","failed":false,"saved":true,"firstOutputMs":648.124215,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":485.0,"firstChunkAtMs":567.994,"bytes":198720,"chunks":27,"ttsToOutputMs":656.957215,"sendToOutputMs":735.187215},
+    {"case":"16","mode":"reuse","failed":false,"saved":true,"firstOutputMs":789.994448,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":625.0,"firstChunkAtMs":760.097,"bytes":198720,"chunks":27,"ttsToOutputMs":797.3294480000001,"sendToOutputMs":881.503448},
+    {"case":"17","mode":"reuse","failed":false,"saved":true,"firstOutputMs":847.801609,"clock":"AudioTrack.timestamp","frames":99360,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":672.0,"firstChunkAtMs":701.217,"bytes":198720,"chunks":27,"ttsToOutputMs":855.2316089999999,"sendToOutputMs":881.533609},
+    {"case":"18","mode":"reuse","failed":false,"saved":true,"firstOutputMs":790.083225,"clock":"AudioTrack.timestamp","frames":97440,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":625.0,"firstChunkAtMs":717.436,"bytes":194880,"chunks":27,"ttsToOutputMs":802.298225,"sendToOutputMs":888.875225},
+    {"case":"19","mode":"reuse","failed":false,"saved":true,"firstOutputMs":651.448775,"clock":"AudioTrack.timestamp","frames":97440,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":468.0,"firstChunkAtMs":513.535,"bytes":194880,"chunks":27,"ttsToOutputMs":660.476775,"sendToOutputMs":699.326775},
+    {"case":"20","mode":"reuse","failed":false,"saved":true,"firstOutputMs":844.353735,"clock":"AudioTrack.timestamp","frames":97440,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":657.0,"firstChunkAtMs":750.762,"bytes":194880,"chunks":27,"ttsToOutputMs":855.339735,"sendToOutputMs":943.581735},
+    {"case":"21","mode":"reuse","failed":false,"saved":true,"firstOutputMs":664.99328,"clock":"AudioTrack.timestamp","frames":529440,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":500.0,"firstChunkAtMs":527.949,"bytes":1058880,"chunks":144,"ttsToOutputMs":673.33428,"sendToOutputMs":699.42328},
+    {"case":"22","mode":"reuse","failed":false,"saved":true,"firstOutputMs":1006.25113,"clock":"AudioTrack.timestamp","frames":212640,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":484.0,"firstChunkAtMs":523.881,"bytes":425280,"chunks":57,"ttsToOutputMs":1015.8321300000001,"sendToOutputMs":1084.68413},
+    {"case":"23","mode":"reuse","failed":false,"saved":true,"firstOutputMs":1221.886849,"clock":"AudioTrack.timestamp","frames":199200,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":656.0,"firstChunkAtMs":695.04,"bytes":398400,"chunks":54,"ttsToOutputMs":1228.529849,"sendToOutputMs":1261.031849},
+    {"case":"24","mode":"reuse","failed":false,"saved":true,"firstOutputMs":639.512625,"clock":"AudioTrack.timestamp","frames":178080,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":32,"connection_setup_ms":0.0,"first_packet_ms":500.0,"firstChunkAtMs":548.329,"bytes":356160,"chunks":49,"ttsToOutputMs":655.0326249999999,"sendToOutputMs":729.310625}
+  ],
+  "live_rows": [
+    {"role":"xing","case":1,"chat":"complete","voiceFailed":false,"contextCorrect":true,"firstOutputMs":834.369072,"clock":"AudioTrack.timestamp","frames":19200,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":false,"connection_serial":3,"connection_setup_ms":172.0,"first_packet_ms":735.0,"firstChunkAtMs":1894.613,"bytes":38400,"chunks":6,"ttsToOutputMs":860.212072,"sendToOutputMs":2023.500072},
+    {"role":"xing","case":2,"chat":"complete","voiceFailed":false,"contextCorrect":true,"firstOutputMs":650.604718,"clock":"AudioTrack.timestamp","frames":19200,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":516.0,"firstChunkAtMs":1081.218,"bytes":38400,"chunks":6,"ttsToOutputMs":662.6427180000001,"sendToOutputMs":1225.198718},
+    {"role":"xing","case":3,"chat":"complete","voiceFailed":false,"contextCorrect":null,"firstOutputMs":845.258069,"clock":"AudioTrack.timestamp","frames":53040,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":656.0,"firstChunkAtMs":1295.297,"bytes":106080,"chunks":16,"ttsToOutputMs":855.5880689999999,"sendToOutputMs":1492.615069},
+    {"role":"xing","case":4,"chat":"complete","voiceFailed":false,"contextCorrect":null,"firstOutputMs":939.556469,"clock":"AudioTrack.timestamp","frames":62880,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":672.0,"firstChunkAtMs":1529.172,"bytes":125760,"chunks":17,"ttsToOutputMs":947.729469,"sendToOutputMs":1792.906469},
+    {"role":"xing","case":5,"chat":"complete","voiceFailed":false,"contextCorrect":null,"firstOutputMs":938.310864,"clock":"AudioTrack.timestamp","frames":70560,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":484.0,"firstChunkAtMs":1365.213,"bytes":141120,"chunks":20,"ttsToOutputMs":950.579864,"sendToOutputMs":1829.847864},
+    {"role":"yue","case":1,"chat":"complete","voiceFailed":false,"contextCorrect":true,"firstOutputMs":624.671971,"clock":"AudioTrack.timestamp","frames":19200,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":516.0,"firstChunkAtMs":1226.369,"bytes":38400,"chunks":6,"ttsToOutputMs":633.4349709999999,"sendToOutputMs":1348.1099709999999},
+    {"role":"yue","case":2,"chat":"complete","voiceFailed":false,"contextCorrect":true,"firstOutputMs":688.145591,"clock":"AudioTrack.timestamp","frames":19200,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":547.0,"firstChunkAtMs":1471.919,"bytes":38400,"chunks":6,"ttsToOutputMs":697.4245909999999,"sendToOutputMs":1622.5465909999998},
+    {"role":"yue","case":3,"chat":"complete","voiceFailed":false,"contextCorrect":null,"firstOutputMs":775.65062,"clock":"AudioTrack.timestamp","frames":64560,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":609.0,"firstChunkAtMs":1577.331,"bytes":129120,"chunks":19,"ttsToOutputMs":787.34662,"sendToOutputMs":1729.74162},
+    {"role":"yue","case":4,"chat":"complete","voiceFailed":false,"contextCorrect":null,"firstOutputMs":851.95551,"clock":"AudioTrack.timestamp","frames":60720,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":688.0,"firstChunkAtMs":1300.643,"bytes":121440,"chunks":18,"ttsToOutputMs":862.6265099999999,"sendToOutputMs":1468.82151},
+    {"role":"yue","case":5,"chat":"complete","voiceFailed":false,"contextCorrect":null,"firstOutputMs":622.425274,"clock":"AudioTrack.timestamp","frames":56880,"underrunsBeforeDrain":0,"underrunsDuringDrain":1,"underruns":1,"reused":true,"connection_serial":3,"connection_setup_ms":0.0,"first_packet_ms":469.0,"firstChunkAtMs":945.165,"bytes":113760,"chunks":17,"ttsToOutputMs":631.070274,"sendToOutputMs":1094.777274}
+  ]
+}

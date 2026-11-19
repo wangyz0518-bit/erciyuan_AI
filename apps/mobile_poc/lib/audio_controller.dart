@@ -7,124 +7,186 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'pcm_player.dart';
+
 class AudioController extends ChangeNotifier {
   final recorder = AudioRecorder();
   final player = AudioPlayer();
+  final pcm = PcmPlayer();
+  void Function(Map<String, Object?>)? onStreamEvent;
+  final streamMetrics = <String, Object?>{};
   bool recording = false;
   bool playing = false;
-  bool working = false;
-  String status = '录音仅保存在本机；此页不会识别或发送文字。';
+  String status = '按住录音，松开试听；仅临时保存在本机。';
   String? recordingPath;
+  String? _temporaryPath;
+  String? _speechPath;
   int recordingBytes = 0;
   double rms = 0;
   int seconds = 0;
   int _epoch = 0;
+  int _pending = 0;
+  bool _closed = false;
+  bool _permissionDenied = false;
   Timer? _timer;
+  Future<void> _tail = Future<void>.value();
   late final StreamSubscription<PlayerState> _subscription;
+  bool get working => _pending > 0;
+  int get operationEpoch => _epoch;
 
   AudioController() {
+    pcm.onEvent = (event) {
+      if (event['event'] == 'playing') {
+        playing = true;
+        status = '正在朗读角色回复';
+      }
+      onStreamEvent?.call(event);
+      streamMetrics.addAll(event);
+      _notify();
+    };
     _subscription = player.onPlayerStateChanged.listen((s) {
+      if (pcm.active != null) return;
       playing = s == PlayerState.playing;
-      notifyListeners();
+      _notify();
     });
+    // Remove a temporary clip left by an abrupt process termination.
+    unawaited(
+      _enqueue(() async {
+        final dir = await getTemporaryDirectory();
+        _temporaryPath = '${dir.path}/poc-recording.wav';
+        await _discard();
+        _speechPath = '${dir.path}/poc-generated-speech.wav';
+        await _discardSpeech();
+      }),
+    );
+  }
+  void _notify() {
+    if (!_closed) notifyListeners();
   }
 
-  Future<void> startRecording() async {
-    if (working || recording) return;
-    working = true;
+  // Serialize native recorder/player operations. Cancellation invalidates the
+  // epoch immediately, including while the Android permission dialog is open.
+  Future<void> _enqueue(Future<void> Function() action) {
+    if (_closed) return Future<void>.value();
+    _pending++;
+    _notify();
+    final result = _tail.then((_) async {
+      try {
+        await action();
+      } catch (_) {
+        status = '音频操作失败，请重试。';
+      } finally {
+        _pending--;
+        _notify();
+      }
+    });
+    _tail = result;
+    return result;
+  }
+
+  Future<void> _discard() async {
+    final file = _temporaryPath ?? recordingPath;
+    recordingPath = null;
+    recordingBytes = 0;
+    rms = 0;
+    if (file != null && await File(file).exists()) await File(file).delete();
+    _temporaryPath = null;
+  }
+
+  Future<void> startRecording() {
+    if (working || recording || _closed) return Future<void>.value();
     final epoch = ++_epoch;
-    notifyListeners();
-    try {
+    return _enqueue(() async {
+      await pcm.stop();
       await player.stop();
+      await _discardSpeech();
+      await _discard();
+      seconds = 0;
       final allowed = await recorder.hasPermission();
+      _permissionDenied = !allowed;
       if (epoch != _epoch) return;
       if (!allowed) {
-        status = '麦克风权限未允许，仍可返回聊天页打字。可在系统设置中重新授权。';
+        status = '麦克风权限未允许，仍可切换键盘打字。';
         return;
       }
       final dir = await getTemporaryDirectory();
       if (epoch != _epoch) return;
+      _temporaryPath = '${dir.path}/poc-recording.wav';
       await recorder.start(
         const RecordConfig(
           encoder: AudioEncoder.wav,
           sampleRate: 16000,
           numChannels: 1,
         ),
-        path: '${dir.path}/poc-recording.wav',
+        path: _temporaryPath!,
       );
       if (epoch != _epoch) {
         await recorder.cancel();
+        await _discard();
         return;
       }
-      recordingPath = null;
-      recordingBytes = 0;
       recording = true;
-      seconds = 0;
-      status = '正在录音，最长 30 秒';
+      status = '正在录音，松开试听，滑出取消（最长 30 秒）';
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         seconds++;
-        notifyListeners();
+        _notify();
         if (seconds >= 30) unawaited(finishRecording());
       });
-    } catch (e) {
-      if (epoch == _epoch) status = '无法开始录音，请检查麦克风与权限。';
-    } finally {
-      working = false;
-      notifyListeners();
-    }
+    });
   }
 
-  Future<void> finishRecording() async {
-    if (working || !recording) return;
-    working = true;
+  Future<void> finishRecording() {
+    // A release before startup completes cancels, rather than recording after
+    // the user grants permission and has already lifted their finger.
+    if (!recording) return working ? stopAll() : Future<void>.value();
+    _timer?.cancel();
     final epoch = _epoch;
-    _timer?.cancel();
-    try {
-      final p = await recorder.stop();
-      recording = false;
-      if (epoch != _epoch || p == null) return;
-      final bytes = await File(p).readAsBytes();
-      if (epoch != _epoch) return;
-      recordingPath = p;
-      recordingBytes = bytes.length;
-      rms = pcmRms(bytes);
-      status = rms < 0.001
-          ? '录音已保存，但信号接近静音。请检查电脑麦克风和模拟器输入。'
-          : '录音已保存，可以回放（未做语音识别）。';
-    } catch (_) {
-      status = '录音保存失败，请重新录制。';
-    } finally {
-      working = false;
-      recording = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> stopAll({bool discardRecording = true}) async {
-    ++_epoch;
-    _timer?.cancel();
-    if (recording) {
-      if (discardRecording) {
-        await recorder.cancel();
-      } else {
-        await recorder.stop();
+    return _enqueue(() async {
+      if (!recording || epoch != _epoch) return;
+      try {
+        final p = await recorder.stop();
+        recording = false;
+        if (epoch != _epoch || p == null) {
+          await _discard();
+          return;
+        }
+        final bytes = await File(p).readAsBytes();
+        if (epoch != _epoch) {
+          await _discard();
+          return;
+        }
+        recordingPath = p;
+        recordingBytes = bytes.length;
+        rms = pcmRms(bytes);
+        status = rms < 0.001 ? '录音接近静音，请检查麦克风输入。' : '录音可试听，尚未发送。';
+      } finally {
+        recording = false;
       }
-      recordingPath = null;
-      recordingBytes = 0;
-    }
-    recording = false;
-    await player.stop();
-    playing = false;
-    status = '已停止。录音取消后不会生成聊天消息。';
-    notifyListeners();
+    });
   }
 
-  Future<void> play({bool testTone = false}) async {
-    if (working || recording) return;
-    working = true;
+  Future<void> stopAll({bool discardRecording = true}) {
+    ++_epoch;
+    unawaited(pcm.stop());
+    _timer?.cancel();
+    return _enqueue(() async {
+      if (recording) await recorder.cancel();
+      recording = false;
+      await player.stop();
+      playing = false;
+      if (discardRecording) await _discard();
+      await _discardSpeech();
+      status = _permissionDenied ? '麦克风权限未允许，仍可切换键盘打字。' : '已停止。录音不会生成聊天消息。';
+    });
+  }
+
+  Future<void> play({bool testTone = false}) {
+    if (working || recording || _closed) return Future<void>.value();
     final epoch = ++_epoch;
-    notifyListeners();
-    try {
+    return _enqueue(() async {
+      await pcm.stop();
+      await player.stop();
+      await _discardSpeech();
       String? file = recordingPath;
       if (testTone) {
         final dir = await getTemporaryDirectory();
@@ -141,21 +203,65 @@ class AudioController extends ChangeNotifier {
         await player.stop();
         return;
       }
-      status = testTone ? '正在播放本地测试音（非合成语音）' : '正在回放录音';
-    } catch (_) {
-      status = '播放失败，请重试。';
-    } finally {
-      working = false;
-      notifyListeners();
-    }
+      status = testTone ? '正在播放本地测试音' : '正在试听，尚未发送';
+    });
   }
+
+  Future<void> _discardSpeech() async {
+    final path = _speechPath;
+    _speechPath = null;
+    if (path != null && await File(path).exists()) await File(path).delete();
+  }
+
+  Future<void> playGenerated(Uint8List bytes, {required int expectedEpoch}) =>
+      _enqueue(() async {
+        if (_epoch != expectedEpoch) return;
+        final dir = await getTemporaryDirectory();
+        if (_epoch != expectedEpoch) return;
+        _speechPath = '${dir.path}/poc-generated-speech.wav';
+        await File(_speechPath!).writeAsBytes(bytes);
+        if (_epoch != expectedEpoch) {
+          await _discardSpeech();
+          return;
+        }
+        await player.play(DeviceFileSource(_speechPath!));
+        if (_epoch != expectedEpoch) {
+          await player.stop();
+          await _discardSpeech();
+          return;
+        }
+        status = '正在朗读角色回复';
+      });
 
   Future<void> close() async {
     await stopAll();
+    _closed = true;
     await _subscription.cancel();
     await recorder.dispose();
     await player.dispose();
     dispose();
+  }
+
+  Future<void> startPcm(String id, int expectedEpoch) async {
+    if (_epoch != expectedEpoch || _closed) return;
+    streamMetrics.clear();
+    await pcm.start(id);
+    if (_epoch != expectedEpoch || _closed) await pcm.stop();
+  }
+
+  Future<void> appendPcm(String id, Uint8List bytes, int expectedEpoch) async {
+    if (_epoch != expectedEpoch || _closed) return;
+    await pcm.append(id, bytes);
+  }
+
+  Future<void> endPcm(String id, int expectedEpoch) async {
+    if (_epoch != expectedEpoch || _closed) return;
+    final result = await pcm.end(id);
+    if (_epoch != expectedEpoch || _closed) return;
+    streamMetrics.addAll(result);
+    playing = false;
+    status = '朗读结束';
+    _notify();
   }
 }
 
