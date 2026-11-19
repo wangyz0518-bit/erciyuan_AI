@@ -184,6 +184,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
               _CharacterScene(
                 character: character,
                 isReplying: _chat.isSending,
+                isSpeaking: _voice.speaking,
+                isListening: _voice.listening,
               ),
               _modeRibbon(),
               Expanded(
@@ -540,10 +542,17 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 }
 
 class _CharacterScene extends StatelessWidget {
-  const _CharacterScene({required this.character, required this.isReplying});
+  const _CharacterScene({
+    required this.character,
+    required this.isReplying,
+    required this.isSpeaking,
+    required this.isListening,
+  });
 
   final Character character;
   final bool isReplying;
+  final bool isSpeaking;
+  final bool isListening;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -572,8 +581,10 @@ class _CharacterScene extends StatelessWidget {
           child: AvatarFallbackScene(
             characterId: character.scope.characterId,
             characterName: character.name,
-            motion: isReplying
+            motion: isReplying || isSpeaking
                 ? AvatarSceneMotion.talking
+                : isListening
+                ? AvatarSceneMotion.listening
                 : AvatarSceneMotion.idle,
           ),
         ),
@@ -581,7 +592,13 @@ class _CharacterScene extends StatelessWidget {
           left: 16,
           bottom: 12,
           child: Text(
-            isReplying ? '${character.name}正在回应…' : '和${character.name}继续今天的故事',
+            isReplying
+                ? '${character.name}正在回应…'
+                : isSpeaking
+                ? '${character.name}正在朗读…'
+                : isListening
+                ? '${character.name}正在倾听…'
+                : '和${character.name}继续今天的故事',
             style: const TextStyle(color: Colors.white, fontSize: 13),
           ),
         ),
