@@ -14,7 +14,7 @@ if [[ "${1:-}" == "-s" ]]; then
 fi
 case "${1:-}" in
   get-state)
-    printf '%s\n' "${FAKE_ADB_STATE:-device}"
+    printf '%s\n' "${FAKE_ADB_STATE-device}"
     ;;
   shell)
     if [[ "${2:-}" == "getprop" && "${3:-}" == "ro.kernel.qemu" ]]; then
