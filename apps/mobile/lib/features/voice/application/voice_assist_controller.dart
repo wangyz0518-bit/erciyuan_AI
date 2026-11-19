@@ -36,6 +36,9 @@ final class VoiceAssistController extends ChangeNotifier {
     if (_closed || listening) return Future<void>.value();
     final token = ++_epoch;
     listening = true;
+    // Starting ASR invalidates the previous speech callback and stops playback.
+    // Reflect that interruption immediately instead of retaining a stale TTS UI.
+    speaking = false;
     transcript = '';
     status = '正在请求设备端识别（无离线服务时不启用云端回退）';
     _emit();
