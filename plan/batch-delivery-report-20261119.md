@@ -1,6 +1,6 @@
 # erciyuan_AI 2026-11-19 批次交付与验收报告
 
-> 状态：以下正文保留任务会话 5/6 的历史交付快照。**最新阶段结项以文末「任务会话 6 当前阶段结项（2026-11-19）」为准：#39、#42、#43、#44 均已关闭；下一阶段仅保留 #78、#79、#80 三个开放 Issue。PR #70 仍开放等待 iOS macOS CI，不代表已合并或 iOS 验收通过。**
+> 状态：以下正文保留任务会话 5/6 的历史交付快照。**最新阶段结项以文末「任务会话 6 当前阶段结项（2026-11-19）」为准：#39、#42、#43、#44 均已关闭；PR #70 已手动审查并合并；下一阶段仅保留 #78、#79、#80 三个开放 Issue。PR 合并不代表最新 iOS CI 或新增 PCM 集成用例已通过。**
 >
 > 项目：Flutter Android/iOS 人物中心 AI 陪伴应用。每个人物维持唯一持续时间线，按 owner_id + character_id 隔离 SQLite、原始历史/归档/身份记忆与完整数据导出。
 
@@ -104,14 +104,16 @@
 
 #40 iOS Simulator 工具链 Issue 已由 PR #74 记录真实模拟器成功证据并关闭；#41 Android 真机原 Issue 已按阶段拆分关闭，真机验收目标转入 #78。二者均不代表物理设备全部通过。
 
-### PR #70 当前状态与 CI 证据
+### PR #70 手动审查与合并结果
 
-- [PR #70](https://github.com/wangyz0518-bit/erciyuan_AI/pull/70) 作者为 `keeyangyy`，分支已基于当前 main 整理，当前 head：`32df3b6fc8eac99ce92a6d411767197be862eb84`；compare 为 ahead 1 / behind 0。
-- Flutter 官方验证：**success**，包括 Dart format/analyze、Flutter unit/widget tests、Android Debug APK 和 UI goldens；[Actions #44524321406](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321406)。
-- Python gateway offline tests：**success**，同一 Actions run #44524321406。
-- Android 模拟器 UI/集成：**success（rerun attempt 2）**；正式 APK 构建/安装/启动、人物主页/持续聊天/数据管理导航、SQLite/失败事务、原生 PCM MethodChannel start/append/stop 全部通过；[Actions #44524321415](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321415)。
-- iOS Simulator macOS-15 job：[Actions #44524321399](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321399) 仍为 queued，`runner_id=0`，没有执行 Xcode/Swift 编译。**PR #70 保持 Open，不合并，不把排队当作通过。**如果阶段切换前仍无法分配 runner，#78 已记录在可用 macOS/Xcode 主机完成此模拟器构建与 MethodChannel 回归的条件性后续。
-- Android headless 模拟器无可用 PulseAudio 输出时，PCM playback-head drain 不可验证。模拟器测试范围已限定为 native start/append/stop；真实输出/end-drain/路由/中断交由 #78，供应商 PCM 流联调交由 #79。
+- [PR #70](https://github.com/wangyz0518-bit/erciyuan_AI/pull/70) 已于 2026-11-19 手动审查后 squash 合并，合并提交：`1e09e510f003536bf4b3e349d6032962ccf5930a`。
+- 交付包括 iOS `AVAudioEngine` PCM16LE 24 kHz 单声道播放器、正式 Runner MethodChannel 注册、Android/iOS 共用 Dart PCM adapter、流 ID/异步 start 取消保护、Dart 单元回归和模拟器原生 start/append/stop 集成用例。
+- **iOS 编译证据**：此前 Actions [#44472978608 attempt 1](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44472978608) 使用实际 GitHub-hosted macOS runner，日志显示 `✓ Built build/ios/iphonesimulator/Runner.app`，随后成功安装/启动 iPhone 16 Pro Simulator、生成截图，`acceptance_test.dart` 输出 `All tests passed!`。本次合并的 `ConversationPlayer.swift`、`AppDelegate.swift`、`Runner.xcodeproj/project.pbxproj` 与该次实际编译所用文件的 Git blob 完全一致。
+- **iOS 完整工作流限制**：同一次 run 的 `storage_failure_test.dart` 已完成 Xcode build，但测试 runner 未返回测试结果，Job 在 60 分钟限制处被取消。因此 run conclusion 是 cancelled/failure，不是 success；不宣称完整 iOS CI 通过。
+- 最新 PR run [#44524321399 attempt 2](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321399) 因 macOS-15 runner 资源不足仍 queued、没有执行步骤。为结束当前阶段等待，经手动代码审查后合并 PR #70；该 run 不作为成功证据。
+- 当前 PR head 的 Flutter 官方验证、Python gateway offline tests 均 **success**：[Actions #44524321406](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321406)。Android 模拟器 UI/集成 **success（rerun attempt 2）**，包含正式 APK 安装/启动、持续聊天/SQLite/失败事务及原生 PCM MethodChannel start/append/stop：[Actions #44524321415](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321415)。
+- **明确未验证**：新增的 iOS PCM MethodChannel start/append/stop 集成用例尚未在 iOS runner 上成功执行；iPhone 真机可听输出、PCM end/drain、路由/中断和人工听感也未验收。这些由 #78 承接。真实 TTS 供应商 PCM 流由 #79 承接。
+- Android headless 模拟器无可用 PulseAudio 输出时，PCM playback-head drain 不可验证。模拟器测试仅证明原生 start/append/stop 通道，不代表真实可听播放。
 
 ### 下一阶段唯一开放的三个任务 Issue
 
@@ -119,4 +121,4 @@
 2. [#79 真实外部 AI 模型联调与质量/成本验收](https://github.com/wangyz0518-bit/erciyuan_AI/issues/79)：真实 LLM/ASR/TTS 供应商请求、费用与 Token、隐私授权、角色音色、真实 PCM 流适配。
 3. [#80 正式 Live2D 运行时与人物资源包集成](https://github.com/wangyz0518-bit/erciyuan_AI/issues/80)：Cubism SDK/Core 许可、授权模型、完整安全导入/安装/替换/回滚、正式 Flutter 渲染和动作生命周期。
 
-**结项口径：当前四个任务 Issue 已全部关闭；当前阶段代码和离线/模拟器自动化已交付。PR #70 是唯一与当前阶段相关的开放代码 PR，等待 iOS macOS CI 后再合并。下一阶段三个 Issue 仍开放，不纳入本阶段完成数量。**
+**结项口径：当前四个任务 Issue 已全部关闭；本阶段代码 PR 已合并。当前阶段 Flutter/Android 自动化和既有 iOS 原生代码编译/安装启动证据已记录；新增 iOS PCM 集成用例与真机音频仍未验收。下一阶段 #78、#79、#80 三个 Issue 继续开放，不纳入本阶段完成数量。**
