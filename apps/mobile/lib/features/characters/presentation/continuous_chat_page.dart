@@ -13,6 +13,7 @@ import '../../timeline/domain/raw_event.dart';
 import '../../voice/application/voice_assist_controller.dart';
 import '../../voice/data/system_voice_adapters.dart';
 import '../../voice/data/character_reply_playback.dart';
+import '../../voice/application/voice_input_controller.dart';
 import '../application/character_selection_controller.dart';
 import '../domain/character.dart';
 
@@ -50,6 +51,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   CharacterReplyPlayback? _roleSpeech;
   bool _readReplies = false;
   bool _pageActive = true;
+  VoiceInputController? _remoteInput;
+  bool _holdToSend = false;
   bool _speechActivated = false;
   bool _slideCancelled = false;
   final ScrollController _scroll = ScrollController();
@@ -87,6 +90,13 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     _input = TextEditingController(
       text: widget.selection.draftFor(widget.scope),
     );
+    final gateway = widget.gateway;
+    if (gateway != null) {
+      _remoteInput = VoiceInputController(
+        open: (partial) => gateway.openVoiceInput(widget.scope, partial),
+        submit: (text) => _chat.send(text),
+      );
+    }
     _input.addListener(_refreshInput);
     _chat.addListener(_scrollWhenFollowing);
     unawaited(_chat.load());
@@ -114,6 +124,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _pageActive = state == AppLifecycleState.resumed;
     if (state != AppLifecycleState.resumed) {
+      _endVoiceMode();
       _disableRoleSpeech();
       unawaited(_audio.discard());
       unawaited(_voice.stopAll());
@@ -122,6 +133,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 
   @override
   void dispose() {
+    _remoteInput?.dispose();
     _roleSpeech?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_audio.close());
@@ -138,6 +150,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 
   void _switchCharacter(PersonScope scope) {
     if (scope == widget.scope) return;
+    _endVoiceMode();
     _disableRoleSpeech();
     FocusScope.of(context).unfocus();
     widget.selection.selectCharacter(scope);
@@ -157,7 +170,9 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
 
   void _send() {
     final text = _input.text.trim();
-    if (text.isEmpty || _chat.isSending) return;
+    if (text.isEmpty || _chat.isSending || (_remoteInput?.busy ?? false)) {
+      return;
+    }
     unawaited(_roleSpeech?.stop());
     _input.clear();
     widget.selection.updateDraft(widget.scope, '');
@@ -167,6 +182,40 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   void _disableRoleSpeech() {
     if (_readReplies && mounted) setState(() => _readReplies = false);
     unawaited(_roleSpeech?.stop());
+  }
+
+  void _endVoiceMode() {
+    if (_holdToSend && mounted) setState(() => _holdToSend = false);
+    unawaited(_remoteInput?.cancel());
+  }
+
+  Future<void> _chooseVoiceInput() async {
+    if (_holdToSend) {
+      _endVoiceMode();
+      return;
+    }
+    final agreed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('按住说话，松开发送？'),
+        content: const Text(
+          '按住麦克风期间会把声音传给已配置的识别服务，可能产生费用。松开后发送最终转写，向左滑出可取消发送。演示模式返回固定测试文字。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('启用按住说话'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || !_pageActive || agreed != true) return;
+    if (_voice.listening || _voice.speaking) await _voice.stopAll();
+    if (mounted && _pageActive) setState(() => _holdToSend = true);
   }
 
   Future<void> _toggleRoleSpeech() async {
@@ -182,6 +231,12 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
           '开启后，本页后续回复会交给已配置的语音服务合成，可能产生费用。测试网关仅播放提示音。切换人物或离开应用后自动关闭。',
         ),
         actions: [
+          if (_remoteInput != null)
+            IconButton(
+              tooltip: _holdToSend ? '恢复本地录音' : '语音输入方式',
+              onPressed: _chooseVoiceInput,
+              icon: Icon(_holdToSend ? Icons.mic : Icons.mic_none),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(dialog, false),
             child: const Text('取消'),
@@ -247,14 +302,21 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
       body: SafeArea(
         top: false,
         child: AnimatedBuilder(
-          animation: Listenable.merge([_chat, _audio, _voice, _roleSpeech]),
+          animation: Listenable.merge([
+            _chat,
+            _audio,
+            _voice,
+            _roleSpeech,
+            _remoteInput,
+          ]),
           builder: (context, _) => Column(
             children: [
               _CharacterScene(
                 character: character,
                 isReplying: _chat.isSending,
                 isSpeaking: _voice.speaking || (_roleSpeech?.speaking ?? false),
-                isListening: _voice.listening,
+                isListening:
+                    _voice.listening || (_remoteInput?.holding ?? false),
               ),
               _modeRibbon(),
               Expanded(
@@ -341,6 +403,13 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                   ),
                 ),
               _audioControls(),
+              if (_holdToSend && _remoteInput != null)
+                Text(
+                  _remoteInput!.status.isEmpty
+                      ? '按住麦克风说话，松开发送'
+                      : _remoteInput!.status,
+                  style: const TextStyle(color: Colors.white),
+                ),
               if (_readReplies && (_roleSpeech?.status.isNotEmpty ?? false))
                 Text(
                   _roleSpeech!.status,
@@ -464,6 +533,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
   }
 
   Future<void> _beginRecognition() async {
+    _endVoiceMode();
     _disableRoleSpeech();
     _speechActivated = true;
     await _audio.discard();
@@ -576,44 +646,84 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     );
   }
 
-  Widget _recordButton() => Semantics(
+  Widget _recordButton() => _holdToSend
+      ? _voiceHoldButton()
+      : Semantics(
+          button: true,
+          label: '按住录音，松开保存本地试听，向左滑出取消',
+          onTap: () {
+            _disableRoleSpeech();
+            if (_audio.state == AudioSessionState.recording) {
+              unawaited(_audio.finish());
+            } else {
+              unawaited(_audio.begin());
+            }
+          },
+          child: Listener(
+            onPointerDown: (_) {
+              _disableRoleSpeech();
+              _slideCancelled = false;
+              unawaited(_voice.stopAll());
+              unawaited(_audio.begin());
+            },
+            onPointerMove: (event) {
+              if (event.localPosition.dx < -24 ||
+                  event.localPosition.dy < -24) {
+                _slideCancelled = true;
+              }
+            },
+            onPointerUp: (_) =>
+                unawaited(_slideCancelled ? _audio.discard() : _audio.finish()),
+            onPointerCancel: (_) => unawaited(_audio.discard()),
+            child: Container(
+              key: const ValueKey('hold-to-record'),
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _audio.state == AudioSessionState.recording
+                    ? const Color(0xFF9E566D)
+                    : const Color(0xFF434B67),
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: const Icon(Icons.mic_none_outlined, color: Colors.white),
+            ),
+          ),
+        );
+
+  Widget _voiceHoldButton() => Semantics(
     button: true,
-    label: '按住录音，松开保存本地试听，向左滑出取消',
+    label: '按住说话，松开发送',
     onTap: () {
-      _disableRoleSpeech();
-      if (_audio.state == AudioSessionState.recording) {
-        unawaited(_audio.finish());
-      } else {
-        unawaited(_audio.begin());
+      if (_remoteInput!.holding) {
+        unawaited(_remoteInput!.endHold(true));
+      } else if (!_chat.isSending) {
+        unawaited(_roleSpeech?.stop());
+        unawaited(_remoteInput!.startHold());
       }
     },
     child: Listener(
       onPointerDown: (_) {
-        _disableRoleSpeech();
+        if (_chat.isSending) return;
         _slideCancelled = false;
-        unawaited(_voice.stopAll());
-        unawaited(_audio.begin());
+        unawaited(_roleSpeech?.stop());
+        unawaited(_remoteInput!.startHold());
       },
-      onPointerMove: (event) {
-        if (event.localPosition.dx < -24 || event.localPosition.dy < -24) {
+      onPointerMove: (e) {
+        if (e.localPosition.dx < -24 || e.localPosition.dy < -24) {
           _slideCancelled = true;
         }
       },
-      onPointerUp: (_) =>
-          unawaited(_slideCancelled ? _audio.discard() : _audio.finish()),
-      onPointerCancel: (_) => unawaited(_audio.discard()),
-      child: Container(
-        key: const ValueKey('hold-to-record'),
+      onPointerUp: (_) => unawaited(_remoteInput!.endHold(!_slideCancelled)),
+      onPointerCancel: (_) => unawaited(_remoteInput!.endHold(false)),
+      child: SizedBox(
+        key: const ValueKey('voice-hold-send'),
         width: 46,
         height: 46,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: _audio.state == AudioSessionState.recording
-              ? const Color(0xFF9E566D)
-              : const Color(0xFF434B67),
-          borderRadius: BorderRadius.circular(25),
+        child: Icon(
+          Icons.mic,
+          color: _remoteInput!.holding ? Colors.red : Colors.white,
         ),
-        child: const Icon(Icons.mic_none_outlined, color: Colors.white),
       ),
     ),
   );

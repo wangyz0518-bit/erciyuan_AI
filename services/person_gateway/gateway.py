@@ -20,7 +20,8 @@ from typing import Literal, Protocol
 
 import httpx
 from character_speech import CharacterSpeech
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, WebSocket
+from voice_input import InputSettings, serve_input
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
@@ -494,6 +495,8 @@ def create_app(settings: Settings | None = None, provider: Provider | None = Non
     )
     ledger = RequestLedger(settings.ledger_path)
     speech = speech or CharacterSpeech.env()
+    input_settings = InputSettings.env()
+    input_counts: dict[str, int] = {}
     app = FastAPI(title="Person-scoped local model gateway", version="0.2.0")
     app.add_middleware(RequestBodyLimitMiddleware, max_bytes=MAX_REQUEST_BODY_BYTES)
     app.state.ledger = ledger
@@ -724,6 +727,24 @@ def create_app(settings: Settings | None = None, provider: Provider | None = Non
             media_type="text/event-stream",
             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
         )
+
+    @app.websocket("/v1/characters/{character_id}/voice-input")
+    async def voice_input(socket: WebSocket, character_id: str):
+        try:
+            owner = owner_for_token(socket.headers.get("authorization", ""))
+            validate_path_ids(character_id)
+            authorize_character(owner, character_id)
+        except HTTPException:
+            await socket.close(code=1008)
+            return
+        if input_counts.get(owner, 0) >= 4:
+            await socket.close(code=1013)
+            return
+        input_counts[owner] = input_counts.get(owner, 0) + 1
+        try:
+            await serve_input(socket, input_settings)
+        finally:
+            input_counts[owner] -= 1
 
     @app.post("/v1/characters/{character_id}/turns/{request_id}/speech")
     async def speak(character_id: str, request_id: str, authorization: str = Header(default="")):
