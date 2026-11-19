@@ -1,8 +1,9 @@
 # erciyuan mobile · official app
 
-The official app uses one persistent timeline per character. For role-specific
-speech, hold-to-talk and continuous calls, see the [person gateway guide](../../services/person_gateway/README.md).
-The earlier [PoC](../mobile_poc/) is a separate project. Use Flutter **3.50.0**,
+手机端默认打开 v4 沉浸聊天场景。底部键盘、按住说话、电话共用用户上传的 v3 声音模块。
+人物档案、历史记录和导出使用正式 App 的 SQLite 数据库。浏览器预览仍有独立入口。
+
+Use Flutter **3.50.0**,
 Java **17**, Android SDK/Gradle compatible with the checked-in native template.
 
 ```bash
@@ -15,15 +16,22 @@ flutter build apk --debug
 flutter run
 ```
 
-The starter characters 小星 and 小月 have separate SQLite timelines.
-Continue opens the selected character's saved conversation. The app starts
-in offline demo mode. A configured local gateway enables additional chat and
-voice modes. Imports and spoken replies are scoped to the selected character.
+### 在 Android 模拟器上连接本机声音模块
+
+从仓库根目录启动 `services/model_gateway/run.ps1`，参数和本机配置见[声音网关说明](../../services/model_gateway/README.md)。
+保留网关进程，在另一个终端从 `apps/mobile` 运行。示例使用默认端口和配置目录。
+
+```powershell
+adb -s emulator-5554 reverse tcp:8787 tcp:8787
+flutter run -d emulator-5554 --dart-define-from-file=../../.model-local/mobile-live.json --dart-define=MODEL_GATEWAY_PROTOCOL=v3
+```
+
+小星和小月各有独立的聊天时间线。上拉可查看以前的正式版记录，新语音对话也会写入同一人物的时间线。
+语音网关使用本机角色绑定；模型密钥只由网关读取。无网关配置时，手机端提供离线演示。
 
 ## 动态形象与本机 Android 人物包
 
-普通 Android 和 iOS 构建使用 Flutter 内置形象。倾听、等待回复和朗读有不同的表现，
-角色语音播放时根据 PCM 音量估计开口幅度。GitHub 构建只发布内置形象版本。
+本地评审使用 v4 半身、全身和回复插画。已导入的人物包可随倾听、回复和朗读状态变化。
 
 开发机可以为 Android 启用已有的 Cubism Native 5-r.5 SDK。在本机 PowerShell
 中指向已解压的 SDK 根目录，然后从 `apps/mobile` 启动应用。
@@ -33,7 +41,7 @@ $env:ERCIYUAN_CUBISM_SDK = 'D:\local-sdk\CubismSdkForNative-5-r.5'
 flutter run -d emulator-5554
 ```
 
-进入人物的聊天页，点击右上角人物形象菜单，选择 v0.1 人物 ZIP。
+在手机聊天页打开左上角侧栏，进入“设置 → 导入人物形象”，选择 v0.1 人物 ZIP。
 导入经结构和 SDK 校验后生效，绑定随本机用户和人物保存。菜单中的“恢复内置形象”
 可以解除当前绑定。人物包和 SDK 由开发者本机提供，许可进度见 [#80](https://github.com/wangyz0518-bit/erciyuan_AI/issues/80)。
 在普通 PowerShell 会话中构建默认 APK，运行以下命令检查公开包内容。

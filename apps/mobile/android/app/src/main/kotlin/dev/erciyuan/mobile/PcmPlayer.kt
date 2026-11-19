@@ -37,6 +37,13 @@ class PcmPlayer(messenger: BinaryMessenger) {
             if (call.method == "stop") {
                 stop()
                 result.success(null)
+            } else if (call.method == "progress") {
+                val played = try {
+                    val audio = track
+                    if (audio == null || call.argument<String>("id") != token) 0
+                    else minOf(head(audio), framesWritten).toInt()
+                } catch (_: IllegalStateException) { 0 }
+                result.success(played)
             } else if (call.method == "start") {
                 stop()
                 val id = call.argument<String>("id") ?: ""

@@ -1,11 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'bootstrap.dart';
+import 'immersive/immersive_home.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     final app = await bootstrapCompanionApp(
+      homeBuilder: ImmersiveHome.new,
       gatewayUri: const String.fromEnvironment('PERSON_GATEWAY_URL').isEmpty
           ? null
           : Uri.parse(const String.fromEnvironment('PERSON_GATEWAY_URL')),
