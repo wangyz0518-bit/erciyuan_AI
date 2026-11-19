@@ -1,6 +1,6 @@
 # erciyuan_AI 2026-11-19 批次交付与验收报告
 
-> 状态：2026-11-19 可独立交付的代码与离线测试已并入 main，**真实资源/设备/许可未验收的六个 Issue 继续开放**；以各 PR、Issue 和 Actions 的实际记录为准。此文档只记录共同维护的技术实现、实际测试及未满足的验收条件，不增加任何人的 GitHub 审批或权限规则。
+> 状态：以下正文保留任务会话 5/6 的历史交付快照。**最新阶段结项以文末「任务会话 6 当前阶段结项（2026-11-19）」为准：#39、#42、#43、#44 均已关闭；下一阶段仅保留 #78、#79、#80 三个开放 Issue。PR #70 仍开放等待 iOS macOS CI，不代表已合并或 iOS 验收通过。**
 >
 > 项目：Flutter Android/iOS 人物中心 AI 陪伴应用。每个人物维持唯一持续时间线，按 owner_id + character_id 隔离 SQLite、原始历史/归档/身份记忆与完整数据导出。
 
@@ -87,3 +87,36 @@
 - **#41 / [PR #76](https://github.com/wangyz0518-bit/erciyuan_AI/pull/76) 已合并**：main `3bc8e64a4c1bbac58a8240723f8e707c071b41c3`。对显式提供的 ADB 序列号增加 `get-state == device` 授权检查，避免离线/未授权设备进入 Flutter 构建；Linux GitHub Actions 运行假的 ADB/Flutter 进行五种拒绝路径回归。[Flutter 官方验证 #44510713171](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44510713171) 和 [Android 模拟器 #44510713477](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44510713477) **success**。这不提供实际连接物理手机的证据，#41 保持开放；[具体计划](issue-41-android-physical-acceptance-20261118.md) 已补录。
 - **#42 / [PR #70](https://github.com/wangyz0518-bit/erciyuan_AI/pull/70) 未合并**：首次 macOS iOS 工作流确实编译 Swift、启动模拟器、截图且第一项集成测试通过，第二项 Flutter 测试超时导致 job `cancelled`。随后请求的第二次重跑在执行步骤之前取消、没有可取得的 job log；已再请求第三次运行，当前仍等待 macOS 运行器。**不得将部分测试成功或排队当作完整 iOS 通过**。Android/Flutter CI 成功不等于新 iOS PCM 真机声音已验收。
 - 其他仍开放 Issue 继续保持上一节标出的外部依赖。不额外消耗付费 API，不在缺少真实设备或许可时伪造通过，也不关闭不满足验收条件的任务。
+
+
+## 任务会话 6 当前阶段结项（2026-11-19）
+
+> 本节为当前状态的最终快照，覆盖本文更早的「六个 Issue 继续开放」历史记录。Issue 关闭表示当前阶段已交付的代码/离线自动化范围完成，并不把下一阶段的真实设备、真实 API 或 Live2D 运行时标成已验收。
+
+### 当前阶段 Issue 状态
+
+| Issue | 当前状态 | 当前阶段已交付 | 移交下一阶段 |
+| --- | --- | --- | --- |
+| [#39](https://github.com/wangyz0518-bit/erciyuan_AI/issues/39) | **Closed** | DeepSeek Provider 适配、人物身份/记忆上下文、SSE、取消/重试/幂等、离线 Mock 契约测试；PR #57/#66/#73 已合并 | 真实 LLM 请求、Token/缓存/成本/质量与授权数据联调 → [#79](https://github.com/wangyz0518-bit/erciyuan_AI/issues/79) |
+| [#42](https://github.com/wangyz0518-bit/erciyuan_AI/issues/42) | **Closed（阶段结项）** | PR #63/#68 已合并；PR #70 已提交，包含 iOS AVAudioEngine PCM adapter、共用 MethodChannel、模拟器 start/append/stop 测试 | PR #70 的 iOS macOS CI、真机录音/实际播放/end-drain/路由/中断/人工听感 → [#78](https://github.com/wangyz0518-bit/erciyuan_AI/issues/78)；真实供应商 PCM 流接入 → [#79](https://github.com/wangyz0518-bit/erciyuan_AI/issues/79) |
+| [#43](https://github.com/wangyz0518-bit/erciyuan_AI/issues/43) | **Closed（阶段结项）** | PR #64/#72 已合并：设备 ASR 草稿编辑确认、系统 TTS、权限与生命周期；PR #81 已合并人物 listening/speaking 状态联动 | 真机识别准确率/听感 → #78；云端 ASR/TTS、角色音色、授权/删除 → #79 |
+| [#44](https://github.com/wangyz0518-bit/erciyuan_AI/issues/44) | **Closed（阶段结项）** | PR #65/#71 已合并：manifest 预检、静态形象回退、ZIP 安全预检；PR #81 已合并 idle/listening/talking 状态联动 | 真机性能/生命周期 → #78；正式 Cubism SDK/Core 许可、授权模型、ZIP 导入安装和 Live2D 渲染 → [#80](https://github.com/wangyz0518-bit/erciyuan_AI/issues/80) |
+
+#40 iOS Simulator 工具链 Issue 已由 PR #74 记录真实模拟器成功证据并关闭；#41 Android 真机原 Issue 已按阶段拆分关闭，真机验收目标转入 #78。二者均不代表物理设备全部通过。
+
+### PR #70 当前状态与 CI 证据
+
+- [PR #70](https://github.com/wangyz0518-bit/erciyuan_AI/pull/70) 作者为 `keeyangyy`，分支已基于当前 main 整理，当前 head：`32df3b6fc8eac99ce92a6d411767197be862eb84`；compare 为 ahead 1 / behind 0。
+- Flutter 官方验证：**success**，包括 Dart format/analyze、Flutter unit/widget tests、Android Debug APK 和 UI goldens；[Actions #44524321406](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321406)。
+- Python gateway offline tests：**success**，同一 Actions run #44524321406。
+- Android 模拟器 UI/集成：**success（rerun attempt 2）**；正式 APK 构建/安装/启动、人物主页/持续聊天/数据管理导航、SQLite/失败事务、原生 PCM MethodChannel start/append/stop 全部通过；[Actions #44524321415](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321415)。
+- iOS Simulator macOS-15 job：[Actions #44524321399](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/44524321399) 仍为 queued，`runner_id=0`，没有执行 Xcode/Swift 编译。**PR #70 保持 Open，不合并，不把排队当作通过。**如果阶段切换前仍无法分配 runner，#78 已记录在可用 macOS/Xcode 主机完成此模拟器构建与 MethodChannel 回归的条件性后续。
+- Android headless 模拟器无可用 PulseAudio 输出时，PCM playback-head drain 不可验证。模拟器测试范围已限定为 native start/append/stop；真实输出/end-drain/路由/中断交由 #78，供应商 PCM 流联调交由 #79。
+
+### 下一阶段唯一开放的三个任务 Issue
+
+1. [#78 Android/iPhone 真实设备综合验收](https://github.com/wangyz0518-bit/erciyuan_AI/issues/78)：包含 Android/iPhone 真机、录音/播放/PCM 实际输出、ASR/TTS 真实设备效果、必要的 iOS Simulator 条件性 CI 后续。
+2. [#79 真实外部 AI 模型联调与质量/成本验收](https://github.com/wangyz0518-bit/erciyuan_AI/issues/79)：真实 LLM/ASR/TTS 供应商请求、费用与 Token、隐私授权、角色音色、真实 PCM 流适配。
+3. [#80 正式 Live2D 运行时与人物资源包集成](https://github.com/wangyz0518-bit/erciyuan_AI/issues/80)：Cubism SDK/Core 许可、授权模型、完整安全导入/安装/替换/回滚、正式 Flutter 渲染和动作生命周期。
+
+**结项口径：当前四个任务 Issue 已全部关闭；当前阶段代码和离线/模拟器自动化已交付。PR #70 是唯一与当前阶段相关的开放代码 PR，等待 iOS macOS CI 后再合并。下一阶段三个 Issue 仍开放，不纳入本阶段完成数量。**
