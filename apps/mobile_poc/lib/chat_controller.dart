@@ -1,0 +1,292 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+
+import 'data.dart';
+import 'conversation_controller.dart';
+import 'model_gateway.dart';
+
+enum ReplyMode { normal, failure, delayed }
+
+class ChatController extends ChangeNotifier {
+  ChatController(
+    this.store, {
+    this.chunkDelay = const Duration(milliseconds: 75),
+    this.gateway,
+  });
+  final LocalStore store;
+  final Duration chunkDelay;
+  final ModelGateway? gateway;
+  ConversationController? conversation;
+  void Function(Message message, String requestId)? onReplyComplete;
+  String? _requestId;
+  List<Character> characters = [];
+  List<Message> messages = [];
+  String selected = 'xing';
+  ReplyMode mode = ReplyMode.normal;
+  bool busy = false;
+  bool switching = false;
+  String? error;
+  Message? _active;
+  Future<bool>? _initialSave;
+  Future<void>? _cancellation;
+  int _generation = 0;
+  int _lastId = DateTime.now().microsecondsSinceEpoch;
+  int _nextId() => ++_lastId;
+  Character get character => characters.firstWhere((c) => c.id == selected);
+
+  void refreshConversation() {
+    final session = conversation;
+    if (session == null) return;
+    messages = session.messages;
+    busy = session.busy;
+    error = null;
+    notifyListeners();
+  }
+
+  Future<void> init() async {
+    characters = await store.characters();
+    final saved = await store.preference('selected');
+    if (characters.any((c) => c.id == saved)) selected = saved!;
+    messages = await store.messages(selected);
+    notifyListeners();
+  }
+
+  Future<bool> send(
+    String text, {
+    Message? retry,
+    VoidCallback? onSaved,
+  }) async {
+    final session = conversation;
+    if (session != null) {
+      return session.text(text, selected, saved: onSaved);
+    }
+    text = text.trim();
+    if (text.isEmpty || busy || switching) return false;
+    final requestClock = Stopwatch()..start();
+    busy = true; // Reserve synchronously, before the first database await.
+    error = null;
+    final token = ++_generation;
+    final role = selected;
+    final currentMode = mode;
+    final answered = messages
+        .where(
+          (m) =>
+              m.author == 'assistant' &&
+              m.status == 'complete' &&
+              m.replyTo != null,
+        )
+        .map((m) => m.replyTo)
+        .toSet();
+    final context = messages
+        .where(
+          (m) =>
+              m.status == 'complete' &&
+              m.text.isNotEmpty &&
+              (m.author == 'assistant' || answered.contains(m.id)),
+        )
+        .toList();
+    final history = <Map<String, String>>[];
+    var historyLength = 0;
+    for (final m in context.reversed) {
+      if (retry != null && m.id >= retry.id) continue;
+      if (history.length >= 20 || historyLength + m.text.length > 24000) break;
+      history.insert(0, {'role': m.author, 'content': m.text});
+      historyLength += m.text.length;
+    }
+    final requestId = gateway == null ? null : ModelGateway.requestId();
+    if (requestId != null) gateway!.prepareTurn(requestId, requestClock);
+    _requestId = requestId;
+    final user =
+        retry ??
+        Message(
+          id: _nextId(),
+          characterId: role,
+          author: 'user',
+          text: text,
+          status: 'complete',
+        );
+    final reply = Message(
+      id: _nextId(),
+      characterId: role,
+      author: 'assistant',
+      text: '',
+      status: 'pending',
+      replyTo: user.id,
+    );
+    _active = reply;
+    if (retry == null) messages.add(user);
+    messages.add(reply);
+    final initialSave = _saveInitial(user, reply, includeUser: retry == null);
+    _initialSave = initialSave;
+    notifyListeners();
+    try {
+      if (!await initialSave) {
+        messages.remove(reply);
+        if (retry == null) messages.remove(user);
+        if (token == _generation) error = '本地保存失败，请检查存储后重试';
+        return false;
+      }
+      onSaved?.call();
+      // Cancellation may have occurred while the initial transaction was pending.
+      if (token != _generation) return true;
+      if (reply.status == 'failed') {
+        error = '本地写入失败，消息已保留，请重试回复';
+        return true;
+      }
+      if (currentMode == ReplyMode.delayed) {
+        await Future<void>.delayed(const Duration(seconds: 6));
+      }
+      if (token != _generation) return true;
+      if (currentMode == ReplyMode.failure) throw StateError('模拟服务暂时不可用，请重试');
+      if (gateway != null) {
+        gateway!.voiceEnabled = onReplyComplete != null;
+        await for (final delta in gateway!.reply(
+          requestId: requestId!,
+          character: role,
+          content: text,
+          history: history,
+        )) {
+          if (token != _generation) return true;
+          reply.text += delta;
+          notifyListeners();
+        }
+      } else {
+        final name = characters.firstWhere((c) => c.id == role).name;
+        final preview = String.fromCharCodes(text.runes.take(35));
+        final response = '我是$name，收到你的消息：“$preview”。这是本地模拟回复，我们可以继续聊聊。';
+        for (final rune in response.runes) {
+          await Future<void>.delayed(chunkDelay);
+          if (token != _generation) return true;
+          reply.text += String.fromCharCode(rune);
+          notifyListeners();
+        }
+      }
+      if (token != _generation) return true;
+      reply.status = 'complete';
+      await store.save(reply);
+      if (token == _generation && requestId != null) {
+        onReplyComplete?.call(reply, requestId);
+      }
+    } catch (e) {
+      if (requestId != null) unawaited(gateway!.cancel(requestId));
+      if (token == _generation) {
+        reply.status = 'failed';
+        error = currentMode == ReplyMode.failure
+            ? '模拟服务暂时不可用，请重试'
+            : e is GatewayException
+            ? '回复服务暂不可用（${e.code}），可重试'
+            : '保存或回复失败，请重试';
+        try {
+          await store.save(reply);
+        } catch (_) {
+          error = '本地保存失败，请检查存储空间';
+        }
+      }
+    } finally {
+      if (requestId != null) gateway!.forgetTurn(requestId);
+      if (token == _generation) {
+        busy = false;
+        _active = null;
+        _initialSave = null;
+        _requestId = null;
+        notifyListeners();
+      }
+    }
+    return true;
+  }
+
+  Future<bool> _saveInitial(
+    Message user,
+    Message reply, {
+    required bool includeUser,
+  }) async {
+    Future<void> save() =>
+        includeUser ? store.savePair(user, reply) : store.save(reply);
+    try {
+      await save();
+      return true;
+    } catch (_) {
+      // A failed pair transaction rolls back the user message too.
+      reply.status = 'failed';
+      try {
+        await save();
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  Future<void> cancel() {
+    if (conversation != null) {
+      conversation!.interrupt();
+      return Future<void>.value();
+    }
+    final ongoing = _cancellation;
+    if (ongoing != null) return ongoing;
+    final pending = _active;
+    final initialSave = _initialSave;
+    if (pending == null || initialSave == null) return Future<void>.value();
+    ++_generation;
+    final requestId = _requestId;
+    _requestId = null;
+    if (requestId != null) unawaited(gateway!.cancel(requestId));
+    return _cancellation = _cancelReply(pending, initialSave);
+  }
+
+  Future<void> _cancelReply(Message pending, Future<bool> initialSave) async {
+    try {
+      if (await initialSave) {
+        pending.status = 'cancelled';
+        await store.save(pending);
+      }
+    } catch (_) {
+      error = '无法保存取消状态，请检查本地存储';
+    } finally {
+      _cancellation = null;
+      _active = null;
+      _initialSave = null;
+      busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> switchCharacter(String id) async {
+    if (switching || selected == id) return;
+    switching = true;
+    notifyListeners();
+    try {
+      await cancel();
+      selected = id;
+      if (conversation != null) {
+        await conversation!.load(id);
+      } else {
+        messages = await store.messages(id);
+      }
+      await store.setPreference('selected', id);
+      error = null;
+    } finally {
+      switching = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> retry(Message failed) async {
+    final user = messages.where((m) => m.id == failed.replyTo).firstOrNull;
+    if (user == null) {
+      error = '找不到原消息，请重新输入后发送';
+      notifyListeners();
+      return false;
+    }
+    return send(user.text, retry: user);
+  }
+
+  @override
+  void dispose() {
+    ++_generation;
+    onReplyComplete = null;
+    if (gateway != null) unawaited(gateway!.close());
+    super.dispose();
+  }
+}

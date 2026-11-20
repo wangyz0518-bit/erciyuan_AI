@@ -1,0 +1,41 @@
+name: Person gateway offline validation
+
+on:
+  pull_request:
+    paths:
+      - "services/person_gateway/**"
+      - ".github/workflows/person-gateway.yml"
+  push:
+    branches: [main]
+    paths:
+      - "services/person_gateway/**"
+      - ".github/workflows/person-gateway.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/person_gateway/requirements.txt
+      - name: Install test dependencies
+        working-directory: services/person_gateway
+        run: python -m pip install -r requirements.txt
+      - name: Check Python syntax
+        working-directory: services/person_gateway
+        run: python -m compileall -q gateway.py tests
+      - name: Offline tests only - never use paid provider
+        working-directory: services/person_gateway
+        env:
+          PERSON_GATEWAY_MODE: mock
+          PERSON_LIVE_CALLS_ENABLED: "false"
+          DEEPSEEK_API_KEY: ""
+        run: python -m pytest -q

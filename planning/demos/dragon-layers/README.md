@@ -4,12 +4,14 @@
 
 当前仅有翼尾小幅联动，主体静止。这是制作链路样本；胸腹呼吸、眼口、挥手和腿部换重心仍需拆分素材并绑定。本模型的 Flutter、Android/iOS 真机接入尚未验证。
 
+本目录仅供制作验证。公开 APK 的资源清单排除此目录及生成的人物包。
+
 ## 直接体验
 
 1. 在 Windows 安装 Live2D Cubism Viewer（随 Editor 安装）。
 2. 打开 `runtime/dragon-four-layers.model3.json`。
 3. 展开 `motions → Idle`，选择 `idle.motion3.json`，勾选“循环播放（仅预览）”，点击“播放”。
-4. 当前机器已打开 Viewer 并开始循环。一个周期 6 秒，动作幅度刻意保持很小。
+4. 观察六秒循环内的翼尾动作。
 
 ![Viewer 实际截图](evidence/viewer-idle.png)
 

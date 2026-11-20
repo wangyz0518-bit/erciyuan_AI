@@ -2,6 +2,9 @@
 /planning/qa*/
 /planning/cost_check.json
 
+# Desktop voice PoC models, reference recordings and generated audio
+.voice-local/
+
 # Credentials and machine-local configuration
 .env
 .env.*
@@ -10,6 +13,8 @@
 *.key
 credentials.json
 secrets.json
+.model-local/
+/test-voices.json
 
 # Python environments and caches
 .venv/
@@ -19,6 +24,8 @@ __pycache__/
 .pytest_cache/
 
 # Dependency and build outputs
+.local/
+.cxx/
 node_modules/
 dist/
 build/
