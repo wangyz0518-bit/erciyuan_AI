@@ -1,0 +1,13 @@
+{
+  "name": "dragon-layer-preparation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Preserve AI PNG layers and package an editable PSD for Cubism validation",
+  "scripts": {
+    "build": "node build.cjs"
+  },
+  "dependencies": {
+    "ag-psd": "^34.2.0",
+    "pngjs": "^7.0.0"
+  }
+}
