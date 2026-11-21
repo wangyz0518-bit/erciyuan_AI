@@ -22,6 +22,16 @@ void main() {
   testWidgets('character avatar on official chat, switch and reopen', (
     tester,
   ) async {
+    final testDragon = Platform.isAndroid && zip.isEmpty;
+    final platform = tester.platformDispatcher;
+    if (testDragon) {
+      // The CI emulator disables system animations. Exercise the static pose
+      // first, then enable animations for the playback assertions.
+      platform.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(platform.clearAccessibilityFeaturesTestValue);
+    }
     final owner = 'avatar-test-${DateTime.now().microsecondsSinceEpoch}';
     final dbPath = path.join(await getDatabasesPath(), '$owner.db');
     Future<void> openStar() async {
@@ -61,6 +71,10 @@ void main() {
       if (Platform.isAndroid) {
         expect(await channel.invokeMethod<bool>('available'), isFalse);
         await waitFor(find.byType(DragonAvatarScene));
+        expect(find.byType(VideoPlayer), findsNothing);
+        platform.accessibilityFeaturesTestValue =
+            const FakeAccessibilityFeatures();
+        await tester.pump();
         await waitFor(find.byType(VideoPlayer));
         expect(
           tester
@@ -81,7 +95,10 @@ void main() {
         );
         for (final clip in DragonAvatarClip.values) {
           await tester.tap(
-            find.descendant(of: dialog, matching: find.text(clip.label)),
+            find.descendant(
+              of: dialog,
+              matching: find.widgetWithText(ChoiceChip, clip.label),
+            ),
           );
           await tester.pump();
           await waitFor(previewVideo);
