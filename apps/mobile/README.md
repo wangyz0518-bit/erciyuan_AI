@@ -32,9 +32,13 @@ cd apps/mobile
 flutter run -d emulator-5554 --dart-define-from-file=../../.model-local/mobile-live.json
 ~~~
 
+使用本机 v3 网关配置启动时，App 直接打开 v4 沉浸聊天页。直接运行默认构建会进入离线人物页。
+
 iPhone 使用 [Mac 签名安装指南](../../docs/guides/ios-personal-team.md)。Windows 对照客户端见 [Windows 运行指南](../../docs/guides/windows-conversation-20261118.md)。
 
 ## 动态形象与本机 Android 人物包
+
+Android 的小星默认使用内置龙角外观。v4 聊天页从「菜单 → 设置」打开「龙角动作预览」或「切回原形象」。App 按待机、倾听、思考和语音播放状态切换静音短片，预览还提供轻笑动作。外观选择按本机人物保存，短片中的口型为预渲染动作。
 
 普通 Android 和 iOS 构建使用 Flutter 内置形象。倾听、等待回复和朗读有不同的表现，
 角色语音播放时根据 PCM 音量估计开口幅度。GitHub 构建只发布内置形象版本。

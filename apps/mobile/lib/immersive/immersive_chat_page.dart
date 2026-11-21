@@ -284,6 +284,23 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
               unawaited(openTools());
             },
           ),
+          if (avatar.currentState case final scene?
+              when scene.canChooseAppearance)
+            ListTile(
+              title: Text(scene.showsDragon ? '切回原形象' : '使用龙角形象'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                unawaited(scene.chooseDragonAppearance(!scene.showsDragon));
+              },
+            ),
+          if (avatar.currentState case final scene? when scene.supportsDragon)
+            ListTile(
+              title: const Text('龙角动作预览'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                unawaited(scene.previewDragon());
+              },
+            ),
           if (avatar.currentState?.canImport == true)
             ListTile(
               title: const Text('导入人物形象'),
@@ -292,7 +309,8 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                 unawaited(avatar.currentState!.choosePackage());
               },
             ),
-          if (avatar.currentState?.hasModel == true)
+          if (avatar.currentState case final scene?
+              when scene.hasModel && !scene.showsDragon)
             ListTile(
               title: const Text('恢复内置形象'),
               onTap: () {
@@ -434,6 +452,8 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                   key: avatar,
                   character: chat.character,
                   showMenu: false,
+                  dragonImmersive: true,
+                  dragonWideShot: full,
                   motion: session?.playing == true
                       ? AvatarSceneMotion.talking
                       : chat.busy

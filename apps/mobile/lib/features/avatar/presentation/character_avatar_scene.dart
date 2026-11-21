@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../characters/domain/character.dart';
 import 'avatar_fallback_scene.dart';
+import 'dragon_avatar_scene.dart';
 
 /// A single native texture is shared by successive pages. Order operations
 /// across route transitions so teardown of the old role cannot stop a new one.
@@ -22,12 +23,16 @@ class CharacterAvatarScene extends StatefulWidget {
     required this.mouth,
     this.fallback,
     this.showMenu = true,
+    this.dragonImmersive = false,
+    this.dragonWideShot = false,
   });
   final Character character;
   final AvatarSceneMotion motion;
   final double mouth;
   final Widget? fallback;
   final bool showMenu;
+  final bool dragonImmersive;
+  final bool dragonWideShot;
   @override
   State<CharacterAvatarScene> createState() => CharacterAvatarSceneState();
 }
@@ -40,6 +45,8 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
   static CharacterAvatarSceneState? _visible;
   int? _texture;
   bool _available = false, _busy = false, _foreground = true;
+  bool _appearanceReady = false, _savingAppearance = false, _previewing = false;
+  bool? _dragonChoice;
   String? _model;
   String get _binding => sha256
       .convert(
@@ -52,6 +59,14 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
       )
       .toString();
   bool get _current => mounted && _visible == this;
+  bool get supportsDragon =>
+      !kIsWeb &&
+      Platform.isAndroid &&
+      widget.character.scope.characterId == 'star';
+  bool get showsDragon =>
+      supportsDragon && _appearanceReady && (_dragonChoice ?? (_model == null));
+  bool get canChooseAppearance =>
+      supportsDragon && _appearanceReady && !_savingAppearance;
 
   Future<void> _queue(Future<void> Function() fn) {
     final next = _tail.then((_) => fn());
@@ -65,6 +80,77 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
     _visible = this;
     WidgetsBinding.instance.addObserver(this);
     if (!kIsWeb && Platform.isAndroid) unawaited(_attach());
+    if (supportsDragon) unawaited(_restoreAppearance());
+  }
+
+  Future<File> _appearanceFile() async {
+    final directory = await getApplicationSupportDirectory();
+    return File('${directory.path}/dragon-avatar-$_binding.txt');
+  }
+
+  Future<void> _restoreAppearance() async {
+    bool? choice;
+    try {
+      final file = await _appearanceFile();
+      if (await file.exists()) {
+        choice = switch ((await file.readAsString()).trim()) {
+          'dragon' => true,
+          'original' => false,
+          _ => null,
+        };
+      }
+    } catch (error) {
+      debugPrint('Could not load the avatar appearance: $error');
+    }
+    if (!_current) return;
+    setState(() {
+      _dragonChoice = choice;
+      _appearanceReady = true;
+    });
+    unawaited(_queue(_setActive).catchError((Object _) {}));
+  }
+
+  Future<void> chooseDragonAppearance(bool enabled) async {
+    if (!_current || !canChooseAppearance) return;
+    setState(() => _savingAppearance = true);
+    File? staged;
+    try {
+      final file = await _appearanceFile();
+      staged = File(
+        '${file.path}.${DateTime.now().microsecondsSinceEpoch}.tmp',
+      );
+      await staged.writeAsString(enabled ? 'dragon' : 'original', flush: true);
+      await staged.rename(file.path);
+      staged = null;
+      if (!_current) return;
+      setState(() => _dragonChoice = enabled);
+      unawaited(_queue(_setActive).catchError((Object _) {}));
+    } catch (error) {
+      debugPrint('Could not save the avatar appearance: $error');
+      if (mounted && _current) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('保存人物外观失败，请重试')));
+      }
+    } finally {
+      if (staged != null) {
+        try {
+          if (await staged.exists()) await staged.delete();
+        } catch (error) {
+          debugPrint('Could not remove temporary appearance setting: $error');
+        }
+      }
+      if (mounted) setState(() => _savingAppearance = false);
+    }
+  }
+
+  Future<void> previewDragon() async {
+    if (!_current || !supportsDragon || _previewing) return;
+    setState(() => _previewing = true);
+    try {
+      await showDragonAvatarPreview(context);
+    } finally {
+      if (mounted) setState(() => _previewing = false);
+    }
   }
 
   Future<void> _attach() => _queue(() async {
@@ -106,7 +192,7 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
   Future<void> _setActive() async {
     if (_owner == this) {
       await _channel.invokeMethod<void>('active', {
-        'value': _current && _foreground && _model != null,
+        'value': _current && _foreground && _model != null && !showsDragon,
       });
     }
   }
@@ -123,11 +209,15 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
     if (oldWidget.motion == widget.motion && oldWidget.mouth == widget.mouth) {
       return;
     }
-    if (_model == null || !_foreground) return;
+    if (_model == null || !_foreground || showsDragon) return;
     final motion = widget.motion, amount = widget.mouth;
     unawaited(
       _queue(() async {
-        if (!_current || _owner != this || _model == null || !_foreground) {
+        if (!_current ||
+            _owner != this ||
+            _model == null ||
+            !_foreground ||
+            showsDragon) {
           return;
         }
         await _channel.invokeMethod<void>('packageMouth', {
@@ -154,6 +244,7 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
     });
     if (!_current) return;
     _applyPackage(package);
+    if (showsDragon) await chooseDragonAppearance(false);
     await _setActive();
     if (_current) setState(() {});
   });
@@ -242,7 +333,14 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
     fit: StackFit.expand,
     children: [
       Center(
-        child: _model != null && _texture != null
+        child: showsDragon
+            ? DragonAvatarScene(
+                clip: DragonAvatarClip.forMotion(widget.motion),
+                active: _current && _foreground && !_previewing,
+                immersive: widget.dragonImmersive,
+                wideShot: widget.dragonWideShot,
+              )
+            : _model != null && _texture != null
             ? Semantics(
                 label: '${widget.character.name} · $_model',
                 child: AspectRatio(
@@ -258,24 +356,46 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
                     mouth: widget.mouth,
                   ),
       ),
-      if (_available && widget.showMenu)
+      if ((_available || supportsDragon) && widget.showMenu)
         Positioned(
           right: 6,
           top: 0,
           child: PopupMenuButton<String>(
             tooltip: '人物形象',
-            enabled: !_busy,
-            onSelected: (action) => unawaited(_select(action)),
+            enabled: !_busy && !_savingAppearance,
+            onSelected: (action) {
+              switch (action) {
+                case 'dragon':
+                  unawaited(chooseDragonAppearance(true));
+                case 'original':
+                  unawaited(chooseDragonAppearance(false));
+                case 'preview-dragon':
+                  unawaited(previewDragon());
+                default:
+                  unawaited(_select(action));
+              }
+            },
             icon: const Icon(
               Icons.face_retouching_natural,
               color: Colors.white,
             ),
             itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'import',
-                child: Text('为此人物导入 Live2D ZIP'),
-              ),
-              if (_model != null)
+              if (canChooseAppearance)
+                PopupMenuItem(
+                  value: showsDragon ? 'original' : 'dragon',
+                  child: Text(showsDragon ? '切回原形象' : '使用龙角形象'),
+                ),
+              if (supportsDragon)
+                const PopupMenuItem(
+                  value: 'preview-dragon',
+                  child: Text('龙角动作预览'),
+                ),
+              if (_available)
+                const PopupMenuItem(
+                  value: 'import',
+                  child: Text('为此人物导入 Live2D ZIP'),
+                ),
+              if (_model != null && !showsDragon)
                 const PopupMenuItem(value: 'clear', child: Text('恢复内置形象')),
             ],
           ),

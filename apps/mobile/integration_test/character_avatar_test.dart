@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:erciyuan_mobile/bootstrap.dart';
 import 'package:erciyuan_mobile/features/avatar/presentation/avatar_fallback_scene.dart';
 import 'package:erciyuan_mobile/features/avatar/presentation/character_avatar_scene.dart';
+import 'package:erciyuan_mobile/features/avatar/presentation/dragon_avatar_scene.dart';
 import 'package:erciyuan_mobile/features/timeline/data/person_database.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
+import 'package:video_player/video_player.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -58,13 +60,65 @@ void main() {
     if (zip.isEmpty) {
       if (Platform.isAndroid) {
         expect(await channel.invokeMethod<bool>('available'), isFalse);
+        await waitFor(find.byType(DragonAvatarScene));
+        await waitFor(find.byType(VideoPlayer));
+        expect(
+          tester
+              .widget<VideoPlayer>(find.byType(VideoPlayer))
+              .controller
+              .value
+              .isPlaying,
+          isTrue,
+        );
+        await tester.tap(find.byTooltip('人物形象'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('龙角动作预览'));
+        await tester.pumpAndSettle();
+        final dialog = find.byType(AlertDialog);
+        final previewVideo = find.descendant(
+          of: dialog,
+          matching: find.byType(VideoPlayer),
+        );
+        for (final clip in DragonAvatarClip.values) {
+          await tester.tap(
+            find.descendant(of: dialog, matching: find.text(clip.label)),
+          );
+          await tester.pump();
+          await waitFor(previewVideo);
+          final player = tester.widget<VideoPlayer>(previewVideo).controller;
+          expect(player.dataSource, '${clip.asset}.mp4');
+          expect(player.value.isPlaying, isTrue);
+        }
+        await tester.tap(find.text('关闭'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('人物形象'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('切回原形象'));
+        await waitFor(find.byType(AvatarFallbackScene));
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+        await openStar();
+        expect(find.byType(AvatarFallbackScene), findsOneWidget);
+        await tester.tap(find.byTooltip('人物形象'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('使用龙角形象'));
+        await waitFor(find.byType(DragonAvatarScene));
+        await waitFor(find.byType(VideoPlayer));
+      } else {
+        expect(find.byType(AvatarFallbackScene), findsOneWidget);
+        expect(find.byTooltip('人物形象'), findsNothing);
       }
-      expect(find.byType(AvatarFallbackScene), findsOneWidget);
-      expect(find.byTooltip('人物形象'), findsNothing);
       await switchTo('小月');
       expect(find.byType(AvatarFallbackScene), findsOneWidget);
+      expect(find.byType(DragonAvatarScene), findsNothing);
     } else {
       await waitFor(find.byTooltip('人物形象'));
+      final ready = Stopwatch()..start();
+      while (!scene().canImport &&
+          ready.elapsed < const Duration(seconds: 20)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(scene().canImport, isTrue);
       await scene().importFile(File(zip));
       await waitFor(find.byType(Texture));
       if (upgrade.isNotEmpty) {
