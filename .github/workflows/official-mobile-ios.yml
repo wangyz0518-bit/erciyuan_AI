@@ -36,6 +36,20 @@ jobs:
       - name: Install official mobile dependencies
         working-directory: apps/mobile
         run: flutter pub get
+      - name: Cache ONNX Runtime iOS xcframework
+        uses: actions/cache@v4
+        with:
+          path: apps/mobile/ios/ConversationVAD/Vendor/onnxruntime.xcframework
+          key: ort-ios-xcframework-${{ hashFiles('apps/mobile/tool/fetch_onnxruntime_ios.py') }}
+      - name: Fetch ONNX Runtime iOS xcframework
+        working-directory: apps/mobile
+        # The upstream CDN behind ConversationVAD/Package.swift is retired
+        # (Azure Front Door returns a 404 configuration page, and its
+        # *.azureedge.net certificate does not match the host, so Xcode reports
+        # a bogus TLS error). See the script docstring for the full analysis.
+        # Set ORT_IOS_XCFRAMEWORK_URL to use an internal mirror if NuGet is
+        # not reachable from the runner.
+        run: python3 tool/fetch_onnxruntime_ios.py
       - name: Build, install, launch and exercise actual iOS Simulator
         run: bash apps/mobile/tool/run_ios_simulator_ci.sh
       - name: Upload iOS Simulator screenshot and unsigned .app

@@ -98,3 +98,22 @@ Android Debug build is checked by `.github/workflows/flutter-mobile.yml`.
 The iOS native template is present but no iOS Simulator or physical device
 verification is claimed in #35. #40 tracks macOS/Xcode verification.
 This foundation does not run the deferred PoC emulator CI task #31.
+
+### iOS: fetch the ONNX Runtime binary before building
+
+`ios/ConversationVAD` is a local Swift package whose `onnxruntime` binary target
+is vendored rather than downloaded from upstream (that CDN is retired — see
+`tool/fetch_onnxruntime_ios.py` for the evidence). After a fresh clone, and
+before the first iOS build, run:
+
+```bash
+cd apps/mobile
+python3 tool/fetch_onnxruntime_ios.py   # idempotent, ~121 MB, skipped when present
+```
+
+`flutter build ios` and `tool/run_ios_simulator_ci.sh` both fail until it
+exists, because Xcode cannot resolve `ConversationVAD/Package.swift`. The
+directory is gitignored on purpose — never commit the framework. If NuGet is
+unreachable, point `ORT_IOS_XCFRAMEWORK_URL` at an internal mirror of
+`onnxruntime.xcframework.zip`, or `ORT_IOS_XCFRAMEWORK_ZIP` at a local copy; the
+script verifies the sha256 either way and refuses an unexpected build.

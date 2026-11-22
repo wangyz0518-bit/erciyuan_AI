@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# ONNX Runtime iOS binary target, vendored at build time by
+# tool/fetch_onnxruntime_ios.py. 121 MB of prebuilt framework: it must not live
+# in git. Xcode only resolves ConversationVAD/Package.swift after this exists,
+# so run the fetch script once after a fresh clone before opening/ building iOS.
+/ios/ConversationVAD/Vendor/

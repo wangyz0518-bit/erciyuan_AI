@@ -10,6 +10,12 @@ mkdir -p "$ARTIFACTS"
 
 xcodebuild -version
 xcrun simctl list devices available
+
+# The ONNX Runtime binary target is vendored from NuGet because its upstream CDN
+# is retired. Idempotent: a no-op when the xcframework is already in place, so
+# this works both on a warm cache and on a clean checkout.
+python3 tool/fetch_onnxruntime_ios.py
+
 flutter build ios --simulator --debug --no-codesign
 
 APP="build/ios/iphonesimulator/Runner.app"
