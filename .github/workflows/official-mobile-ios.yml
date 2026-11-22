@@ -18,7 +18,15 @@ permissions:
 jobs:
   ios-simulator:
     name: Build, install and test iOS Simulator (unsigned)
-    runs-on: macos-15
+    # macos-15 ships Xcode 16.4, whose iOS SDK predates the
+    # `AVAsset.load(_:isolation:)` overload: video_player_avfoundation 2.12.4
+    # (pinned transitively via video_player, and present on main) calls it
+    # unconditionally in AVFactory.swift, so the app fails to compile with
+    # "Extra argument 'isolation' in call". The plugin declares iOS 15.0, so
+    # lowering the deployment target does not help -- only a newer SDK does.
+    # macos-26 ships Xcode 26.6. Keep this runner at or above the SDK the
+    # pinned plugins are written against.
+    runs-on: macos-26
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
