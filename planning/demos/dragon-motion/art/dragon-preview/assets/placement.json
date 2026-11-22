@@ -1,0 +1,14 @@
+{
+  "canvas": [626,626],
+  "base": "portrait.png",
+  "origin": "top-left",
+  "overlays": [
+    {"file":"blink.png","x":264,"y":225,"width":143,"height":84},
+    {"file":"listen.png","x":264,"y":225,"width":143,"height":84},
+    {"file":"mouth-open.png","x":309,"y":303,"width":46,"height":34},
+    {"file":"blink-half.png","x":264,"y":225,"width":143,"height":84},
+    {"file":"think.png","x":264,"y":225,"width":143,"height":84},
+    {"file":"mouth-small.png","x":309,"y":303,"width":46,"height":34},
+    {"file":"smile.png","x":265,"y":229,"width":142,"height":109}
+  ]
+}

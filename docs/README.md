@@ -14,6 +14,8 @@
 | [reports/](reports/README.md) | 特定版本或环境下的验证记录与测试证据 |
 | [接口/](接口/README.md) | 接口契约草案及约定 |
 
+[项目交付记录](reports/project-delivery-history.md)按阶段链接原始 PR、验证记录和角色制作演示。
+
 龙角角色的[制作工程与样本](../planning/demos/dragon-layers/README.md)用于本机制作验证。已验证的翼尾待机动作见[Windows Viewer 记录](reports/dragon-live2d-minimal-20261114.md)。
 
 ## 文档约定
