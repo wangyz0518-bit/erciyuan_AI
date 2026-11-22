@@ -13,3 +13,20 @@
 | Android 龙角角色 | 从面部变化扩展到肩胸起伏、双臂和画面右侧摊掌，分别预览五种状态及连续动作。正式 v4 聊天页通过 Android 模拟器验证，真机性能待测 | [制作素材、脚本与各版演示](../../planning/demos/dragon-motion/README.md)、[正式集成 #91](https://github.com/wangyz0518-bit/erciyuan_AI/pull/91) |
 
 合并前的历史统计为 63 个已合并 PR，其中 22 个由该账号发起。Git 主线有 131 笔非合并提交，其中 38 笔以该账号为主作者。龙角角色的[两笔开发提交](https://github.com/wangyz0518-bit/erciyuan_AI/pull/91/commits)在正式版本合为一笔。功能规模、制作轮次与测试范围可在上表逐项查阅。
+
+## 原始开发提交与修订记录
+
+以下工作曾以压缩合并或等效补丁进入主线。归档将对应开发分支的原始提交纳入主线历史，保留中间版本、测试修订和原作者。表中的文件数为该分支相对共同基点修改的路径数。已逐路径比对原分支末版与当次合并版本的内容。每项功能在交付表中计一次。
+
+| PR | 开发分支末版 | 原始提交 | 核对路径 |
+| --- | --- | ---: | ---: |
+| [#15](https://github.com/wangyz0518-bit/erciyuan_AI/pull/15) | [a81a948](https://github.com/wangyz0518-bit/erciyuan_AI/commit/a81a9485ab726561ceb2b27622e76e35e742dceb) | 3 | 4 |
+| [#84](https://github.com/wangyz0518-bit/erciyuan_AI/pull/84) | [4cd24cc](https://github.com/wangyz0518-bit/erciyuan_AI/commit/4cd24cc6eadff65932062bd3d9a36cbf03da6f32) | 2 | 14 |
+| [#85](https://github.com/wangyz0518-bit/erciyuan_AI/pull/85) | [6b2d3c3](https://github.com/wangyz0518-bit/erciyuan_AI/commit/6b2d3c39a9ea3f3972bf25414f48d900565e9b33) | 2 | 15 |
+| [#86](https://github.com/wangyz0518-bit/erciyuan_AI/pull/86) | [71714a7](https://github.com/wangyz0518-bit/erciyuan_AI/commit/71714a7f8330b3e42c299249c47078e8ddec353c) | 1 | 20 |
+| [#87](https://github.com/wangyz0518-bit/erciyuan_AI/pull/87) | [cc20e59](https://github.com/wangyz0518-bit/erciyuan_AI/commit/cc20e5939a605c4a5bc2d1552e0ee38c0841a5d7) | 1 | 25 |
+| [#88](https://github.com/wangyz0518-bit/erciyuan_AI/pull/88) | [aa9ae0b](https://github.com/wangyz0518-bit/erciyuan_AI/commit/aa9ae0bc209921d306243f3f645cf46336cf62e7) | 3 | 21 |
+| [#89](https://github.com/wangyz0518-bit/erciyuan_AI/pull/89) | [6de1fb3](https://github.com/wangyz0518-bit/erciyuan_AI/commit/6de1fb3067b68e1607745bf7c566b2d5abb8c6da) | 1 | 1 |
+| [#91](https://github.com/wangyz0518-bit/erciyuan_AI/pull/91) | [6e91597](https://github.com/wangyz0518-bit/erciyuan_AI/commit/6e915974f793afff895ba6d5270d30d7702bc361) | 2 | 18 |
+
+桌面声音试验还以独立分支发布了[混合盲听包](https://github.com/wangyz0518-bit/erciyuan_AI/blob/9dfd60ca8d73ebca7fc10fb9b8a2fa0ce383f3c2/D-voice-blind-listening-20261113.zip)。归档保留该分支的两笔原始提交。包内参考 WAV 的 SHA-256 已与[桌面对比报告](desktop-voice-comparison-20261113.md)记载的合成参考核对一致。试听时可解压打开 `quick.html`。
