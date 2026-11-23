@@ -12,18 +12,33 @@ class ConversationStore:
         Path(directory).mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(str(Path(directory)/'conversations-v3.sqlite'), check_same_thread=False)
         self.db.row_factory = sqlite3.Row
+        self.owner = ''  # Existing development-only rows retain this scope.
+        columns = {r['name'] for r in self.db.execute('PRAGMA table_info(conversation_turns)')}
+        self.db.execute('BEGIN IMMEDIATE')
+        if columns and 'owner' not in columns:
+            self.db.execute('ALTER TABLE conversation_turns RENAME TO legacy_turns')
         self.db.execute('''CREATE TABLE IF NOT EXISTS conversation_turns (
-            id TEXT PRIMARY KEY, character TEXT NOT NULL, kind TEXT NOT NULL,
+            owner TEXT NOT NULL, id TEXT NOT NULL, character TEXT NOT NULL, kind TEXT NOT NULL,
             prompt TEXT NOT NULL, reply TEXT NOT NULL DEFAULT '',
             state TEXT NOT NULL, audio_state TEXT NOT NULL DEFAULT 'waiting',
             played_frames INTEGER NOT NULL DEFAULT 0, total_frames INTEGER NOT NULL DEFAULT 0,
-            recording BLOB, fingerprint TEXT NOT NULL, code TEXT NOT NULL DEFAULT '', created REAL NOT NULL)''')
+            recording BLOB, fingerprint TEXT NOT NULL, code TEXT NOT NULL DEFAULT '', created REAL NOT NULL,
+            PRIMARY KEY(owner,id))''')
+        if columns and 'owner' not in columns:
+            self.db.execute("INSERT INTO conversation_turns SELECT '', * FROM legacy_turns ORDER BY rowid")
+            self.db.execute('DROP TABLE legacy_turns')
+        self.db.execute('CREATE INDEX IF NOT EXISTS turns_by_character ON conversation_turns(owner, character)')
         with self.db:
             self.db.execute("UPDATE conversation_turns SET state='interrupted',code='SERVER_RESTARTED' WHERE state='running'")
             self.db.execute("UPDATE conversation_turns SET audio_state='interrupted' WHERE audio_state IN ('waiting','streaming','awaiting_playback')")
 
+    def scoped(self, owner):
+        view = object.__new__(ConversationStore)
+        view.db, view.owner = self.db, owner
+        return view
+
     def get(self, rid):
-        row = self.db.execute('SELECT * FROM conversation_turns WHERE id=?', (rid,)).fetchone()
+        row = self.db.execute('SELECT * FROM conversation_turns WHERE owner=? AND id=?', (self.owner, rid)).fetchone()
         return dict(row) if row else None
 
     def begin(self, rid, character, kind, prompt, recording=None, speak=True):
@@ -33,19 +48,19 @@ class ConversationStore:
             if old['fingerprint'] != fingerprint:
                 raise ProviderError('REQUEST_ID_CONFLICT')
             return False
-        size = self.db.execute('SELECT count(*),coalesce(sum(length(recording)),0) FROM conversation_turns').fetchone()
+        size = self.db.execute('SELECT count(*),coalesce(sum(length(recording)),0) FROM conversation_turns WHERE owner=?', (self.owner,)).fetchone()
         if size[0] >= 2000 or size[1]+len(recording or b'') > 128*1024*1024:
             raise ProviderError('HISTORY_CAPACITY_REACHED')
         with self.db:
-            self.db.execute('INSERT INTO conversation_turns (id,character,kind,prompt,state,recording,fingerprint,created) VALUES (?,?,?,?,?,?,?,?)',
-                            (rid, character, kind, prompt, 'running', recording, fingerprint, time.time()))
+            self.db.execute('INSERT INTO conversation_turns (owner,id,character,kind,prompt,state,recording,fingerprint,created) VALUES (?,?,?,?,?,?,?,?,?)',
+                            (self.owner, rid, character, kind, prompt, 'running', recording, fingerprint, time.time()))
         return True
 
     def update(self, rid, **fields):
         if not fields or not fields.keys() <= {'reply','state','audio_state','total_frames','code'}:
             raise ValueError('Invalid history update')
         with self.db:
-            self.db.execute('UPDATE conversation_turns SET '+','.join(k+'=?' for k in fields)+' WHERE id=?', (*fields.values(), rid))
+            self.db.execute('UPDATE conversation_turns SET '+','.join(k+'=?' for k in fields)+' WHERE owner=? AND id=?', (*fields.values(), self.owner, rid))
 
     def progress(self, rid, frames, complete=False):
         row = self.get(rid)
@@ -54,16 +69,16 @@ class ConversationStore:
         if complete and (row['audio_state'] != 'awaiting_playback' or not frames or frames != row['total_frames']):
             raise ProviderError('INCOMPLETE_PLAYBACK')
         with self.db:
-            self.db.execute('UPDATE conversation_turns SET played_frames=max(played_frames,?) WHERE id=?', (frames, rid))
+            self.db.execute('UPDATE conversation_turns SET played_frames=max(played_frames,?) WHERE owner=? AND id=?', (frames, self.owner, rid))
             if complete:
-                self.db.execute("UPDATE conversation_turns SET audio_state='played' WHERE id=?", (rid,))
+                self.db.execute("UPDATE conversation_turns SET audio_state='played' WHERE owner=? AND id=?", (self.owner, rid))
 
     @staticmethod
     def public(row):
-        return {k:v for k,v in row.items() if k not in ('recording','fingerprint')} | {'has_recording': bool(row['recording'])}
+        return {k:v for k,v in row.items() if k not in ('recording','fingerprint','owner')} | {'has_recording': bool(row['recording'])}
 
     def rows(self, character):
-        rows = self.db.execute('SELECT * FROM conversation_turns WHERE character=? ORDER BY rowid DESC LIMIT 100', (character,)).fetchall()
+        rows = self.db.execute('SELECT * FROM conversation_turns WHERE owner=? AND character=? ORDER BY rowid DESC LIMIT 100', (self.owner, character)).fetchall()
         return [self.public(dict(row)) for row in reversed(rows)]
 
     def history(self, character):

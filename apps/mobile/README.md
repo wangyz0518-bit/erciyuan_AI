@@ -1,5 +1,7 @@
 # erciyuan mobile · official app
 
+[多用户账户、社区与角色分享](../../docs/guides/community.md) 包含网关配置、两账户试用步骤和手机分享链接配置。
+
 The official app uses one persistent timeline per character. For online text,
 hold-to-talk and continuous calls in the immersive app, see the [v3 gateway guide](../../services/model_gateway/README.md).
 The earlier [PoC](../mobile_poc/) is a separate project. Use Flutter **3.50.0**,

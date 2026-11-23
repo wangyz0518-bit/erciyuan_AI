@@ -1,0 +1,488 @@
+import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
+
+import '../bootstrap.dart';
+import 'community_api.dart';
+import 'community_controller.dart';
+import 'community_forms.dart';
+
+class CommunityPage extends StatefulWidget {
+  const CommunityPage(this.model, {super.key, this.share});
+  final CommunityController model;
+  final String? share;
+  @override
+  State<CommunityPage> createState() => _CommunityPageState();
+}
+
+class _CommunityPageState extends State<CommunityPage> {
+  CommunityController get model => widget.model;
+  CommunityApi get api => model.api;
+  String tab = '广场', error = '';
+  List<Json> rows = [], comments = [];
+  bool busy = false, more = false, guestHistory = false;
+  Json? post;
+  String? pendingShare;
+
+  @override
+  void initState() {
+    super.initState();
+    pendingShare = widget.share;
+    run(load);
+  }
+
+  Future<void> run(Future<void> Function() task) async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      error = '';
+    });
+    final previous = api;
+    try {
+      await task();
+    } on CommunityError catch (e) {
+      if (e.code == 'LOGIN_REQUIRED' && previous.signedIn) {
+        await model.expired(previous);
+        if (tab == '我的角色') rows = [];
+      }
+      if (mounted) setState(() => error = e.toString());
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> load() async {
+    if (api.origin == null) return;
+    if (pendingShare != null) {
+      final found = await api.request('GET', '/community/shares/$pendingShare');
+      pendingShare = null;
+      await showPost(found);
+    } else if (post != null) {
+      await showPost(
+        await api.request('GET', '/community/posts/${post!['id']}'),
+      );
+    } else if (tab == '我的角色') {
+      if (api.signedIn) {
+        await model.refreshLibrary();
+        rows = await api.items('/community/characters');
+      } else {
+        rows = [];
+      }
+      more = false;
+    } else if (tab == '账户') {
+      guestHistory = await model.database.hasGuestHistory(localOwnerId);
+    } else {
+      rows = await api.items('/community/posts');
+      more = rows.length == 30;
+    }
+  }
+
+  Future<void> showPost(Json item) async {
+    final replies = await api.items('/community/posts/${item['id']}/comments');
+    post = item;
+    comments = replies;
+    more = replies.length == 50;
+  }
+
+  Future<void> pageMore() async {
+    if (post != null) {
+      final next = await api.items(
+        '/community/posts/${post!['id']}/comments?after=${comments.last['id']}',
+      );
+      comments = [...comments, ...next];
+      more = next.length == 50;
+    } else {
+      final next = await api.items(
+        '/community/posts?before=${rows.last['id']}',
+      );
+      rows = [...rows, ...next];
+      more = next.length == 30;
+    }
+  }
+
+  Future<bool> login() async {
+    if (api.signedIn) return true;
+    if (!mounted) return false;
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => LoginDialog(model.authenticate),
+        ) ??
+        false;
+  }
+
+  Future<void> switchTab(String next) async {
+    tab = next;
+    post = null;
+    pendingShare = null;
+    rows = [];
+    more = false;
+    await load();
+  }
+
+  Future<void> configure() async {
+    final value = await communityText(
+      context,
+      '连接社区',
+      '社区服务地址',
+      limit: 240,
+      lines: 1,
+    );
+    if (value != null) {
+      await model.configure(value);
+      await load();
+    }
+  }
+
+  Future<void> openLink() async {
+    final link = await communityText(
+      context,
+      '打开角色链接',
+      '粘贴分享链接',
+      limit: 500,
+      lines: 2,
+      action: '预览',
+    );
+    if (link != null) {
+      pendingShare = api.shareId(link);
+      await load();
+    }
+  }
+
+  Future<void> enterChat(Json card) async {
+    await model.choose(card);
+    if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<void> importCard() async {
+    if (!await login()) return;
+    final card = await api.request(
+      'POST',
+      '/community/shares/${post!['share']}/import',
+    );
+    await enterChat(card);
+  }
+
+  Future<void> edit([Json? card]) async {
+    if (!await login() || !mounted) return;
+    final draft = await Navigator.push<Json>(
+      context,
+      MaterialPageRoute(builder: (_) => CardEditor(card)),
+    );
+    if (draft == null) return;
+    await api.request(
+      card == null ? 'POST' : 'PUT',
+      '/community/characters${card == null ? '' : '/${card['id']}'}',
+      draft,
+    );
+    await model.refreshLibrary(reloadHome: true);
+    rows = await api.items('/community/characters');
+  }
+
+  Future<void> publish([Json? card]) async {
+    if (!await login() || !mounted) return;
+    if (card != null) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('预览公开角色卡'),
+          content: SingleChildScrollView(child: RoleCard(card)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('返回'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('继续发布'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    final body = await communityText(
+      context,
+      card == null ? '发布讨论' : '分享角色',
+      '想对大家说什么？',
+      limit: 3000,
+      action: '发布',
+    );
+    if (body == null) return;
+    final item = await api.request('POST', '/community/posts', {
+      'body': body,
+      if (card != null) 'character_id': card['id'],
+    });
+    tab = '广场';
+    await showPost(item);
+  }
+
+  Future<void> comment([Json? parent]) async {
+    if (!await login() || !mounted) return;
+    final body = await communityText(
+      context,
+      parent == null ? '发表评论' : '回复 ${parent['username']}',
+      '内容',
+      action: '发送',
+    );
+    if (body == null) return;
+    await api.request('POST', '/community/posts/${post!['id']}/comments', {
+      'body': body,
+      if (parent != null) 'parent_id': parent['id'],
+    });
+    await load();
+  }
+
+  Future<void> remove([Json? reply]) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(reply == null ? '删除这篇帖子？' : '删除这条评论？'),
+        content: reply == null && post!['share'] != null
+            ? const Text('分享链接将失效。已经导入的角色会保留。')
+            : null,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return;
+    await api.request(
+      'DELETE',
+      '/community/posts/${post!['id']}${reply == null ? '' : '/comments/${reply['id']}'}',
+    );
+    if (reply == null) post = null;
+    await load();
+  }
+
+  Future<void> migrate() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('迁入本机访客记录？'),
+        content: Text('有聊天记录的访客角色及其本机记忆将移到「${api.username}」的角色库，成为独立角色。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('保留在访客中'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('确认迁入'),
+          ),
+        ],
+      ),
+    );
+    if (yes == true) {
+      await model.migrateGuest();
+      await load();
+    }
+  }
+
+  Widget button(String text, Future<void> Function() task) => OutlinedButton(
+    onPressed: busy ? null : () => run(task),
+    child: Text(text),
+  );
+  List<Widget> detail() {
+    final item = post!;
+    return [
+      Text(item['username'], style: Theme.of(context).textTheme.labelLarge),
+      const SizedBox(height: 6),
+      SelectableText(item['body']),
+      if (item['card'] != null) ...[
+        RoleCard(item['card']),
+        FilledButton(
+          onPressed: busy ? null : () => run(importCard),
+          child: const Text('加入我的角色 / 开始聊天'),
+        ),
+        button('复制分享链接', () async {
+          await Clipboard.setData(
+            ClipboardData(
+              text: api.origin!.resolve('/s/${item['share']}').toString(),
+            ),
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('分享链接已复制')));
+          }
+        }),
+      ],
+      if (item['username'] == api.username) button('删除帖子', () => remove()),
+      const Divider(),
+      Row(
+        children: [
+          Expanded(
+            child: Text('评论', style: Theme.of(context).textTheme.titleMedium),
+          ),
+          button('写评论', () => comment()),
+        ],
+      ),
+      if (comments.isEmpty) const Text('还没有评论。'),
+      for (final row in comments)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(row['body'] ?? '评论已删除'),
+          subtitle: Text(
+            '#${row['id']} · ${row['username']}${row['parent'] == null ? '' : ' · 回复 #${row['parent']}'}',
+          ),
+          trailing: row['body'] == null
+              ? null
+              : Wrap(
+                  children: [
+                    IconButton(
+                      tooltip: '回复',
+                      onPressed: busy ? null : () => run(() => comment(row)),
+                      icon: const Icon(Icons.reply),
+                    ),
+                    if (row['username'] == api.username)
+                      IconButton(
+                        tooltip: '删除评论',
+                        onPressed: busy ? null : () => run(() => remove(row)),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                  ],
+                ),
+        ),
+      if (more) button('更多评论', pageMore),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: post == null,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop && !busy) run(() => switchTab(tab));
+    },
+    child: Scaffold(
+      appBar: AppBar(
+        title: Text(post == null ? '社区' : '帖子详情'),
+        actions: [
+          IconButton(
+            onPressed: busy ? null : () => run(load),
+            icon: const Icon(Icons.refresh),
+            tooltip: '刷新',
+          ),
+          if (api.origin != null)
+            IconButton(
+              onPressed: busy ? null : () => run(openLink),
+              icon: const Icon(Icons.link),
+              tooltip: '打开分享链接',
+            ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: ['广场', '我的角色', '账户'].indexOf(tab),
+        onDestinationSelected: busy
+            ? null
+            : (i) => run(() => switchTab(['广场', '我的角色', '账户'][i])),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.forum_outlined), label: '广场'),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            label: '我的角色',
+          ),
+          NavigationDestination(icon: Icon(Icons.person_outline), label: '账户'),
+        ],
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (busy) const LinearProgressIndicator(),
+            if (error.isNotEmpty)
+              Text(
+                error,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            if (api.origin == null)
+              button('连接社区服务', configure)
+            else if (post != null)
+              ...detail()
+            else if (tab == '账户') ...[
+              ListTile(
+                title: Text(api.username ?? '访客'),
+                subtitle: Text(api.origin!.host),
+              ),
+              if (api.signedIn) ...[
+                if (guestHistory) button('迁入本机访客记录', migrate),
+                button('退出账户', () async {
+                  await model.logout();
+                  await switchTab('账户');
+                }),
+              ] else
+                button('登录 / 注册', () async {
+                  if (await login()) await load();
+                }),
+            ] else if (tab == '我的角色') ...[
+              if (!api.signedIn)
+                button('登录后查看角色库', () async {
+                  if (await login()) await load();
+                })
+              else ...[
+                button('创建角色', () => edit()),
+                for (final card in rows)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            card['name'],
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          Text(card['description']),
+                          Wrap(
+                            spacing: 6,
+                            children: [
+                              button('聊天', () => enterChat(card)),
+                              button('编辑', () => edit(card)),
+                              button('分享', () => publish(card)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ] else ...[
+              button('发布讨论', () => publish()),
+              if (rows.isEmpty && !busy)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('还没有帖子。发布第一篇讨论，或到「我的角色」分享角色。'),
+                ),
+              for (final item in rows)
+                Card(
+                  child: ListTile(
+                    leading: item['card'] == null
+                        ? null
+                        : RolePortrait(item['card']['avatar']),
+                    title: Text(
+                      item['card']?['name'] ?? item['body'],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${item['username']}${item['share'] == null ? '' : ' · 角色分享'}',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: busy ? null : () => run(() => showPost(item)),
+                  ),
+                ),
+              if (more) button('更早的帖子', pageMore),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}

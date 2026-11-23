@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
+from .community import Community, register as register_community
 from .providers import PERSONAS, ProviderError, Providers, Settings
 from .speech_pool import SpeechPool
 from .streaming import StreamingService
@@ -99,8 +100,9 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None,
     streaming = StreamingService(settings, providers, speech_pool or SpeechPool(settings), ChatInput)
     voice_profiles=VoiceProfiles(settings,streaming.pool,enrollment)
     streaming.voice_profiles=voice_profiles
-    conversations = ConversationService(settings, providers, streaming.pool, voice_profiles, asr)
-    voice_profiles.chat_busy=lambda: bool(conversations.owner) or bool(streaming.tasks) or any(j.task and not j.task.done() for j in jobs.values())
+    community = Community(settings.data_dir) if settings.community_enabled else None
+    conversations = ConversationService(settings, providers, streaming.pool, voice_profiles, asr, community)
+    voice_profiles.chat_busy=lambda: bool(conversations.sessions) or bool(streaming.tasks) or any(j.task and not j.task.done() for j in jobs.values())
 
     @asynccontextmanager
     async def lifespan(app):
@@ -115,6 +117,8 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None,
         await streaming.close()
         if hasattr(providers, 'close'):
             await providers.close()
+        if community:
+            community.db.close()
         ledger.db.close()
 
     app = FastAPI(title='Companion model gateway (local development)', version='0.1.0', lifespan=lifespan)
@@ -129,6 +133,8 @@ def create_app(settings=None, providers=None, speech_pool=None, enrollment=None,
             raise HTTPException(401, 'UNAUTHORIZED')
 
     register_voices(app,voice_profiles,auth)
+    if community:
+        register_community(app, community)
     register_conversations(app,conversations,auth)
     repo_root = Path(__file__).resolve().parents[3]
     lab = repo_root / 'apps/windows_conversation_lab'

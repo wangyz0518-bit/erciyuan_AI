@@ -21,6 +21,7 @@ class CompanionApp extends StatefulWidget {
     this.gateway,
     this.homeBuilder,
     this.closeDatabaseOnDispose = true,
+    this.embedded = false,
     super.key,
   });
 
@@ -28,6 +29,7 @@ class CompanionApp extends StatefulWidget {
   final PersonDatabase database;
   final ModelGatewayAdapter? gateway;
   final bool closeDatabaseOnDispose;
+  final bool embedded;
   final CompanionHomeBuilder? homeBuilder;
 
   @override
@@ -44,26 +46,30 @@ class _CompanionAppState extends State<CompanionApp> {
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: '二次元 AI',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF7969C3),
-        brightness: Brightness.dark,
-      ),
-    ),
-    home:
-        widget.homeBuilder?.call(
-          widget.controller,
-          widget.database,
-          widget.gateway,
-        ) ??
-        CharacterHomePage(
-          controller: widget.controller,
-          database: widget.database,
-          gateway: widget.gateway,
-        ),
-  );
+  Widget build(BuildContext context) => widget.embedded
+      ? _home()
+      : MaterialApp(
+          title: '二次元 AI',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF7969C3),
+              brightness: Brightness.dark,
+            ),
+          ),
+          home: _home(),
+        );
+
+  Widget _home() =>
+      widget.homeBuilder?.call(
+        widget.controller,
+        widget.database,
+        widget.gateway,
+      ) ??
+      CharacterHomePage(
+        controller: widget.controller,
+        database: widget.database,
+        gateway: widget.gateway,
+      );
 }

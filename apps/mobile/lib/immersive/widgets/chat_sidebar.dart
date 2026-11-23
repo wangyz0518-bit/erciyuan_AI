@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import '../../community/community_scope.dart';
+
 import 'package:material_ui/material_ui.dart';
 
 class ChatSidebar extends StatelessWidget {
@@ -37,7 +39,9 @@ class ChatSidebar extends StatelessWidget {
                         onPressed: close,
                         icon: const Icon(Icons.close),
                       ),
-                      for (final item in const [
+                      for (final item in [
+                        if (CommunityScope.of(context) != null)
+                          ('community', Icons.forum_outlined, '社区'),
                         ('profile', Icons.person_outline, '个人信息'),
                         ('roles', Icons.people_outline, '切换角色'),
                         ('history', Icons.history, '聊天记录'),

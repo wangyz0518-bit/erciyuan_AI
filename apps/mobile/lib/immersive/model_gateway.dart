@@ -17,11 +17,12 @@ class ModelGateway {
   ModelGateway(
     this.baseUrl,
     this.token, {
+    this.accountSession = false,
     this.useV2 = false,
     this.useV3 = false,
   });
   final String baseUrl, token;
-  final bool useV2, useV3;
+  final bool useV2, useV3, accountSession;
   bool voiceEnabled = true;
   late final StreamingGateway streaming = StreamingGateway(baseUrl, token);
   final _turnClocks = <String, Stopwatch>{};

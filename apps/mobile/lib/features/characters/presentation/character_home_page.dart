@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../../community/community_scope.dart';
 import '../../avatar/presentation/sprout_avatar_scene.dart';
 import '../../chat/data/model_gateway_adapter.dart';
 import '../../timeline/data/person_database.dart';
@@ -43,6 +44,12 @@ class CharacterHomePage extends StatelessWidget {
       backgroundColor: const Color(0xFF22283B),
       foregroundColor: Colors.white,
       actions: [
+        if (CommunityScope.of(context) case final community?)
+          IconButton(
+            tooltip: '社区',
+            onPressed: community.open,
+            icon: const Icon(Icons.forum_outlined),
+          ),
         IconButton(
           key: const ValueKey('data-management'),
           tooltip: '我的 / 数据管理',
@@ -156,7 +163,7 @@ class _CharacterChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = character.scope == controller.activeScope;
-    final isSprout = character.scope.characterId == sproutCharacterId;
+    final isSprout = character.appearance == sproutCharacterId;
     return Card(
       margin: EdgeInsets.zero,
       color: selected ? const Color(0xFF474265) : const Color(0xFF2B3145),
@@ -184,7 +191,7 @@ class _CharacterChoice extends StatelessWidget {
                 child: Icon(
                   isSprout
                       ? Icons.spa_outlined
-                      : character.scope.characterId == 'star'
+                      : character.appearance == 'star'
                       ? Icons.star_rounded
                       : Icons.dark_mode_rounded,
                   color: const Color(0xFF39304D),

@@ -62,13 +62,11 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
       .toString();
   bool get _current => mounted && _visible == this;
   bool get supportsDragon =>
-      !kIsWeb &&
-      Platform.isAndroid &&
-      widget.character.scope.characterId == 'star';
+      !kIsWeb && Platform.isAndroid && widget.character.appearance == 'star';
   bool get supportsSprout =>
       !kIsWeb &&
       (Platform.isAndroid || Platform.isIOS) &&
-      widget.character.scope.characterId == sproutCharacterId;
+      widget.character.appearance == sproutCharacterId;
   bool get showsDragon =>
       supportsDragon && _appearanceReady && (_dragonChoice ?? (_model == null));
   bool get canChooseAppearance =>
@@ -415,7 +413,7 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
         ),
       );
     }
-    if (widget.character.scope.characterId == sproutCharacterId) {
+    if (widget.character.appearance == sproutCharacterId) {
       return SproutAvatarScene(
         motion: widget.motion,
         active: supportsSprout && _current,
