@@ -1,0 +1,38 @@
+{
+  "character": "xing",
+  "size": [
+    780,
+    1358
+  ],
+  "plate": "assets/immersive_chat/chat-full.png",
+  "plateExternal": true,
+  "grade": {
+    "key": "reply",
+    "gains": [
+      0.9454,
+      0.9159,
+      0.9133
+    ],
+    "offsets": [
+      6.03,
+      5.49,
+      5.08
+    ]
+  },
+  "slots": [
+    {
+      "id": "slot0",
+      "rect": [
+        331,
+        432,
+        223,
+        285
+      ],
+      "feather": 10,
+      "patches": {
+        "reply": "slots/slot0-reply.png"
+      }
+    }
+  ],
+  "total_area_ratio": 0.049
+}

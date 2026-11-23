@@ -42,3 +42,9 @@ flutter:
     - assets/immersive_chat/
     - assets/dragon_avatar/
     - assets/sprout_avatar/
+    # 切片包：目录声明不递归，每个含文件的子目录必须单列。
+    # 漏写子目录会让贴图在运行时缺失，动作静默消失且不报错。
+    - assets/xing/half/
+    - assets/xing/half/slots/
+    - assets/xing/full/
+    - assets/xing/full/slots/

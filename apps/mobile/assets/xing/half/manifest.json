@@ -1,0 +1,90 @@
+{
+  "character": "xing",
+  "size": [
+    780,
+    1688
+  ],
+  "plate": "assets/immersive_chat/chat-half.png",
+  "plateExternal": true,
+  "grade": {
+    "key": "reply",
+    "gains": [
+      0.9171,
+      0.8833,
+      0.8645
+    ],
+    "offsets": [
+      7.93,
+      6.96,
+      7.18
+    ]
+  },
+  "slots": [
+    {
+      "id": "slot0",
+      "rect": [
+        278,
+        788,
+        360,
+        339
+      ],
+      "feather": 10,
+      "patches": {
+        "reply": "slots/slot0-reply.png"
+      }
+    },
+    {
+      "id": "slot1",
+      "rect": [
+        529,
+        617,
+        75,
+        179
+      ],
+      "feather": 10,
+      "patches": {
+        "reply": "slots/slot1-reply.png"
+      }
+    },
+    {
+      "id": "slot2",
+      "rect": [
+        638,
+        843,
+        53,
+        137
+      ],
+      "feather": 10,
+      "patches": {
+        "reply": "slots/slot2-reply.png"
+      }
+    },
+    {
+      "id": "slot3",
+      "rect": [
+        638,
+        704,
+        44,
+        122
+      ],
+      "feather": 10,
+      "patches": {
+        "reply": "slots/slot3-reply.png"
+      }
+    },
+    {
+      "id": "slot4",
+      "rect": [
+        117,
+        537,
+        67,
+        72
+      ],
+      "feather": 10,
+      "patches": {
+        "reply": "slots/slot4-reply.png"
+      }
+    }
+  ],
+  "total_area_ratio": 0.0919
+}
