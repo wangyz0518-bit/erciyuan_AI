@@ -23,9 +23,9 @@ Future<CompanionApp> bootstrapCompanionApp({
       await PersonDatabase.open(
         automaticSummarizer: const DeterministicSummarizer(),
       );
-  var characters = await store.charactersForOwner(ownerId);
-  if (characters.isEmpty) {
-    final starterCharacters = [
+  final existing = await store.charactersForOwner(ownerId);
+  final starters = [
+    if (existing.isEmpty) ...[
       Character(
         scope: PersonScope(ownerId: ownerId, characterId: 'star'),
         name: '小星',
@@ -36,16 +36,25 @@ Future<CompanionApp> bootstrapCompanionApp({
         name: '小月',
         description: '善于倾听的伙伴',
       ),
-    ];
-    for (final character in starterCharacters) {
-      await store.createCharacter(
-        character: character,
-        timelineId: 'timeline-$ownerId-${character.scope.characterId}',
-        baseIdentityJson: '{"source":"local-starter-character","version":1}',
-      );
-    }
-    characters = await store.charactersForOwner(ownerId);
+    ],
+    if (!existing.any((c) => c.scope.characterId == sproutCharacterId))
+      Character(
+        scope: PersonScope(ownerId: ownerId, characterId: sproutCharacterId),
+        name: '小芽',
+        description: '软萌又好奇的伙伴',
+      ),
+  ];
+  for (final character in starters) {
+    await store.createCharacter(
+      character: character,
+      timelineId: 'timeline-$ownerId-${character.scope.characterId}',
+      baseIdentityJson: '{"source":"local-starter-character","version":1}',
+      onlyIfMissing: true,
+    );
   }
+  final characters = starters.isEmpty
+      ? existing
+      : await store.charactersForOwner(ownerId);
 
   if ((gatewayUri == null) != (gatewayToken == null)) {
     throw ArgumentError('Gateway URI and development token must be paired');

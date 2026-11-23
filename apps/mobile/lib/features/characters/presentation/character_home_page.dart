@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../avatar/presentation/sprout_avatar_scene.dart';
 import '../../chat/data/model_gateway_adapter.dart';
 import '../../timeline/data/person_database.dart';
 import '../application/character_selection_controller.dart';
@@ -110,7 +111,9 @@ class CharacterHomePage extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          gateway == null
+                          !controller.activeCharacter.supportsLegacyGateway
+                              ? '小芽的在线对话使用 v3 网关；当前入口提供本地演示。'
+                              : gateway == null
                               ? '当前为离线 Mock：人物回复只是本地演示，历史保存在 SQLite。'
                               : '当前连接开发文字网关，人物历史保存在本地 SQLite。',
                           style: const TextStyle(
@@ -153,6 +156,7 @@ class _CharacterChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = character.scope == controller.activeScope;
+    final isSprout = character.scope.characterId == sproutCharacterId;
     return Card(
       margin: EdgeInsets.zero,
       color: selected ? const Color(0xFF474265) : const Color(0xFF2B3145),
@@ -174,8 +178,13 @@ class _CharacterChoice extends StatelessWidget {
               CircleAvatar(
                 backgroundColor: const Color(0xFFD4C7F3),
                 radius: 31,
+                foregroundImage: isSprout
+                    ? const AssetImage(sproutPortrait)
+                    : null,
                 child: Icon(
-                  character.scope.characterId == 'star'
+                  isSprout
+                      ? Icons.spa_outlined
+                      : character.scope.characterId == 'star'
                       ? Icons.star_rounded
                       : Icons.dark_mode_rounded,
                   color: const Color(0xFF39304D),

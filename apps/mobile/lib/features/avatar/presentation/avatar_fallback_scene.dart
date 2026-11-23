@@ -2,7 +2,15 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
-enum AvatarSceneMotion { idle, listening, thinking, talking }
+enum AvatarSceneMotion {
+  idle('待机'),
+  listening('倾听'),
+  thinking('思考'),
+  talking('说话');
+
+  const AvatarSceneMotion(this.label);
+  final String label;
+}
 
 class AvatarFallbackScene extends StatelessWidget {
   const AvatarFallbackScene({

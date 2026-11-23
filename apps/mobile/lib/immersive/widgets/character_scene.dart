@@ -6,19 +6,20 @@ class CharacterScene extends StatelessWidget {
   const CharacterScene({
     super.key,
     required this.role,
-    required this.full,
+    required this.zoom,
     required this.replying,
     required this.foreground,
   });
   final String role;
-  final bool full, replying, foreground;
+  final double zoom;
+  final bool replying, foreground;
 
   @override
   Widget build(BuildContext context) {
     Widget fallback() => Center(
       child: FractionallySizedBox(
-        widthFactor: full ? .65 : .95,
-        heightFactor: full ? .65 : .9,
+        widthFactor: .65,
+        heightFactor: .65,
         child: Avatar(
           role: role,
           emotion: '平静',
@@ -27,7 +28,7 @@ class CharacterScene extends StatelessWidget {
         ),
       ),
     );
-    final name = 'chat-${full ? 'full' : 'half'}${replying ? '-reply' : ''}';
+    final name = 'chat-full${replying ? '-reply' : ''}';
     return ExcludeSemantics(
       child: Stack(
         fit: StackFit.expand,
@@ -41,7 +42,7 @@ class CharacterScene extends StatelessWidget {
               ),
             ),
           ),
-          if (role == 'xing' && full)
+          if (role == 'xing')
             Image.asset(
               'assets/immersive_chat/chat-floor.png',
               fit: BoxFit.cover,
@@ -51,20 +52,28 @@ class CharacterScene extends StatelessWidget {
               alignment: Alignment.topCenter,
               child: FractionallySizedBox(
                 widthFactor: 1,
-                heightFactor: full ? .805 : 1,
-                child: Image.asset(
-                  'assets/immersive_chat/$name.png',
-                  key: ValueKey(name),
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (_, _, _) => fallback(),
+                heightFactor: .805,
+                child: Transform.scale(
+                  scale: zoom,
+                  alignment: const FractionalOffset(.5, .21),
+                  child: Image.asset(
+                    'assets/immersive_chat/$name.png',
+                    key: ValueKey(name),
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorBuilder: (_, _, _) => fallback(),
+                  ),
                 ),
               ),
             )
           else
-            fallback(),
+            Transform.scale(
+              scale: zoom,
+              alignment: const FractionalOffset(.5, .45),
+              child: fallback(),
+            ),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(

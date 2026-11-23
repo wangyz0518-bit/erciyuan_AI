@@ -37,9 +37,22 @@ sleep 12
 adb shell pidof dev.erciyuan.mobile >/dev/null
 adb exec-out screencap -p > "$SCREENSHOTS/person-home.png"
 
-# Coordinates are fixed because CI forces a 375x812, 160dpi device.
-# The selected character's "continue chat" button is below both cards.
-adb shell input tap 190 458
+# Character count determines where the chat controls appear. Use the visible
+# chat arrow or continue button from Android's accessibility tree.
+adb shell uiautomator dump /sdcard/official-home.xml >/dev/null
+chat_target=$(adb exec-out cat /sdcard/official-home.xml | python -c '
+import re, sys, xml.etree.ElementTree as ET
+for node in ET.parse(sys.stdin.buffer).iter("node"):
+    labels = (node.get(field, "") for field in ("content-desc", "text", "tooltip-text"))
+    if any(("进入" in s and "的聊天" in s) or ("继续与" in s and "对话" in s) for s in labels):
+        left, top, right, bottom = map(int, re.findall(r"\d+", node.attrib["bounds"]))
+        print((left + right) // 2, (top + bottom) // 2)
+        break
+else:
+    sys.exit("No character chat button in the Android accessibility tree")
+')
+read -r chat_x chat_y <<< "$chat_target"
+adb shell input tap "$chat_x" "$chat_y"
 sleep 4
 adb shell pidof dev.erciyuan.mobile >/dev/null
 adb exec-out screencap -p > "$SCREENSHOTS/continuous-chat.png"

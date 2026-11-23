@@ -8,9 +8,12 @@ import 'package:material_ui/material_ui.dart';
 import 'audio_controller.dart';
 import 'chat_controller.dart';
 import 'conversation_controller.dart';
+import '../features/characters/domain/character.dart';
 import '../features/characters/presentation/data_management_page.dart';
 import '../features/avatar/presentation/character_avatar_scene.dart';
 import '../features/avatar/presentation/avatar_fallback_scene.dart';
+import '../features/avatar/presentation/avatar_zoom.dart';
+import '../features/avatar/presentation/sprout_avatar_scene.dart';
 import 'widgets/character_scene.dart';
 import 'widgets/chat_sidebar.dart';
 import 'widgets/chat_messages.dart';
@@ -30,7 +33,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
   final input = TextEditingController();
   final focus = FocusNode();
   final drafts = <String, String>{};
-  bool textMode = false, menu = false, full = false, foreground = true;
+  bool textMode = false, menu = false, foreground = true;
   bool calling = false, muted = false, changingRole = false;
   bool panelOpen = false, toolsOpen = false;
   final callClock = Stopwatch();
@@ -41,11 +44,21 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     GlobalKey<CharacterAvatarSceneState>.new,
   );
   ChatController get chat => widget.chat;
+  final zoomByRole = <String, double>{};
+  double get halfZoom => chat.character.scope.characterId == sproutCharacterId
+      ? sproutHalfZoom
+      : halfAvatarZoom;
+  double get zoom => zoomByRole[chat.selected] ?? halfZoom;
+  void changeZoom(double value) {
+    if (value != zoom) setState(() => zoomByRole[chat.selected] = value);
+  }
+
   AudioController get audio => widget.audio;
   ConversationController? get session => chat.conversation;
   @override
   void initState() {
     super.initState();
+    textMode = !chat.online && !chat.character.supportsLegacyGateway;
     WidgetsBinding.instance.addObserver(this);
     chat.addListener(refresh);
     audio.addListener(refresh);
@@ -58,7 +71,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
       );
       chat.conversation = voice;
       voice.addListener(chat.refreshConversation);
-      unawaited(voice.load(chat.selected));
+      unawaited(session?.load(chat.selected));
     }
   }
 
@@ -97,7 +110,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     input.dispose();
     focus.dispose();
     callTimer?.cancel();
-    final voice = session;
+    final voice = chat.conversation;
     if (voice != null) {
       voice.removeListener(chat.refreshConversation);
       chat.conversation = null;
@@ -119,7 +132,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
       await chat.switchCharacter(id);
       if (!mounted) return;
       input.text = drafts[id] ?? '';
-      textMode = false;
+      textMode = !chat.online && !chat.character.supportsLegacyGateway;
     } finally {
       changingRole = false;
       refresh();
@@ -257,6 +270,11 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
           for (final role in chat.characters)
             ListTile(
               key: Key('select-${voiceRole(role.scope.characterId)}'),
+              leading: role.scope.characterId == sproutCharacterId
+                  ? const CircleAvatar(
+                      backgroundImage: AssetImage(sproutPortrait),
+                    )
+                  : null,
               title: Text(role.name),
               subtitle: Text(role.description),
               trailing: voiceRole(role.scope.characterId) == chat.selected
@@ -270,9 +288,9 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
         if (kind == 'settings') ...[
           ListTile(
             title: const Text('镜头'),
-            subtitle: Text(full ? '全身' : '半身'),
+            subtitle: Text(avatarShotLabel(zoom, halfZoom)),
             onTap: () {
-              setState(() => full = !full);
+              changeZoom(zoom == fullAvatarZoom ? halfZoom : fullAvatarZoom);
               Navigator.pop(sheetContext);
             },
           ),
@@ -299,6 +317,20 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
               onTap: () {
                 Navigator.pop(sheetContext);
                 unawaited(scene.previewDragon());
+              },
+            ),
+          if (avatar.currentState?.supportsSprout ?? false)
+            ListTile(
+              title: const Text('小芽动作预览'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                unawaited(
+                  showSproutAvatarPreview(
+                    context,
+                    zoom: zoom,
+                    onZoomChanged: changeZoom,
+                  ),
+                );
               },
             ),
           if (avatar.currentState?.canImport == true)
@@ -445,27 +477,30 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
           },
           child: Scaffold(
             resizeToAvoidBottomInset: false,
-            body: Stack(
-              fit: StackFit.expand,
+            body: AvatarZoomGesture(
+              zoom: zoom,
+              onChanged: changeZoom,
               children: [
                 CharacterAvatarScene(
                   key: avatar,
                   character: chat.character,
                   showMenu: false,
                   dragonImmersive: true,
-                  dragonWideShot: full,
+                  zoom: zoom,
                   motion: session?.playing == true
                       ? AvatarSceneMotion.talking
                       : chat.busy
                       ? AvatarSceneMotion.thinking
-                      : calling || session?.recording == true
+                      : (calling && !(session?.muted ?? muted)) ||
+                            session?.recording == true ||
+                            audio.recording
                       ? AvatarSceneMotion.listening
                       : AvatarSceneMotion.idle,
                   mouth: session?.playing == true ? .55 : 0,
                   fallback: SizedBox.expand(
                     child: CharacterScene(
                       role: chat.selected,
-                      full: full,
+                      zoom: zoom,
                       replying: chat.busy,
                       foreground: foreground && !toolsOpen,
                     ),
@@ -530,20 +565,10 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                                 ],
                               ),
                             ),
-                            TextButton.icon(
-                              key: const Key('camera-toggle'),
-                              style: TextButton.styleFrom(
-                                backgroundColor: const Color(0xFF2C252D),
-                                side: const BorderSide(
-                                  color: Color(0xFF67545C),
-                                ),
-                              ),
-                              onPressed: () => setState(() => full = !full),
-                              icon: const Icon(
-                                Icons.camera_alt_outlined,
-                                size: 18,
-                              ),
-                              label: Text(full ? '全身' : '半身'),
+                            AvatarZoomControls(
+                              zoom: zoom,
+                              halfZoom: halfZoom,
+                              onChanged: changeZoom,
                             ),
                           ],
                         ),

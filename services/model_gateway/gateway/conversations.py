@@ -16,7 +16,7 @@ from fastapi.responses import Response
 
 from .asr import QwenASR
 from .conversation_store import ConversationStore
-from .providers import ProviderError, wav
+from .providers import PERSONAS, ProviderError, wav
 
 
 def identifier(value):
@@ -56,7 +56,7 @@ class ConversationService:
     async def endpoint(self, ws: WebSocket, character: str):
         # Browser bearer tokens travel in the initial frame, never a query URL.
         origin = ws.headers.get('origin')
-        if character not in ('xing', 'yue') or (origin and (
+        if character not in PERSONAS or (origin and (
             urlsplit(origin).hostname not in ('127.0.0.1', 'localhost', '::1') or
             urlsplit(origin).netloc != ws.headers.get('host'))):
             await ws.close(code=1008)
@@ -386,7 +386,7 @@ def register(app, service, auth):
 
     @app.get('/v3/conversations/{character}', dependencies=[Depends(auth)])
     async def history(character: str):
-        if character not in ('xing','yue'):
+        if character not in PERSONAS:
             raise HTTPException(404, 'CHARACTER_NOT_FOUND')
         return {'items':service.store.rows(character)}
 

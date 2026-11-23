@@ -1,7 +1,7 @@
 # erciyuan mobile · official app
 
-The official app uses one persistent timeline per character. For role-specific
-speech, hold-to-talk and continuous calls, see the [person gateway guide](../../services/person_gateway/README.md).
+The official app uses one persistent timeline per character. For online text,
+hold-to-talk and continuous calls in the immersive app, see the [v3 gateway guide](../../services/model_gateway/README.md).
 The earlier [PoC](../mobile_poc/) is a separate project. Use Flutter **3.50.0**,
 Java **17**, Android SDK/Gradle compatible with the checked-in native template.
 
@@ -15,7 +15,7 @@ flutter build apk --debug
 flutter run
 ```
 
-The starter characters 小星 and 小月 have separate SQLite timelines.
+The starter characters 小星, 小月 and 小芽 have separate SQLite timelines.
 Continue opens the selected character's saved conversation. The app starts
 in offline demo mode. A configured local gateway enables additional chat and
 voice modes. Imports and spoken replies are scoped to the selected character.
@@ -24,24 +24,27 @@ voice modes. Imports and spoken replies are scoped to the selected character.
 
 Android 和 iOS 配置了 `MODEL_GATEWAY_URL` 和 `MODEL_GATEWAY_TOKEN` 时默认使用 v3。三种输入共用人物时间线。连续通话等待约 2.56 秒静音再提交，支持播报中插话、每轮延迟和按角色选音色。只配置人物网关时沿用原聊天入口。
 
-Android 模拟器先启动[本机声音网关](../../services/model_gateway/README.md)，在仓库根目录执行以下命令。
+Windows 上先打开模拟器和[本机声音网关](../../services/model_gateway/README.md)，然后在仓库根目录使用固定入口。
 
 ~~~powershell
-adb -s emulator-5554 reverse tcp:8787 tcp:8787
-cd apps/mobile
-flutter run -d emulator-5554 --dart-define-from-file=../../.model-local/mobile-live.json
+pwsh -File apps/mobile/tool/run_android_v4.ps1
 ~~~
 
+脚本默认使用 `emulator-5582` 和 Git 忽略的 `.model-local/mobile-v4-5582.json`。本机配置包含 `MODEL_GATEWAY_PROTOCOL=v3`、网关回环 HTTP 地址和开发令牌。脚本先验证 v3 接口，再按该端口设置 ADB 转发，从脚本所在的工作树安装并打开正式 App。其他设备或网关配置可通过 `-Device` 和 `-GatewayConfig` 指定。带开发令牌的调试包用于本机联调。
+
 使用本机 v3 网关配置启动时，App 直接打开 v4 沉浸聊天页。直接运行默认构建会进入离线人物页。
+
+在沉浸页打开「菜单 → 切换角色」选择小芽，即可使用她的人设进行在线文字、按住说话和连续通话。她使用默认音色，也可以在设置中单独绑定音色。
 
 iPhone 使用 [Mac 签名安装指南](../../docs/guides/ios-personal-team.md)。Windows 对照客户端见 [Windows 运行指南](../../docs/guides/windows-conversation-20261118.md)。
 
 ## 动态形象与本机 Android 人物包
 
+小芽使用本地待机、倾听、思考、说话四组视频与首帧封面。沉浸页所有角色和小芽动作预览都支持双指或滑杆调节 0.8×–3.0×。点击景别按钮可切换全身与半身。小芽从同一片段取景，缩小时逐渐露出双脚，播放进度连续。[新增角色的交付要求](../../docs/guides/character-onboarding.md)
+
 Android 的小星默认使用内置龙角外观。v4 聊天页从「菜单 → 设置」打开「龙角动作预览」或「切回原形象」。App 按待机、倾听、思考和语音播放状态切换静音短片，预览还提供轻笑动作。外观选择按本机人物保存，短片中的口型为预渲染动作。
 
-普通 Android 和 iOS 构建使用 Flutter 内置形象。倾听、等待回复和朗读有不同的表现，
-角色语音播放时根据 PCM 音量估计开口幅度。GitHub 构建只发布内置形象版本。
+Android 和 iOS 默认构建都包含内置形象。Flutter 绘制的形象可根据 PCM 音量估计开口幅度，小芽的视频形象在播报时循环播放说话片段。GitHub 构建只发布内置形象版本。
 
 开发机可以为 Android 启用已有的 Cubism Native 5-r.5 SDK。在本机 PowerShell
 中指向已解压的 SDK 根目录，然后从 `apps/mobile` 启动应用。

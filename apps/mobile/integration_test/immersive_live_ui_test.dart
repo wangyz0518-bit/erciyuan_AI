@@ -9,6 +9,10 @@ import 'package:integration_test/integration_test.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   const run = bool.fromEnvironment('CONVERSATION_LIVE_SMOKE');
+  const role = String.fromEnvironment(
+    'CONVERSATION_TEST_ROLE',
+    defaultValue: 'xing',
+  );
   testWidgets(
     'native v4 entry sends through the bound voice and saves to the official timeline',
     (tester) async {
@@ -35,14 +39,35 @@ void main() {
       final chat = page.chat;
       final voice = chat.conversation!;
       await until(() => voice.transport.connected);
+      if (chat.selected != role) {
+        await tester.tap(find.byKey(const Key('open-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('menu-roles')));
+        final choice = find.byKey(const Key('select-$role'));
+        await until(() => choice.evaluate().isNotEmpty);
+        await tester.ensureVisible(choice);
+        await tester.pumpAndSettle();
+        await tester.tap(choice);
+        await until(
+          () =>
+              chat.selected == role &&
+              !chat.switching &&
+              voice.transport.connected,
+        );
+      }
+      expect(voice.role, role);
+      expect(chat.online, isTrue);
       expect(voice.transport.mode, 'live');
       expect(find.byKey(const Key('hold-record')), findsOneWidget);
       expect(find.byKey(const Key('start-call')), findsOneWidget);
       final binding = await voice.transport.binding(chat.selected);
-      expect(binding['profile_id'], isNotNull);
+      expect(binding['character_id'], role);
+      if (role == 'xing') expect(binding['profile_id'], isNotNull);
+      var audioStarted = false;
       String? usedVoice;
       final sub = voice.transport.events.listen((event) {
         if (event['event'] == 'audio.started') {
+          audioStarted = true;
           usedVoice = event['voice_profile_id'] as String?;
         }
       });
@@ -51,14 +76,14 @@ void main() {
         await tester.pump(const Duration(milliseconds: 350));
         await tester.enterText(
           find.byKey(const Key('message-input')),
-          '请只说一句：欢迎你来聊天。',
+          role == 'sprout' ? '请用一句简短的话告诉我你叫什么名字。' : '请只说一句：欢迎你来聊天。',
         );
         await tester.pump();
         await tester.tap(find.byKey(const Key('send')));
         await until(
           () =>
               !chat.busy &&
-              usedVoice != null &&
+              audioStarted &&
               page.audio.streamMetrics['event'] == 'firstOutput',
           seconds: 90,
         );
@@ -70,6 +95,7 @@ void main() {
         expect(durable.last.status, 'complete');
         expect(durable.last.content, chat.messages.last.text);
         expect(durable.last.content, isNotEmpty);
+        if (role == 'sprout') expect(durable.last.content, contains('小芽'));
         await voice.close();
         await voice.load(chat.selected);
         await chat.flushed;

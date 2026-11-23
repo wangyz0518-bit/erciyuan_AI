@@ -76,7 +76,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     WidgetsBinding.instance.addObserver(this);
     _audio = widget.audioSession ?? createDeviceAudioSession();
     _voice = widget.voiceAssist ?? createDeviceVoiceAssist();
-    _roleSpeech = widget.gateway?.createSpeechPlayback(
+    final gateway = _character.supportsLegacyGateway ? widget.gateway : null;
+    _roleSpeech = gateway?.createSpeechPlayback(
       widget.scope,
       createReplyPlayer(
         inCall: () => (_call?.calling ?? false) && !(_call?.muted ?? false),
@@ -85,10 +86,8 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     _chat = ContinuousChatController(
       database: widget.database,
       scope: widget.scope,
-      characterName: widget.selection.characters
-          .firstWhere((character) => character.scope == widget.scope)
-          .name,
-      gateway: widget.gateway,
+      characterName: _character.name,
+      gateway: gateway,
       onReplySaved: (id) {
         if ((_readReplies || (_call?.calling ?? false)) &&
             !(_call?.hasUnsentSpeech ?? false) &&
@@ -102,7 +101,6 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     _input = TextEditingController(
       text: widget.selection.draftFor(widget.scope),
     );
-    final gateway = widget.gateway;
     if (gateway != null) {
       _call = ContinuousCallController(
         open: (partial) => gateway.openVoiceInput(widget.scope, partial),
@@ -365,6 +363,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
                 isSpeaking: _voice.speaking || (_roleSpeech?.speaking ?? false),
                 isListening:
                     _voice.listening ||
+                    _audio.state == AudioSessionState.recording ||
                     (_remoteInput?.holding ?? false) ||
                     ((_call?.calling ?? false) && !(_call?.muted ?? false)),
               ),

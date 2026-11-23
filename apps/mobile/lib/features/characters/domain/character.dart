@@ -1,3 +1,5 @@
+const sproutCharacterId = 'sprout';
+
 class PersonScope {
   const PersonScope({required this.ownerId, required this.characterId});
 
@@ -24,4 +26,7 @@ class Character {
   final PersonScope scope;
   final String name;
   final String description;
+
+  // The older person gateway supports the original roles. V3 also serves 小芽.
+  bool get supportsLegacyGateway => scope.characterId != sproutCharacterId;
 }
