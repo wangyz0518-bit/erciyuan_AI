@@ -52,77 +52,97 @@ class CharacterSlices {
       sliceRegistry.containsKey('$character/$form');
 
   /// 加载切片清单。同一份清单只解析一次。
+  ///
+  /// 失败时**不保留**这个 Future：加载失败通常是资源没打进包（`pubspec.yaml`
+  /// 漏声明子目录）或清单损坏，属配置错误而非用一次就坏的瞬时状态。把失败的
+  /// Future 留在 `_loading` 里会让后续调用永远拿到同一个错误，且掩盖真正原因
+  /// ——测试里表现为断言超时而不是「资源缺失」。
   static Future<CharacterSlices> ensureLoaded(String character, String form) {
     final key = '$character/$form';
     final cached = _loaded[key];
     if (cached != null) return Future.value(cached);
-    return _loading.putIfAbsent(key, () async {
-      final root = sliceRegistry[key];
-      if (root == null) {
-        throw StateError('角色 $character 的 $form 形态没有切片包');
-      }
-      final raw = await rootBundle.loadString('$root/$_manifestPath');
-      final json = jsonDecode(raw) as Map<String, dynamic>;
+    final pending = _loading[key];
+    if (pending != null) return pending;
 
-      final sizeList = (json['size'] as List).cast<num>();
-      final slots = <SliceSlot>[];
-      for (final s in (json['slots'] as List).cast<Map<String, dynamic>>()) {
-        final r = (s['rect'] as List).cast<num>();
-        final patches = (s['patches'] as Map).cast<String, String>();
-        for (final rel in patches.values) {
-          // 贴图缺失会让动作静默消失，这里提前暴露。
-          await rootBundle.load('$root/$rel');
-        }
-        slots.add(
-          SliceSlot(
-            id: s['id'] as String,
-            rect: ui.Rect.fromLTWH(
-              r[0].toDouble(),
-              r[1].toDouble(),
-              r[2].toDouble(),
-              r[3].toDouble(),
-            ),
-            feather: (s['feather'] as num?)?.toDouble() ?? 0,
-            patches: {
-              for (final e in patches.entries) e.key: '$root/${e.value}',
-            },
+    final future = _parse(character, form, key);
+    _loading[key] = future;
+    return future
+        .then((slices) {
+          _loaded[key] = slices;
+          return slices;
+        })
+        .whenComplete(() {
+          // 成功时已在 _loaded 里，失败时下次重新尝试；两种情况都不该留悬空项。
+          if (_loading[key] == future) _loading.remove(key);
+        });
+  }
+
+  static Future<CharacterSlices> _parse(
+    String character,
+    String form,
+    String key,
+  ) async {
+    final root = sliceRegistry[key];
+    if (root == null) {
+      throw StateError('角色 $character 的 $form 形态没有切片包');
+    }
+    final raw = await rootBundle.loadString('$root/$_manifestPath');
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+
+    final sizeList = (json['size'] as List).cast<num>();
+    final slots = <SliceSlot>[];
+    for (final s in (json['slots'] as List).cast<Map<String, dynamic>>()) {
+      final r = (s['rect'] as List).cast<num>();
+      final patches = (s['patches'] as Map).cast<String, String>();
+      for (final rel in patches.values) {
+        // 贴图缺失会让动作静默消失，这里提前暴露。
+        await rootBundle.load('$root/$rel');
+      }
+      slots.add(
+        SliceSlot(
+          id: s['id'] as String,
+          rect: ui.Rect.fromLTWH(
+            r[0].toDouble(),
+            r[1].toDouble(),
+            r[2].toDouble(),
+            r[3].toDouble(),
           ),
-        );
-      }
-
-      SliceGrade? grade;
-      final g = json['grade'] as Map<String, dynamic>?;
-      if (g != null) {
-        final gains = (g['gains'] as List)
-            .cast<num>()
-            .map((v) => v.toDouble())
-            .toList();
-        final offsets = (g['offsets'] as List)
-            .cast<num>()
-            .map((v) => v.toDouble())
-            .toList();
-        grade = SliceGrade(
-          key: g['key'] as String,
-          gains: gains,
-          offsets: offsets,
-        );
-      }
-
-      final slices = CharacterSlices._(
-        character: character,
-        form: form,
-        // 基座可能引用包内已有的原画（plateExternal=true），
-        // 此时清单里存的就是完整资源路径，不能再拼目录。
-        plateAsset: (json['plateExternal'] as bool? ?? false)
-            ? json['plate'] as String
-            : '$root/${json['plate']}',
-        size: ui.Size(sizeList[0].toDouble(), sizeList[1].toDouble()),
-        slots: slots,
-        grade: grade,
+          feather: (s['feather'] as num?)?.toDouble() ?? 0,
+          patches: {for (final e in patches.entries) e.key: '$root/${e.value}'},
+        ),
       );
-      _loaded[key] = slices;
-      return slices;
-    });
+    }
+
+    SliceGrade? grade;
+    final g = json['grade'] as Map<String, dynamic>?;
+    if (g != null) {
+      final gains = (g['gains'] as List)
+          .cast<num>()
+          .map((v) => v.toDouble())
+          .toList();
+      final offsets = (g['offsets'] as List)
+          .cast<num>()
+          .map((v) => v.toDouble())
+          .toList();
+      grade = SliceGrade(
+        key: g['key'] as String,
+        gains: gains,
+        offsets: offsets,
+      );
+    }
+
+    return CharacterSlices._(
+      character: character,
+      form: form,
+      // 基座可能引用包内已有的原画（plateExternal=true），
+      // 此时清单里存的就是完整资源路径，不能再拼目录。
+      plateAsset: (json['plateExternal'] as bool? ?? false)
+          ? json['plate'] as String
+          : '$root/${json['plate']}',
+      size: ui.Size(sizeList[0].toDouble(), sizeList[1].toDouble()),
+      slots: slots,
+      grade: grade,
+    );
   }
 }
 

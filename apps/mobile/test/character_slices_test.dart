@@ -92,6 +92,29 @@ void main() {
       expect(CharacterSlices.has('xing', 'full'), isTrue);
       expect(CharacterSlices.has('yue', 'half'), isFalse);
     });
+
+    test('加载失败不会把错误永久缓存，修好后可再次加载', () async {
+      // 先正常加载一次，确认基线可用。
+      final ok = await CharacterSlices.ensureLoaded('xing', 'half');
+      expect(ok.slots, isNotEmpty);
+
+      // 未登记的形态：必须抛错，且不能留下失败缓存——否则真实的资源
+      // 缺失会被同一个错误长期掩盖，测试里表现为断言超时而非「资源缺失」。
+      await expectLater(
+        CharacterSlices.ensureLoaded('yue', 'half'),
+        throwsA(isA<StateError>()),
+      );
+      expect(CharacterSlices.of('yue', 'half'), isNull);
+
+      // 再来一次仍应走完整流程并抛同样的错，而不是拿到上次的残留。
+      await expectLater(
+        CharacterSlices.ensureLoaded('yue', 'half'),
+        throwsA(isA<StateError>()),
+      );
+
+      // 已成功的结果仍然命中缓存，不会重复解析。
+      expect(await CharacterSlices.ensureLoaded('xing', 'half'), same(ok));
+    });
   });
 
   group('切片播放器', () {
