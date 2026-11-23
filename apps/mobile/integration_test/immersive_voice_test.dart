@@ -47,6 +47,10 @@ class _FixtureMicrophone extends RecordPlatform {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   const port = int.fromEnvironment('CONVERSATION_LIVE_PCM_PORT');
+  const role = String.fromEnvironment(
+    'CONVERSATION_TEST_ROLE',
+    defaultValue: 'xing',
+  );
   testWidgets(
     'Android keeps a paused voice turn and interrupts its live reply',
     (tester) async {
@@ -72,9 +76,11 @@ void main() {
       // Preserve acknowledgements only. Audio chunks and transcripts stay out of logs.
       final readyInputs = <String>[];
       String? interrupted, aborted, usedVoice;
+      var audioStarts = 0;
       final events = voice.transport.events.listen((event) {
         switch (event['event']) {
           case 'audio.started':
+            audioStarts++;
             usedVoice = event['voice_profile_id'] as String?;
           case 'input.ready':
             readyInputs.add(event['input_id'] as String);
@@ -109,11 +115,12 @@ void main() {
       }
 
       try {
-        await voice.startCall('xing');
+        await voice.startCall(role);
         expect(voice.calling, isTrue, reason: voice.status);
         expect(voice.transport.mode, 'live');
-        final binding = await voice.transport.binding('xing');
-        expect(binding['profile_id'], isNotNull);
+        final binding = await voice.transport.binding(role);
+        expect(binding['character_id'], role);
+        if (role == 'xing') expect(binding['profile_id'], isNotNull);
         final before = voice.messages.length;
         await feed(pcm);
         await until(
@@ -150,17 +157,17 @@ void main() {
         );
         expect(voice.messages.length, before + 2);
         await voice.close();
-        await voice.startHold('xing');
+        await voice.startHold(role);
         expect(voice.recording, isTrue, reason: voice.status);
         final beforeHold = voice.messages.length;
-        usedVoice = null;
+        final beforeHoldAudio = audioStarts;
         await feed(pcm);
         await voice.finishHold(true);
         await until(
           () =>
               voice.messages.length == beforeHold + 2 &&
               !voice.busy &&
-              usedVoice != null,
+              audioStarts > beforeHoldAudio,
           const Duration(seconds: 90),
         );
         final held = voice.messages.skip(beforeHold).toList();

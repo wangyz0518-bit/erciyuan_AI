@@ -11,7 +11,9 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../characters/domain/character.dart';
 import 'avatar_fallback_scene.dart';
+import 'avatar_zoom.dart';
 import 'dragon_avatar_scene.dart';
+import 'sprout_avatar_scene.dart';
 
 /// A single native texture is shared by successive pages. Order operations
 /// across route transitions so teardown of the old role cannot stop a new one.
@@ -24,7 +26,7 @@ class CharacterAvatarScene extends StatefulWidget {
     this.fallback,
     this.showMenu = true,
     this.dragonImmersive = false,
-    this.dragonWideShot = false,
+    this.zoom = fullAvatarZoom,
   });
   final Character character;
   final AvatarSceneMotion motion;
@@ -32,7 +34,7 @@ class CharacterAvatarScene extends StatefulWidget {
   final Widget? fallback;
   final bool showMenu;
   final bool dragonImmersive;
-  final bool dragonWideShot;
+  final double zoom;
   @override
   State<CharacterAvatarScene> createState() => CharacterAvatarSceneState();
 }
@@ -63,6 +65,10 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
       !kIsWeb &&
       Platform.isAndroid &&
       widget.character.scope.characterId == 'star';
+  bool get supportsSprout =>
+      !kIsWeb &&
+      (Platform.isAndroid || Platform.isIOS) &&
+      widget.character.scope.characterId == sproutCharacterId;
   bool get showsDragon =>
       supportsDragon && _appearanceReady && (_dragonChoice ?? (_model == null));
   bool get canChooseAppearance =>
@@ -332,31 +338,8 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
   Widget build(BuildContext context) => Stack(
     fit: StackFit.expand,
     children: [
-      Center(
-        child: showsDragon
-            ? DragonAvatarScene(
-                clip: DragonAvatarClip.forMotion(widget.motion),
-                active: _current && _foreground && !_previewing,
-                immersive: widget.dragonImmersive,
-                wideShot: widget.dragonWideShot,
-              )
-            : _model != null && _texture != null
-            ? Semantics(
-                label: '${widget.character.name} · $_model',
-                child: AspectRatio(
-                  aspectRatio: 720 / 1280,
-                  child: Texture(textureId: _texture!),
-                ),
-              )
-            : widget.fallback ??
-                  AvatarFallbackScene(
-                    characterId: widget.character.scope.characterId,
-                    characterName: widget.character.name,
-                    motion: widget.motion,
-                    mouth: widget.mouth,
-                  ),
-      ),
-      if ((_available || supportsDragon) && widget.showMenu)
+      Center(child: _buildAvatar()),
+      if ((_available || supportsDragon || supportsSprout) && widget.showMenu)
         Positioned(
           right: 6,
           top: 0,
@@ -371,6 +354,8 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
                   unawaited(chooseDragonAppearance(false));
                 case 'preview-dragon':
                   unawaited(previewDragon());
+                case 'preview-sprout':
+                  unawaited(showSproutAvatarPreview(context));
                 default:
                   unawaited(_select(action));
               }
@@ -390,6 +375,11 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
                   value: 'preview-dragon',
                   child: Text('龙角动作预览'),
                 ),
+              if (supportsSprout)
+                const PopupMenuItem(
+                  value: 'preview-sprout',
+                  child: Text('小芽动作预览'),
+                ),
               if (_available)
                 const PopupMenuItem(
                   value: 'import',
@@ -402,4 +392,43 @@ class CharacterAvatarSceneState extends State<CharacterAvatarScene>
         ),
     ],
   );
+
+  Widget _buildAvatar() {
+    if (showsDragon) {
+      return DragonAvatarScene(
+        clip: DragonAvatarClip.forMotion(widget.motion),
+        active: _current && _foreground && !_previewing,
+        immersive: widget.dragonImmersive,
+        zoom: widget.zoom,
+      );
+    }
+    if (_model != null && _texture != null) {
+      return Semantics(
+        label: '${widget.character.name} · $_model',
+        child: Transform.scale(
+          scale: widget.zoom,
+          alignment: const FractionalOffset(.5, .23),
+          child: AspectRatio(
+            aspectRatio: 720 / 1280,
+            child: Texture(textureId: _texture!),
+          ),
+        ),
+      );
+    }
+    if (widget.character.scope.characterId == sproutCharacterId) {
+      return SproutAvatarScene(
+        motion: widget.motion,
+        active: supportsSprout && _current,
+        zoom: widget.zoom,
+        immersive: widget.dragonImmersive,
+      );
+    }
+    return widget.fallback ??
+        AvatarFallbackScene(
+          characterId: widget.character.scope.characterId,
+          characterName: widget.character.name,
+          motion: widget.motion,
+          mouth: widget.mouth,
+        );
+  }
 }

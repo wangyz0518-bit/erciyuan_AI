@@ -119,10 +119,13 @@ def test_auth_origin_and_single_session(tmp_path):
         assert client.get('/v3/conversations/xing').status_code == 401
 
 
-def test_text_saved_before_audio_replay_no_charge_and_playback_ack(tmp_path):
+@pytest.mark.parametrize('role', ['xing', 'sprout'])
+def test_text_saved_before_audio_replay_no_charge_and_playback_ack(tmp_path, role):
     app, chat, _, _ = setup(tmp_path)
-    with TestClient(app) as client, client.websocket_connect('/v3/conversations/xing/stream') as ws:
-        hello(ws)
+    with TestClient(app) as client, client.websocket_connect(f'/v3/conversations/{role}/stream') as ws:
+        assert hello(ws)['character_id'] == role
+        binding = client.get(f'/v1/characters/{role}/voice-binding', headers=HEADERS)
+        assert binding.json()['character_id'] == role
         text(ws)
         rows = until(ws, 'audio.completed')
         names = [r['event'] for r in rows]
@@ -133,6 +136,9 @@ def test_text_saved_before_audio_replay_no_charge_and_playback_ack(tmp_path):
         text(ws)
         assert receive(ws)['event'] == 'turn.status'
         assert len(chat.calls) == 1
+        assert chat.calls[0][0] == role
+        assert client.get(f'/v3/conversations/{role}', headers=HEADERS).status_code == 200
+        assert app.state.conversations.store.history('yue') == []
         text(ws, speak=False)
         assert receive(ws)['code'] == 'REQUEST_ID_CONFLICT'
         text(ws, 'changed')

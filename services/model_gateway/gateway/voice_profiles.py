@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette.datastructures import UploadFile
 
 from .audio_validation import MAX_UPLOAD, normalize
-from .providers import ProviderError, wav
+from .providers import PERSONAS, ProviderError, wav
 from .voice_enrollment import Enrollment
 from .voice_store import VoiceStore
 
@@ -328,7 +328,7 @@ def register(app,service,auth):
         return FileResponse(path,media_type='audio/wav',headers={'Cache-Control':'no-store'})
 
     def binding(character):
-        if character not in ('xing','yue'):raise ProviderError('INVALID_CHARACTER')
+        if character not in PERSONAS:raise ProviderError('INVALID_CHARACTER')
         row=service.store.binding(character)
         name='默认声音'
         if row['profile']:

@@ -43,7 +43,10 @@ class ChatController extends ChangeNotifier {
   String? get error =>
       _saveError ??
       (_timeline.errorCode == null ? null : _timeline.statusMessage);
-  bool get online => gateway != null || textGateway != null;
+  bool get online =>
+      gateway?.useV3 == true ||
+      (character.supportsLegacyGateway &&
+          (gateway != null || textGateway != null));
   Future<void> get flushed => _writes;
 
   Future<void> init() async {
@@ -51,7 +54,7 @@ class ChatController extends ChangeNotifier {
       database: database,
       scope: character.scope,
       characterName: character.name,
-      gateway: textGateway,
+      gateway: character.supportsLegacyGateway ? textGateway : null,
     )..addListener(_readTimeline);
     await _timeline.load();
   }
@@ -151,8 +154,9 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> cancel() async {
-    if (conversation != null) {
-      conversation!.interrupt();
+    final session = conversation;
+    if (session != null) {
+      session.interrupt();
     } else {
       await _timeline.cancel();
     }

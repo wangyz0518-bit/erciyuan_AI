@@ -15,6 +15,7 @@
 ## 当前工程
 
 - 正式 Flutter App 位于 `apps/mobile/`。配置声音网关后使用 Windows 测试版确定的 v3 会话，支持文字、按住说话、连续通话、插话和每轮延迟。每个角色沿用正式 App 的 SQLite 时间线。
+- 新增角色按[正式 App 角色接入与验收](docs/guides/character-onboarding.md)核对人设、会话、形象素材、取景与缩放。
 - Windows 对照客户端位于 `apps/windows_conversation_lab/`，共用 `services/model_gateway/`。仅在服务端配置供应商凭据。入口见 [Windows 指南](docs/guides/windows-conversation-20261118.md)、[iPhone 安装指南](docs/guides/ios-personal-team.md) 和 [v3 会话契约](docs/接口/model-gateway-conversation-v3.md)。
 - 独立 Flutter PoC 位于 `apps/mobile_poc/`。模拟器、合成语音和真人外放验收分别记录。
 

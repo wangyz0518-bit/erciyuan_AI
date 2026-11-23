@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:video_player/video_player.dart';
 
 import 'avatar_fallback_scene.dart';
+import 'avatar_zoom.dart';
 
 enum DragonAvatarClip {
   idle('待机'),
@@ -28,16 +29,14 @@ enum DragonAvatarClip {
   String get asset => 'assets/dragon_avatar/$name';
 }
 
-/// One silent video per displayed scene. Dispose the old decoder before
-/// acquiring a new one, and show the requested pose while the decoder starts.
-class DragonAvatarScene extends StatefulWidget {
+class DragonAvatarScene extends StatelessWidget {
   const DragonAvatarScene({
     required this.clip,
     required this.active,
     this.loop = true,
     this.replay = 0,
     this.immersive = false,
-    this.wideShot = false,
+    this.zoom = fullAvatarZoom,
     super.key,
   });
 
@@ -46,16 +45,61 @@ class DragonAvatarScene extends StatefulWidget {
   final bool loop;
   final int replay;
   final bool immersive;
-  final bool wideShot;
+  final double zoom;
 
   @override
-  State<DragonAvatarScene> createState() => _DragonAvatarSceneState();
+  Widget build(BuildContext context) => VideoAvatarScene(
+    asset: clip.asset,
+    label: '龙角形象 · ${clip.label}',
+    active: active,
+    loop: loop,
+    replay: replay,
+    zoom: zoom,
+    background: immersive
+        ? Image.asset(
+            'assets/dragon_avatar/lake.webp',
+            fit: BoxFit.cover,
+            excludeFromSemantics: true,
+          )
+        : null,
+  );
 }
 
-class _DragonAvatarSceneState extends State<DragonAvatarScene>
+/// Shows the asset's still frame until its silent video is ready.
+class VideoAvatarScene extends StatefulWidget {
+  const VideoAvatarScene({
+    required this.asset,
+    required this.label,
+    required this.active,
+    this.loop = true,
+    this.replay = 0,
+    this.background,
+    this.zoom = fullAvatarZoom,
+    this.zoomAnchor = const FractionalOffset(.5, .16),
+    this.extendToScene = false,
+    super.key,
+  });
+
+  final String asset;
+  final String label;
+  final bool active;
+  final bool loop;
+  final int replay;
+  final Widget? background;
+  final double zoom;
+  final FractionalOffset zoomAnchor;
+
+  /// Grow the layer and its edge fade with the image, up to the scene edges.
+  final bool extendToScene;
+
+  @override
+  State<VideoAvatarScene> createState() => _VideoAvatarSceneState();
+}
+
+class _VideoAvatarSceneState extends State<VideoAvatarScene>
     with WidgetsBindingObserver {
   VideoPlayerController? _video;
-  DragonAvatarClip? _loadedClip;
+  String? _loadedAsset;
   int _loadedReplay = 0;
   bool _foreground = true;
   bool _allowMotion = true;
@@ -82,9 +126,9 @@ class _DragonAvatarSceneState extends State<DragonAvatarScene>
   }
 
   @override
-  void didUpdateWidget(DragonAvatarScene oldWidget) {
+  void didUpdateWidget(VideoAvatarScene oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.clip != widget.clip ||
+    if (oldWidget.asset != widget.asset ||
         oldWidget.active != widget.active ||
         oldWidget.loop != widget.loop ||
         oldWidget.replay != widget.replay) {
@@ -107,7 +151,7 @@ class _DragonAvatarSceneState extends State<DragonAvatarScene>
     try {
       await video?.dispose();
     } catch (error) {
-      debugPrint('Dragon avatar decoder disposal failed: $error');
+      debugPrint('Avatar video decoder disposal failed: $error');
     }
   }
 
@@ -116,16 +160,16 @@ class _DragonAvatarSceneState extends State<DragonAvatarScene>
     try {
       while (mounted && _pending) {
         _pending = false;
-        final clip = widget.clip;
-        if (_video != null && (_loadedClip != clip || !_canPlay)) {
+        final asset = widget.asset;
+        if (_video != null && (_loadedAsset != asset || !_canPlay)) {
           final old = _video;
           setState(() {
             _video = null;
-            _loadedClip = null;
+            _loadedAsset = null;
           });
           await _release(old);
         }
-        if (!mounted || !_canPlay || widget.clip != clip) continue;
+        if (!mounted || !_canPlay || widget.asset != asset) continue;
         final current = _video;
         if (current != null) {
           try {
@@ -136,32 +180,30 @@ class _DragonAvatarSceneState extends State<DragonAvatarScene>
               await current.play();
             }
           } catch (error) {
-            debugPrint('Dragon avatar playback update failed: $error');
+            debugPrint('Avatar video playback update failed: $error');
           }
           continue;
         }
         final candidate = VideoPlayerController.asset(
-          '${clip.asset}.mp4',
+          '$asset.mp4',
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
         var adopted = false;
         try {
           await candidate.initialize();
-          if (!mounted || !_canPlay || widget.clip != clip) continue;
+          if (!mounted || !_canPlay || widget.asset != asset) continue;
           await candidate.setVolume(0);
           await candidate.setLooping(widget.loop);
           await candidate.play();
-          if (!mounted || !_canPlay || widget.clip != clip) continue;
+          if (!mounted || !_canPlay || widget.asset != asset) continue;
           setState(() {
             _video = candidate;
-            _loadedClip = clip;
+            _loadedAsset = asset;
             _loadedReplay = widget.replay;
           });
           adopted = true;
         } catch (error) {
-          debugPrint(
-            'Dragon avatar video unavailable for ${clip.name}: $error',
-          );
+          debugPrint('Avatar video unavailable for $asset: $error');
         } finally {
           if (!adopted) await _release(candidate);
         }
@@ -180,15 +222,15 @@ class _DragonAvatarSceneState extends State<DragonAvatarScene>
 
   @override
   Widget build(BuildContext context) {
-    final video = _loadedClip == widget.clip ? _video : null;
+    final video = _loadedAsset == widget.asset ? _video : null;
     final portrait = Semantics(
       image: true,
-      label: '龙角形象 · ${widget.clip.label}',
+      label: widget.label,
       child: Stack(
         fit: StackFit.expand,
         children: [
           Image.asset(
-            '${widget.clip.asset}.webp',
+            '${widget.asset}.webp',
             fit: BoxFit.contain,
             gaplessPlayback: true,
             excludeFromSemantics: true,
@@ -205,32 +247,47 @@ class _DragonAvatarSceneState extends State<DragonAvatarScene>
         ],
       ),
     );
-    if (!widget.immersive) {
+    final background = widget.background;
+    if (background == null) {
       return Center(
         child: AspectRatio(aspectRatio: 5 / 6, child: portrait),
       );
     }
+    final zoom = widget.zoom;
+    final magnification = math.max(1.0, zoom);
+    final framedPortrait = widget.extendToScene
+        ? portrait
+        : ClipRect(
+            child: Transform.scale(
+              scale: magnification,
+              alignment: widget.zoomAnchor,
+              child: portrait,
+            ),
+          );
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
-        final portraitWidth = math.min(
-          width * (widget.wideShot ? .88 : 1),
-          height * .77 * 5 / 6,
+        final baseWidth = math.min(width * .88, height * .77 * 5 / 6);
+        final portraitWidth = baseWidth * math.min(zoom, 1.0);
+        final portraitHeight = portraitWidth * 6 / 5;
+        final layerScale = widget.extendToScene ? magnification : 1.0;
+        final closeAmount = ((zoom - 1) / (maxAvatarZoom - 1)).clamp(0.0, 1.0);
+        final top =
+            height * (.19 - .05 * closeAmount) +
+            (baseWidth - portraitWidth) * .6;
+        final anchor = widget.zoomAnchor.alongSize(
+          Size(portraitWidth, portraitHeight),
         );
         return Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              'assets/dragon_avatar/lake.webp',
-              fit: BoxFit.cover,
-              excludeFromSemantics: true,
-            ),
+            background,
             Positioned(
-              width: portraitWidth,
-              height: portraitWidth * 6 / 5,
-              left: (width - portraitWidth) / 2,
-              top: height * (widget.wideShot ? .19 : .14),
+              width: portraitWidth * layerScale,
+              height: portraitHeight * layerScale,
+              left: (width - portraitWidth) / 2 - anchor.dx * (layerScale - 1),
+              top: top - anchor.dy * (layerScale - 1),
               child: ShaderMask(
                 blendMode: BlendMode.dstIn,
                 shaderCallback: (bounds) => const LinearGradient(
@@ -244,7 +301,7 @@ class _DragonAvatarSceneState extends State<DragonAvatarScene>
                   ],
                   stops: [0, .11, .86, 1],
                 ).createShader(bounds),
-                child: portrait,
+                child: framedPortrait,
               ),
             ),
             const DecoratedBox(

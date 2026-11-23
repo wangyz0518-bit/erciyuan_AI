@@ -171,6 +171,7 @@ final class PersonDatabase {
     required Character character,
     required String timelineId,
     String baseIdentityJson = '{}',
+    bool onlyIfMissing = false,
   }) async {
     _validateScope(character.scope);
     _requireValue(timelineId, 'timelineId');
@@ -178,6 +179,16 @@ final class PersonDatabase {
     jsonDecode(baseIdentityJson);
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.transaction((txn) async {
+      if (onlyIfMissing) {
+        final existing = await txn.query(
+          'characters',
+          columns: ['character_id'],
+          where: 'owner_id = ? AND character_id = ?',
+          whereArgs: _args(character.scope),
+          limit: 1,
+        );
+        if (existing.isNotEmpty) return;
+      }
       await txn.insert('characters', {
         'owner_id': character.scope.ownerId,
         'character_id': character.scope.characterId,

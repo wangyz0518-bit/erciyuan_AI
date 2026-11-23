@@ -1,7 +1,7 @@
 # 连续语音会话 v3
 
 > 状态：评审中。Windows 和 Android 已联调；iOS 已接入工程，待 Mac 编译签名和 iPhone 验收。
-> 日期：2026-11-18
+> 更新日期：2026-11-23
 > 负责人：待定
 > 关联：A/B/D、流式 v2、录音音色 v0
 
@@ -14,7 +14,10 @@ v1/v2、旧 Windows 测试台和手机数据库保持兼容。v3 另存本机数
 
 ## 连接与鉴权
 
-`WebSocket /v3/conversations/{character}/stream`，角色为 `xing` 或 `yue`。
+`WebSocket /v3/conversations/{character}/stream`，角色为小星 `xing`、小月 `yue` 或小芽 `sprout`。三种输入都使用所选角色的人设、历史和音色绑定。小芽首次使用网关默认音色，可在角色声音设置中单独选择。
+
+接入其他角色时，HTTP 历史、WebSocket 和按角色绑定音色的接口共用网关的 `PERSONAS` 注册项。移动端本地 ID 与历史网关 ID 的对应关系见[角色接入指南](../guides/character-onboarding.md)。
+
 建立后 5 秒内发送 `{"command":"session.start","token":"<本机开发令牌>"}`。
 浏览器令牌不放查询参数；启动器用 URL fragment 交给页面，页面随即移除 fragment，不持久保存令牌。
 若有 Origin，须为与 Host 相同的 loopback 来源。整个 v3 服务同时只接纳一个客户端会话，冲突为 `SESSION_BUSY`。
