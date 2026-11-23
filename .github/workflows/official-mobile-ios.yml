@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   ios-simulator:
-    name: Build, install and test iOS Simulator (unsigned)
+    name: Build, install and test iOS Simulator (unsigned) ${{ matrix.shard }}/3
     # macos-15 ships Xcode 16.4, whose iOS SDK predates the
     # `AVAsset.load(_:isolation:)` overload: video_player_avfoundation 2.12.4
     # (pinned transitively via video_player, and present on main) calls it
@@ -28,6 +28,22 @@ jobs:
     # pinned plugins are written against.
     runs-on: macos-26
     timeout-minutes: 60
+    strategy:
+      # One wedged shard must not cancel the others: a red job that still
+      # shows the passing shards is what makes the shard boundary useful.
+      fail-fast: false
+      matrix:
+        # `flutter test integration_test` rebuilds the app once per test file,
+        # and those rebuilds dominate wall-clock time -- on the 2026-11-22 run
+        # eight suites spent 635 s inside `Xcode build` against roughly 140 s
+        # of actual test execution, which did not fit the old 20-minute
+        # safety net. Sharding spreads that over parallel jobs, while each job
+        # still runs its own suites inside a single `flutter test` process
+        # (required: a second process against the same booted simulator can
+        # hang the XCTest/VM-service attach forever).
+        shard: [0, 1, 2]
+    env:
+      IOS_INTEGRATION_SHARD: ${{ matrix.shard }}/3
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -64,7 +80,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: erciyuan-official-ios-simulator
+          name: erciyuan-official-ios-simulator-shard-${{ matrix.shard }}
           path: artifacts/official-ios-simulator/
           if-no-files-found: warn
           retention-days: 7
