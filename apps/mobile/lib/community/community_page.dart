@@ -2,12 +2,22 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../bootstrap.dart';
+import '../features/characters/presentation/data_management_page.dart';
+import 'community_scope.dart';
 import 'community_api.dart';
 import 'community_controller.dart';
 import 'community_forms.dart';
 
 class CommunityPage extends StatefulWidget {
-  const CommunityPage(this.model, {super.key, this.share});
+  const CommunityPage(
+    this.model, {
+    super.key,
+    required this.section,
+    this.share,
+    this.postId,
+  });
+  final AppSection section;
+  final int? postId;
   final CommunityController model;
   final String? share;
   @override
@@ -17,16 +27,18 @@ class CommunityPage extends StatefulWidget {
 class _CommunityPageState extends State<CommunityPage> {
   CommunityController get model => widget.model;
   CommunityApi get api => model.api;
-  String tab = '广场', error = '';
+  String error = '';
   List<Json> rows = [], comments = [];
   bool busy = false, more = false, guestHistory = false;
   Json? post;
   String? pendingShare;
+  int? pendingPost;
 
   @override
   void initState() {
     super.initState();
     pendingShare = widget.share;
+    pendingPost = widget.postId;
     run(load);
   }
 
@@ -42,7 +54,7 @@ class _CommunityPageState extends State<CommunityPage> {
     } on CommunityError catch (e) {
       if (e.code == 'LOGIN_REQUIRED' && previous.signedIn) {
         await model.expired(previous);
-        if (tab == '我的角色') rows = [];
+        if (mounted && widget.section == AppSection.roles) rows = [];
       }
       if (mounted) setState(() => error = e.toString());
     } catch (e) {
@@ -58,11 +70,14 @@ class _CommunityPageState extends State<CommunityPage> {
       final found = await api.request('GET', '/community/shares/$pendingShare');
       pendingShare = null;
       await showPost(found);
+    } else if (pendingPost != null) {
+      await showPost(await api.request('GET', '/community/posts/$pendingPost'));
+      pendingPost = null;
     } else if (post != null) {
       await showPost(
         await api.request('GET', '/community/posts/${post!['id']}'),
       );
-    } else if (tab == '我的角色') {
+    } else if (widget.section == AppSection.roles) {
       if (api.signedIn) {
         await model.refreshLibrary();
         rows = await api.items('/community/characters');
@@ -70,7 +85,7 @@ class _CommunityPageState extends State<CommunityPage> {
         rows = [];
       }
       more = false;
-    } else if (tab == '账户') {
+    } else if (widget.section == AppSection.profile) {
       guestHistory = await model.database.hasGuestHistory(localOwnerId);
     } else {
       rows = await api.items('/community/posts');
@@ -112,12 +127,10 @@ class _CommunityPageState extends State<CommunityPage> {
         false;
   }
 
-  Future<void> switchTab(String next) async {
-    tab = next;
+  Future<void> closePost() async {
     post = null;
     pendingShare = null;
-    rows = [];
-    more = false;
+    pendingPost = null;
     await load();
   }
 
@@ -152,16 +165,16 @@ class _CommunityPageState extends State<CommunityPage> {
 
   Future<void> enterChat(Json card) async {
     await model.choose(card);
-    if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+    if (mounted) CommunityScope.of(context)!.open(AppSection.companion);
   }
 
   Future<void> importCard() async {
-    if (!await login()) return;
+    if (!await login() || !mounted) return;
     final card = await api.request(
       'POST',
       '/community/shares/${post!['share']}/import',
     );
-    await enterChat(card);
+    if (mounted) await enterChat(card);
   }
 
   Future<void> edit([Json? card]) async {
@@ -214,8 +227,13 @@ class _CommunityPageState extends State<CommunityPage> {
       'body': body,
       if (card != null) 'character_id': card['id'],
     });
-    tab = '广场';
-    await showPost(item);
+    if (!mounted) return;
+    if (widget.section == AppSection.roles) {
+      CommunityScope.of(context)!
+          .open(AppSection.community, postId: item['id'] as int);
+    } else {
+      await showPost(item);
+    }
   }
 
   Future<void> comment([Json? parent]) async {
@@ -357,39 +375,33 @@ class _CommunityPageState extends State<CommunityPage> {
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: post == null,
+    canPop: false,
     onPopInvokedWithResult: (didPop, _) {
-      if (!didPop && !busy) run(() => switchTab(tab));
+      if (didPop) return;
+      if (post != null && !busy) {
+        run(closePost);
+      } else {
+        CommunityScope.of(context)!.open(AppSection.companion);
+      }
     },
     child: Scaffold(
       appBar: AppBar(
-        title: Text(post == null ? '社区' : '帖子详情'),
+        leading: post == null
+            ? null
+            : BackButton(onPressed: busy ? null : () => run(closePost)),
+        title: Text(post == null ? widget.section.label : '帖子详情'),
         actions: [
           IconButton(
             onPressed: busy ? null : () => run(load),
             icon: const Icon(Icons.refresh),
             tooltip: '刷新',
           ),
-          if (api.origin != null)
+          if (widget.section == AppSection.community && api.origin != null)
             IconButton(
               onPressed: busy ? null : () => run(openLink),
               icon: const Icon(Icons.link),
               tooltip: '打开分享链接',
             ),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: ['广场', '我的角色', '账户'].indexOf(tab),
-        onDestinationSelected: busy
-            ? null
-            : (i) => run(() => switchTab(['广场', '我的角色', '账户'][i])),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.forum_outlined), label: '广场'),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            label: '我的角色',
-          ),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: '账户'),
         ],
       ),
       body: SafeArea(
@@ -402,26 +414,42 @@ class _CommunityPageState extends State<CommunityPage> {
                 error,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
-            if (api.origin == null)
-              button('连接社区服务', configure)
-            else if (post != null)
-              ...detail()
-            else if (tab == '账户') ...[
+            if (widget.section == AppSection.profile) ...[
               ListTile(
                 title: Text(api.username ?? '访客'),
-                subtitle: Text(api.origin!.host),
+                subtitle: api.origin == null ? null : Text(api.origin!.host),
               ),
-              if (api.signedIn) ...[
+              if (api.origin == null)
+                button('连接社区服务', configure)
+              else if (api.signedIn) ...[
                 if (guestHistory) button('迁入本机访客记录', migrate),
                 button('退出账户', () async {
                   await model.logout();
-                  await switchTab('账户');
+                  await load();
                 }),
               ] else
                 button('登录 / 注册', () async {
                   if (await login()) await load();
                 }),
-            ] else if (tab == '我的角色') ...[
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: const Text('本机数据管理'),
+                onTap: busy
+                    ? null
+                    : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => DataManagementPage(
+                            database: model.database,
+                            ownerId: api.owner ?? localOwnerId,
+                          ),
+                        ),
+                      ),
+              ),
+            ] else if (api.origin == null)
+              button('连接社区服务', configure)
+            else if (post != null)
+              ...detail()
+            else if (widget.section == AppSection.roles) ...[
               if (!api.signedIn)
                 button('登录后查看角色库', () async {
                   if (await login()) await load();
@@ -458,7 +486,7 @@ class _CommunityPageState extends State<CommunityPage> {
               if (rows.isEmpty && !busy)
                 const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('还没有帖子。发布第一篇讨论，或到「我的角色」分享角色。'),
+                  child: Text('还没有帖子。发布第一篇讨论，或到「角色」分享角色。'),
                 ),
               for (final item in rows)
                 Card(

@@ -56,6 +56,12 @@ final class CharacterSelectionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSentDraft(PersonScope scope, String sent) {
+    if (_draftByScope[scope] != sent) return;
+    _draftByScope.remove(scope);
+    notifyListeners();
+  }
+
   void _requireOwnedCharacter(PersonScope scope) {
     if (scope.ownerId != ownerId ||
         !characters.any((character) => character.scope == scope)) {

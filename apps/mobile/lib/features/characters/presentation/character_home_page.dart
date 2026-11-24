@@ -15,15 +15,21 @@ class CharacterHomePage extends StatelessWidget {
     required this.controller,
     required this.database,
     this.gateway,
+    this.onOpen,
     super.key,
   });
 
   final CharacterSelectionController controller;
   final PersonDatabase database;
   final ModelGatewayAdapter? gateway;
+  final VoidCallback? onOpen;
 
   void _openTimeline(BuildContext context, PersonScope scope) {
     controller.selectCharacter(scope);
+    if (onOpen != null) {
+      onOpen!();
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => ContinuousChatPage(
@@ -40,29 +46,31 @@ class CharacterHomePage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFF151A29),
     appBar: AppBar(
-      title: const Text('人物主页'),
+      title: Text(onOpen == null ? '人物主页' : '角色'),
       backgroundColor: const Color(0xFF22283B),
       foregroundColor: Colors.white,
       actions: [
-        if (CommunityScope.of(context) case final community?)
+        if (CommunityScope.of(context) case final community?
+            when onOpen == null)
           IconButton(
             tooltip: '社区',
-            onPressed: community.open,
+            onPressed: () => community.open(AppSection.community),
             icon: const Icon(Icons.forum_outlined),
           ),
-        IconButton(
-          key: const ValueKey('data-management'),
-          tooltip: '我的 / 数据管理',
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => DataManagementPage(
-                database: database,
-                ownerId: controller.ownerId,
+        if (onOpen == null)
+          IconButton(
+            key: const ValueKey('data-management'),
+            tooltip: '我的 / 数据管理',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => DataManagementPage(
+                  database: database,
+                  ownerId: controller.ownerId,
+                ),
               ),
             ),
+            icon: const Icon(Icons.person_outline),
           ),
-          icon: const Icon(Icons.person_outline),
-        ),
       ],
     ),
     body: SafeArea(

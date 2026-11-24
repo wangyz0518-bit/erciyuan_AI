@@ -33,7 +33,6 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     with WidgetsBindingObserver {
   final input = TextEditingController();
   final focus = FocusNode();
-  final drafts = <String, String>{};
   bool textMode = false, menu = false, foreground = true;
   bool calling = false, muted = false, changingRole = false;
   bool panelOpen = false, toolsOpen = false;
@@ -63,7 +62,9 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     WidgetsBinding.instance.addObserver(this);
     chat.addListener(refresh);
     audio.addListener(refresh);
-    input.addListener(refresh);
+    input.text = chat.selection.draftFor(chat.character.scope);
+    if (input.text.isNotEmpty) textMode = true;
+    input.addListener(_inputChanged);
     if (chat.gateway?.useV3 == true) {
       final voice = ConversationController(
         chat.gateway!,
@@ -74,6 +75,13 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
       voice.addListener(chat.refreshConversation);
       unawaited(session?.load(chat.selected));
     }
+  }
+
+  void _inputChanged() {
+    if (!changingRole) {
+      chat.selection.updateDraft(chat.character.scope, input.text);
+    }
+    refresh();
   }
 
   void refresh() {
@@ -124,7 +132,6 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
   Future<void> switchRole(String id) async {
     if (changingRole || chat.switching || chat.selected == id) return;
     changingRole = true;
-    drafts[chat.selected] = input.text;
     focus.unfocus();
     endCall(closeSession: false);
     refresh();
@@ -132,7 +139,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
       await audio.stopAll();
       await chat.switchCharacter(id);
       if (!mounted) return;
-      input.text = drafts[id] ?? '';
+      input.text = chat.selection.draftFor(chat.character.scope);
       textMode = !chat.online && !chat.character.supportsLegacyGateway;
     } finally {
       changingRole = false;
@@ -142,7 +149,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
 
   Future<void> send() async {
     if (changingRole) return;
-    final text = input.text, role = chat.selected;
+    final text = input.text, scope = chat.character.scope;
     // Invalidate late speech synchronously, but reserve chat.busy immediately.
     // Waiting for the native player here creates a gap before submission starts.
     unawaited(audio.stopAll());
@@ -150,8 +157,8 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
       text,
       onSaved: () {
         if (!mounted) return;
-        if (chat.selected == role && input.text == text) input.clear();
-        if (drafts[role] == text) drafts.remove(role);
+        chat.selection.clearSentDraft(scope, text);
+        if (chat.character.scope == scope && input.text == text) input.clear();
       },
     );
   }
@@ -210,7 +217,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     if (!mounted) return;
     if (kind == 'community') {
       endCall();
-      CommunityScope.of(context)?.open();
+      CommunityScope.of(context)?.open(AppSection.community);
       panelOpen = false;
       return;
     }
@@ -273,7 +280,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
             subtitle: const Text('社区与账户'),
             onTap: () {
               Navigator.pop(sheetContext);
-              CommunityScope.of(context)?.open();
+              CommunityScope.of(context)?.open(AppSection.profile);
             },
           ),
         ],
@@ -425,7 +432,6 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
 
   Future<void> openTools() async {
     toolsOpen = true;
-    drafts[chat.selected] = input.text;
     await audio.stopAll();
     if (!mounted) return;
     await Navigator.of(context).push(
@@ -438,7 +444,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     );
     await audio.stopAll();
     if (!mounted) return;
-    input.text = drafts[chat.selected] ?? '';
+    input.text = chat.selection.draftFor(chat.character.scope);
     toolsOpen = false;
     refresh();
   }
