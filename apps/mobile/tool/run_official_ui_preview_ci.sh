@@ -33,45 +33,49 @@ timeout --signal=TERM --kill-after=10s 480s flutter build apk --debug
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 adb shell am force-stop dev.erciyuan.mobile || true
 adb shell am start -n dev.erciyuan.mobile/.MainActivity
-sleep 12
-adb shell pidof dev.erciyuan.mobile >/dev/null
-adb exec-out screencap -p > "$SCREENSHOTS/person-home.png"
-
-# Character count determines where the chat controls appear. Use the visible
-# chat arrow or continue button from Android's accessibility tree.
-adb shell uiautomator dump /sdcard/official-home.xml >/dev/null
-chat_target=$(adb exec-out cat /sdcard/official-home.xml | python -c '
+# Flutter exposes destination labels and page headings through Android semantics.
+# Wait for each actual screen before capturing it, including on slower runners.
+wait_label() {
+  local label="$1" position
+  for _ in {1..10}; do
+    if adb shell uiautomator dump /sdcard/official-screen.xml >/dev/null &&
+       position=$(adb exec-out cat /sdcard/official-screen.xml | python -c '
 import re, sys, xml.etree.ElementTree as ET
+target = sys.argv[1]
 for node in ET.parse(sys.stdin.buffer).iter("node"):
-    labels = (node.get(field, "") for field in ("content-desc", "text", "tooltip-text"))
-    if any(("进入" in s and "的聊天" in s) or ("继续与" in s and "对话" in s) for s in labels):
+    labels = [node.get(field, "") for field in ("content-desc", "text", "tooltip-text")]
+    if any(target in value.splitlines() for value in labels):
         left, top, right, bottom = map(int, re.findall(r"\d+", node.attrib["bounds"]))
         print((left + right) // 2, (top + bottom) // 2)
         break
 else:
-    sys.exit("No character chat button in the Android accessibility tree")
-')
-read -r chat_x chat_y <<< "$chat_target"
-adb shell input tap "$chat_x" "$chat_y"
-sleep 4
-adb shell pidof dev.erciyuan.mobile >/dev/null
+    sys.exit(1)
+' "$label"); then
+      echo "$position"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "Missing Android accessibility label: $label" >&2
+  return 1
+}
+
+tap_label() {
+  local position x y
+  position=$(wait_label "$1")
+  read -r x y <<< "$position"
+  adb shell input tap "$x" "$y"
+}
+
+wait_label '切换人物' >/dev/null
 adb exec-out screencap -p > "$SCREENSHOTS/continuous-chat.png"
-
-if cmp -s "$SCREENSHOTS/person-home.png" "$SCREENSHOTS/continuous-chat.png"; then
-  echo "ERROR: Chat screenshot matches the home image; navigation did not occur." >&2
-  exit 1
-fi
-
-adb shell input keyevent KEYCODE_BACK
-sleep 2
-adb shell input tap 350 55
-sleep 3
+tap_label '角色'
+wait_label '今天想和谁聊聊？' >/dev/null
+adb exec-out screencap -p > "$SCREENSHOTS/person-home.png"
+tap_label '我的'
+tap_label '本机数据管理'
+wait_label '导出全部人物数据' >/dev/null
 adb exec-out screencap -p > "$SCREENSHOTS/data-management.png"
-
-if cmp -s "$SCREENSHOTS/person-home.png" "$SCREENSHOTS/data-management.png"; then
-  echo "ERROR: Data management screenshot matches the home image." >&2
-  exit 1
-fi
 
 for file in "$SCREENSHOTS"/*.png; do
   test -s "$file"

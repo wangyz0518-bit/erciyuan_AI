@@ -34,9 +34,11 @@ class ContinuousChatPage extends StatefulWidget {
     this.gateway,
     this.audioSession,
     this.voiceAssist,
+    this.embedded = false,
     super.key,
   });
 
+  final bool embedded;
   final CharacterSelectionController selection;
   final PersonDatabase database;
   final PersonScope scope;
@@ -175,6 +177,7 @@ class _ContinuousChatPageState extends State<ContinuousChatPage>
     widget.selection.selectCharacter(scope);
     unawaited(_audio.discard());
     unawaited(_voice.stopAll());
+    if (widget.embedded) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => ContinuousChatPage(

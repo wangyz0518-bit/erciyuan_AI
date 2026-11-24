@@ -11,7 +11,7 @@
 | [research/](research/README.md) | 调研、选型和技术评估；结论不自动构成决策 |
 | [decisions/](decisions/README.md) | 已提出或已确认的架构、技术决策（ADR） |
 | [guides/](guides/README.md) | 环境配置、开发和排障指南，含 [iOS 正式 App 的 v3 语音安装指南](guides/ios-personal-team.md) |
-| [账户、社区与角色分享](guides/community.md) | 多用户网关、角色链接导入及双账户验证 |
+| [账户、社区与角色分享](guides/community.md) | 正式 App 四个一级入口、多用户网关、角色链接导入及双账户验证 |
 | [正式 App 角色接入与验收](guides/character-onboarding.md) | 新增角色时使用的会话、动作素材和取景检查表 |
 | [reports/](reports/README.md) | 特定版本或环境下的验证记录与测试证据 |
 | [接口/](接口/README.md) | 接口契约草案及约定 |

@@ -60,12 +60,27 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
         await waitFor(finder);
         await tester.ensureVisible(finder.first);
+        await waitFor(finder.first.hitTestable());
         await tester.tap(finder.first);
         await tester.pump(const Duration(milliseconds: 450));
       }
 
+      Finder nav(String section) => find.byKey(ValueKey('nav-$section'));
       await app.main();
-      await tap(find.byTooltip('社区'));
+      await waitFor(find.byKey(const ValueKey('character-draft')));
+      for (final section in ['companion', 'roles', 'community', 'profile']) {
+        expect(nav(section), findsOneWidget);
+      }
+      await tap(nav('roles'));
+      await tap(find.byKey(const ValueKey('character-moon')));
+      await tap(find.byKey(const ValueKey('continue-timeline')));
+      await waitFor(find.text('小月'));
+      await tap(nav('profile'));
+      await tap(find.text('本机数据管理'));
+      await waitFor(find.text('导出全部人物数据'));
+      await tester.pageBack();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tap(nav('community'));
       await tap(find.byTooltip('打开分享链接'));
       await tester.enterText(
         find.byType(EditableText).last,
@@ -106,8 +121,21 @@ void main() {
       }
       expect(turns.last['prompt'], '新账户的第一条消息');
       expect(turns.last['state'], 'complete');
-      await tap(find.byKey(const Key('open-menu')));
-      await tap(find.byKey(const Key('menu-community')));
+      await tester.enterText(
+        find.byKey(const Key('message-input')),
+        '切换入口后保留的草稿',
+      );
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tap(nav('roles'));
+      await waitFor(find.text(card['name']));
+      await tap(nav('companion'));
+      await waitFor(find.byKey(const Key('character-name')));
+      if (find.byKey(const Key('text-mode')).evaluate().isNotEmpty) {
+        await tap(find.byKey(const Key('text-mode')));
+      }
+      expect(find.text('切换入口后保留的草稿'), findsOneWidget);
+      await tap(nav('community'));
       await tap(find.text(card['name']));
       await tap(find.text('写评论'));
       await tester.enterText(find.byType(EditableText).last, '已导入，谢谢分享');
@@ -118,7 +146,27 @@ void main() {
             .single['username'],
         'b$suffix',
       );
-      await tap(find.text('账户'));
+      await tap(nav('profile'));
+      await tap(find.text('退出账户'));
+      await waitFor(find.text('登录 / 注册'));
+      await tap(nav('roles'));
+      await waitFor(find.byKey(const ValueKey('character-star')));
+      expect(find.text(card['name']), findsNothing);
+      await tap(nav('profile'));
+      await tap(find.text('登录 / 注册'));
+      await tester.enterText(fields.at(0), 'a$suffix');
+      await tester.enterText(fields.at(1), password);
+      await tap(find.text('登录'));
+      await waitFor(find.text('退出账户').hitTestable());
+      expect(
+        find.byWidgetPredicate((w) => w is Text && w.data == 'a$suffix'),
+        findsOneWidget,
+      );
+      await tap(nav('companion'));
+      await waitFor(find.byKey(const Key('character-name')));
+      expect(find.text('新账户的第一条消息'), findsNothing);
+      expect(find.text('切换入口后保留的草稿'), findsNothing);
+      await tap(nav('profile'));
       await tap(find.text('退出账户'));
       await waitFor(find.text('登录 / 注册'));
       await reader.request('POST', '/community/logout');
