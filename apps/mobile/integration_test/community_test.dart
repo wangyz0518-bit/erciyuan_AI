@@ -83,9 +83,18 @@ void main() {
       final result = find.byKey(ValueKey("community-post-${post['id']}"));
       Future<void> search(String value) async {
         final field = find.byKey(const ValueKey('community-search'));
-        await waitFor(field);
-        await tester.enterText(field, value);
+        final ready = find.descendant(
+          of: field,
+          matching: find.byWidgetPredicate(
+            (w) => w is EditableText && !w.readOnly,
+          ),
+        );
+        await waitFor(ready);
+        await tester.enterText(ready, value);
+        expect(tester.widget<EditableText>(ready).controller.text, value);
         await tap(find.byTooltip('搜索'));
+        await waitFor(find.text('清除搜索「$value」'));
+        await waitFor(ready);
       }
 
       Future<void> previewLink() async {
