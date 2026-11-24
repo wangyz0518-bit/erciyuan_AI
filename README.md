@@ -1,6 +1,10 @@
 # 二次元 AI 陪伴软件 · erciyuan_AI
 
-面向手机使用的 AI 陪伴产品，计划支持角色形象、声音和性格定制，以及文字、语音交流和简单表情表现。
+面向手机使用的 AI 陪伴产品，支持角色对话、动态形象、角色分享与社区交流。
+
+**[项目进展报告（2026-11-24 · PDF）](docs/reports/project-status-20261124.pdf)**
+
+前 3 页概述系统架构、功能模块和实现效果，后 5 页记录里程碑、技术细节、验收结果和待办。
 
 ## 已确认方向
 
@@ -16,9 +20,9 @@
 
 ## 移动端工程
 
-Flutter 工程位于 [apps/mobile_poc/](apps/mobile_poc/README.md)。当前是本地能力验证基线，包含 Android/iOS 工程目录、聊天/角色/录音播放 PoC 和自动化测试；真实 AI 服务尚未接入。
+正式 Flutter App 位于 [apps/mobile/](apps/mobile/README.md)，提供「陪伴、角色、社区、我的」四个入口。默认可离线体验，配置网关后支持在线文字、按住说话和连续通话。每个角色使用独立的 SQLite 时间线。
 
-开发环境、命令和验证边界见 [Flutter 开发与验证指南](docs/guides/flutter-poc-guide-20261112.md)。Android 模拟器的历史验证结果见 [Android PoC 报告](docs/reports/android-poc-report-20261112.md)。
+多用户账户、角色导入和独立运营网页由 [模型网关](services/model_gateway/README.md) 提供，试用和后台配置见 [社区与运营指南](docs/guides/community.md)。早期验证工程和历史记录见 [Flutter PoC](apps/mobile_poc/README.md) 与 [Android PoC 报告](docs/reports/android-poc-report-20261112.md)。
 
 ## 获取项目
 
@@ -27,11 +31,14 @@ git clone https://github.com/wangyz0518-bit/erciyuan_AI.git
 cd erciyuan_AI
 ```
 
-按 Flutter 指南安装对应版本的 Flutter SDK 和 Android 工具链，再进入 `apps/mobile_poc/` 执行依赖安装、检查和构建。
+按 [正式 App 构建说明](apps/mobile/README.md) 安装 Flutter 和平台工具链，再进入 `apps/mobile/` 执行依赖安装、检查和构建。iPhone 安装见 [iOS 开发安装指南](docs/guides/ios-personal-team.md)。
 
 ## 目录
 
-- `apps/mobile_poc/`：Flutter 移动端本地能力验证工程。
+- `apps/mobile/`：正式 Android/iOS Flutter App。
+- `apps/windows_conversation_lab/`：Windows 连续语音对照客户端。
+- `services/model_gateway/`：模型与语音网关、社区账户和运营后台。
+- `apps/mobile_poc/`：早期移动端验证工程。
 - `AGENTS.md`：项目约束与 AI 协作要求。
 - `CONTRIBUTING.md`：开放协作的基本原则。
 - `plan/`：当前产品计划及必要的跨任务协作计划。
