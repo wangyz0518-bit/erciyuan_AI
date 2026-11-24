@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>运营管理 · 二次元 AI</title>
+  <link rel="stylesheet" href="/ops/assets/console.css">
+  <script type="module" src="/ops/assets/console.js"></script>
+</head>
+<body>
+  <main id="gate">
+    <form id="login" class="login-card">
+      <div class="brand"><span class="mark" aria-hidden="true">✦</span> 二次元 AI</div>
+      <h1>运营管理</h1><p>使用已获授权的社区账户登录。</p>
+      <label>用户名<input name="username" autocomplete="username" required maxlength="32"></label>
+      <label>密码<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
+      <p id="login-error" class="error" role="alert"></p>
+      <button class="primary" type="submit">登录后台</button>
+    </form>
+  </main>
+  <div id="workspace" hidden>
+    <aside>
+      <div class="brand"><span class="mark" aria-hidden="true">✦</span> 二次元 AI</div>
+      <nav aria-label="运营导航">
+        <button data-page="overview" aria-current="page">工作概览</button>
+        <button data-page="reports">社区举报</button>
+        <button data-page="feedback">用户反馈</button>
+      </nav>
+      <div class="account"><span id="identity"></span><button id="logout">退出</button></div>
+    </aside>
+    <main class="work">
+      <header><h1 id="page-title">工作概览</h1><button id="refresh">刷新</button></header>
+      <p id="notice" role="status" aria-live="polite"></p>
+      <section id="overview">
+        <div class="queue-cards">
+          <button data-open="reports"><span>待处理举报</span><strong id="pending-reports">—</strong><small>查看举报 →</small></button>
+          <button data-open="feedback"><span>待回复反馈</span><strong id="pending-feedback">—</strong><small>查看反馈 →</small></button>
+        </div>
+        <article class="panel"><div class="section-head"><h2>对话用量</h2>
+          <label class="compact">统计周期<select id="days"><option value="7">近 7 天</option><option value="30">近 30 天</option></select></label>
+        </div>
+        <div class="usage-summary"><div>文字轮数<strong id="text-total">—</strong></div><div>语音轮数<strong id="voice-total">—</strong></div></div>
+        <p class="note">按 UTC 日期汇总已登录账户的 v3 对话轮数，语音包含按住说话和连续通话。</p>
+        <table><thead><tr><th>日期</th><th>文字</th><th>语音</th><th>合计</th></tr></thead><tbody id="daily"></tbody></table>
+        </article>
+      </section>
+      <section id="queue" hidden>
+        <div class="section-head"><label class="compact">处理状态<select id="status"><option value="open">待处理</option><option value="closed">已处理</option></select></label></div>
+        <div id="tickets"></div><button id="more" hidden>加载更多</button>
+      </section>
+    </main>
+  </div>
+  <dialog id="resolution"><form id="resolve">
+    <h2 id="resolve-title"></h2><div id="case-detail"></div>
+    <label id="action-label">处理方式<select id="action"></select></label>
+    <label>给提交人的回复<textarea id="reply" rows="3" required maxlength="1000"></textarea></label>
+    <p id="resolve-error" class="error" role="alert"></p>
+    <footer><button type="button" id="cancel">取消</button><button type="submit" class="primary">确认处理</button></footer>
+  </form></dialog>
+</body></html>

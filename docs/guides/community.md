@@ -35,9 +35,24 @@
 - Android 构建时设置 Gradle 属性 `communityShareHost`（可使用环境变量 `ORG_GRADLE_PROJECT_communityShareHost`）。服务端设置 `COMMUNITY_ANDROID_CERT_SHA256` 为实际安装包签名证书的 SHA-256 指纹，带冒号。关联文件位于 `/.well-known/assetlinks.json`。
 - iOS 使用具有 Associated Domains 权限的签名配置，将 Runner 的 `CODE_SIGN_ENTITLEMENTS` 设为 `Runner/CommunityLinks.entitlements`，构建设置 `COMMUNITY_SHARE_HOST` 为实际域名。服务端设置 `COMMUNITY_IOS_TEAM_ID`。关联文件位于 `/.well-known/apple-app-site-association`。一般本地构建使用 `Runner/Runner.entitlements`。
 
+## 独立运营后台
+
+启用社区网关后，在浏览器打开该网关的 `/ops/`。本机沿用上面的示例端口时是 `http://127.0.0.1:18946/ops/`。部署到自己的域名时通过 HTTPS 将 `/ops/`（含静态资源和 API）与 `/community/` 转发给同一个网关。手机端的四个一级入口保持原有结构。
+
+1. 先让运营人员注册一个社区账户。在网关机器上，通过可信渠道核对运营人员身份，再从该实例的社区数据库读取账户 ID。示例沿用上文的工作目录和数据目录，末尾参数替换为实际用户名。
+
+   ```powershell
+   python -c "import sqlite3,sys; db=sqlite3.connect('file:.model-local/community/community.sqlite?mode=ro',uri=True); print(db.execute('SELECT id FROM accounts WHERE login=?',(sys.argv[1].strip().casefold(),)).fetchone()[0])" "已核实的用户名"
+   ```
+
+2. 在网关启动环境设置 `COMMUNITY_ADMIN_IDS`，值为已核实的账户 ID，多个 ID 用英文逗号分隔，然后重启网关。默认没有管理员。移除对应 ID 并重启后，已登录的网页在下一次请求时也会失去管理权限。
+3. 运营人员用该账户登录网页，可查看举报和反馈队列。处理举报可选择下架或驳回，处理反馈可直接回复。处理记录包含经办人、时间和给提交人的回复。下架角色分享会同时关闭公开链接和新导入，已导入的角色仍归各自账户。
+4. 普通用户可在帖子详情举报帖子或评论，在「我的 → 反馈与处理记录」提交建议并查看自己的处理结果。
+5. 工作概览按 UTC 日期统计已登录账户近 7 天或 30 天的 v3 文字、按住说话和连续通话轮数。一次已建立的轮次计一次，包含中断或失败的轮次。统计用于观察使用量；供应商 token 和费用另行核算。
+
 ## 验证
 
-在网关环境运行 `python -m pytest tests/test_community.py tests/test_conversations.py`。启动独立模拟网关后，在专用 Android 模拟器的 Flutter 工程运行以下命令。此用例会注册临时测试账户。
+在网关环境运行 `python -m pytest tests/test_community.py tests/test_operations.py tests/test_conversations.py`。启动独立模拟网关后，在专用 Android 模拟器的 Flutter 工程运行以下命令。此用例会注册临时测试账户。
 
 ```powershell
 flutter test integration_test/community_test.dart -d <设备ID> --dart-define=COMMUNITY_GATEWAY_URL=http://127.0.0.1:18946
