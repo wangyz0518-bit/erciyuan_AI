@@ -1,6 +1,6 @@
 # 本机声音网关
 
-[账户、社区与角色分享指南](../../docs/guides/community.md) 说明如何启用账户服务、配置公开音色并验证双账户隔离。
+[账户、社区与角色分享指南](../../docs/guides/community.md) 说明如何启用账户服务、配置公开音色、验证双账户隔离和启用独立运营后台（`/ops/`）。
 
 手机沉浸聊天页使用Windows 测试版的 v3 会话实现。三种输入共享同一人物的上下文，文字由 DeepSeek 生成，按住说话和连续通话由 Qwen 实时转写，角色回复使用已绑定的 CosyVoice 克隆音色。协议及旧版接口见[原工程的 v3 契约](../../docs/接口/model-gateway-conversation-v3.md)。
 

@@ -1,0 +1,371 @@
+:root {
+  color-scheme: light;
+  font: 16px/1.55 "Inter","Microsoft YaHei",system-ui,sans-serif;
+  color: #282539;
+  background: #f7f6fa;
+  --purple: #62439b;
+  --edge: #dedce6;
+  --muted: #645f72;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+[hidden] {
+  display: none!important;
+}
+
+button,input,textarea,select {
+  font: inherit;
+}
+
+button,select {
+  cursor: pointer;
+}
+
+button,input,textarea,select {
+  border: 1px solid var(--edge);
+  border-radius: .55rem;
+  background: white;
+  color: inherit;
+  padding: .52rem .85rem;
+}
+
+button:hover {
+  border-color: #9677bb;
+  background: #f4effa;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+:focus-visible {
+  outline: 3px solid #977ac8;
+  outline-offset: 2px;
+}
+
+.primary {
+  background: var(--purple);
+  border-color: var(--purple);
+  color: white;
+  font-weight: 650;
+}
+
+.primary:hover {
+  background: #503281;
+}
+
+label {
+  display: grid;
+  gap: .42rem;
+  font-size: .92rem;
+  font-weight: 600;
+}
+
+h1,h2,h3,p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.65rem,3vw,2.5rem);
+  letter-spacing: -.045em;
+}
+
+h2 {
+  font-size: 1.22rem;
+}
+
+h3 {
+  font-size: 1rem;
+}
+
+#gate {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: linear-gradient(125deg,#eeebf4,#faf8f4);
+}
+
+.login-card,.panel,.ticket,dialog {
+  background: white;
+  border: 1px solid var(--edge);
+  border-radius: 1rem;
+}
+
+.login-card {
+  width: min(100%,27rem);
+  padding: 2.4rem;
+  box-shadow: 0 16px 45px #352d4810;
+  display: grid;
+  gap: 1rem;
+}
+
+.login-card h1 {
+  margin-top: .55rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: .65rem;
+  background: var(--purple);
+  color: white;
+  font-size: 1.4rem;
+}
+
+#workspace {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 14rem minmax(0,1fr);
+}
+
+aside {
+  display: flex;
+  flex-direction: column;
+  gap: 2.3rem;
+  padding: 2rem 1.3rem;
+  background: #2d263b;
+  color: #fff;
+}
+
+aside .mark {
+  background: #c8b7e4;
+  color: #342845;
+}
+
+nav {
+  display: grid;
+  gap: .35rem;
+}
+
+nav button,.account button {
+  color: #eae3f5;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+nav button[aria-current="page"],nav button:hover,.account button:hover {
+  color: #fff;
+  background: #463951;
+}
+
+.account {
+  margin-top: auto;
+  border-top: 1px solid #5a4c61;
+  padding-top: .9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+
+.work {
+  width: 100%;
+  max-width: 82rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem,4vw,3.5rem);
+}
+
+header,.section-head,footer,.ticket-head,.ticket-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: .8rem;
+  align-items: center;
+}
+
+header {
+  margin-bottom: 1.2rem;
+}
+
+#notice:not(:empty),.error:not(:empty) {
+  margin: .7rem 0;
+  color: #7b3929;
+}
+
+.queue-cards,.usage-summary {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 1rem;
+}
+
+.queue-cards {
+  margin: 1.3rem 0;
+}
+
+.queue-cards button {
+  display: grid;
+  gap: .35rem;
+  padding: 1.2rem 1.45rem;
+  border-radius: .85rem;
+  text-align: left;
+  background: #efe9f8;
+}
+
+.queue-cards button:nth-child(2) {
+  background: #eaf1ed;
+}
+
+.queue-cards strong,.usage-summary strong {
+  display: block;
+  font: 600 2rem/1.3 "Inter",system-ui,sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-cards small {
+  color: #514561;
+}
+
+.panel,.ticket {
+  padding: 1.3rem;
+  margin-bottom: .9rem;
+}
+
+.section-head {
+  margin-bottom: 1.1rem;
+}
+
+.compact {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
+.usage-summary {
+  padding: .8rem 0;
+  border-block: 1px solid var(--edge);
+}
+
+.note,.meta,.empty,.login-card p {
+  color: var(--muted);
+}
+
+.note {
+  font-size: .83rem;
+  margin: .8rem 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+td,th {
+  padding: .6rem .4rem;
+  border-bottom: 1px solid var(--edge);
+  text-align: right;
+}
+
+td:first-child,th:first-child {
+  text-align: left;
+}
+
+th,.meta {
+  font-size: .83rem;
+}
+
+.badge {
+  padding: .15rem .55rem;
+  background: #eee7f6;
+  color: #57406e;
+  border-radius: .4rem;
+  font-size: .83rem;
+}
+
+.ticket p,.evidence {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ticket p {
+  margin: .8rem 0;
+}
+
+.ticket-foot {
+  justify-content: flex-end;
+}
+
+.evidence {
+  background: #f6f4f8;
+  border-left: 3px solid #c5b6d8;
+  margin: .7rem 0;
+  padding: .8rem;
+}
+
+.empty {
+  padding: 2rem;
+  border: 1px dashed var(--edge);
+  text-align: center;
+  border-radius: .75rem;
+}
+
+dialog {
+  width: min(33rem,94vw);
+  padding: 1.5rem;
+  max-height: 85dvh;
+  color: inherit;
+}
+
+dialog::backdrop {
+  background: #21182b80;
+}
+
+dialog form {
+  display: grid;
+  gap: .8rem;
+}
+
+footer {
+  justify-content: flex-end;
+}
+
+@media(max-width:720px) {
+  #workspace {
+    display: block;
+  }
+  aside {
+    padding: .8rem 1rem;
+    gap: .6rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+  .account {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  nav {
+    grid-column: 1/-1;
+    grid-row: 2;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .queue-cards button,.panel,.ticket {
+    padding: 1rem;
+  }
+  .work {
+    padding: 1rem;
+  }
+  .section-head {
+    flex-wrap: wrap;
+  }
+}

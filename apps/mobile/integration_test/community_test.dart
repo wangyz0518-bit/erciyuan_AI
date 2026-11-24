@@ -146,7 +146,19 @@ void main() {
             .single['username'],
         'b$suffix',
       );
+      await tap(find.text('举报帖子'));
+      await tester.enterText(find.byType(EditableText).last, '请审核人设说明');
+      await tap(find.text('提交举报'));
       await tap(nav('profile'));
+      await tap(find.text('反馈与处理记录'));
+      await waitFor(find.text('请审核人设说明'));
+      await tap(find.text('提交反馈'));
+      await tester.enterText(find.byType(EditableText).last, '建议增加角色标签');
+      await tap(find.text('提交'));
+      await waitFor(find.text('建议增加角色标签'));
+      expect((await author.items('/community/tickets')), isEmpty);
+      await tester.pageBack();
+      await tester.pump(const Duration(milliseconds: 400));
       await tap(find.text('退出账户'));
       await waitFor(find.text('登录 / 注册'));
       await tap(nav('roles'));

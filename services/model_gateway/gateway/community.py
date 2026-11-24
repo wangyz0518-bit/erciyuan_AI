@@ -16,6 +16,7 @@ from fastapi import Depends, Header, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import operations
 from .providers import PERSONAS
 
 PRESETS = {'default': '默认', 'bright': '明快'}
@@ -95,6 +96,7 @@ class Community:
                 author TEXT NOT NULL REFERENCES accounts(id), body TEXT, parent INTEGER, created INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS comments_by_post ON comments(post,id);
         """)
+        operations.initialize(self.db)
 
     def user(self, token):
         if not isinstance(token, str) or len(token) != 64:
@@ -110,7 +112,7 @@ class Community:
         return dict(row)
 
     def post(self, *, pid=None, share=None):
-        row = self.db.execute('''SELECT p.*,a.username FROM posts p JOIN accounts a ON p.author=a.id
+        row = self.db.execute('''SELECT p.*,a.username FROM visible_posts p JOIN accounts a ON p.author=a.id
             WHERE p.id=? OR p.share=?''', (pid, share)).fetchone()
         if not row:
             raise HTTPException(404, 'POST_NOT_FOUND')
@@ -149,6 +151,8 @@ def register(app, store):
         if not user:
             raise HTTPException(401, 'LOGIN_REQUIRED')
         return user
+
+    operations.register(app, store, account)
 
     @app.post('/community/register', status_code=201)
     async def signup(data: Credentials, request: Request):
@@ -238,7 +242,7 @@ def register(app, store):
 
     @app.get('/community/posts')
     async def feed(before: int | None = Query(None, ge=1)):
-        rows = db.execute('''SELECT p.*,a.username FROM posts p JOIN accounts a ON p.author=a.id
+        rows = db.execute('''SELECT p.*,a.username FROM visible_posts p JOIN accounts a ON p.author=a.id
             WHERE (? IS NULL OR p.id<?) ORDER BY p.id DESC LIMIT 30''', (before, before))
         return {'items': [store.public(r) for r in rows]}
 
@@ -264,7 +268,7 @@ def register(app, store):
     @app.get('/community/posts/{pid}/comments')
     async def comments(pid: int, after: int = Query(0, ge=0)):
         store.post(pid=pid)
-        rows = db.execute('''SELECT c.id,c.body,c.parent,c.created,a.username FROM comments c
+        rows = db.execute('''SELECT c.id,c.body,c.parent,c.created,a.username FROM visible_comments c
             JOIN accounts a ON a.id=c.author WHERE c.post=? AND c.id>? ORDER BY c.id LIMIT 50''', (pid, after))
         return {'items': [dict(row) for row in rows]}
 
@@ -272,7 +276,7 @@ def register(app, store):
     async def comment(pid: int, data: Comment, user=Depends(account)):
         store.post(pid=pid)
         with db:
-            if data.parent_id and not db.execute('SELECT 1 FROM comments WHERE post=? AND id=? AND body IS NOT NULL',
+            if data.parent_id and not db.execute('SELECT 1 FROM visible_comments WHERE post=? AND id=? AND body IS NOT NULL',
                                                   (pid, data.parent_id)).fetchone():
                 raise HTTPException(404, 'COMMENT_NOT_FOUND')
             cid = db.execute('INSERT INTO comments(post,author,body,parent,created) VALUES (?,?,?,?,?)',
@@ -295,7 +299,7 @@ def register(app, store):
     async def import_role(share: str, user=Depends(account)):
         with db:
             db.execute('''INSERT INTO library(owner,id,card,source)
-                SELECT ?,?,snapshot,share FROM posts WHERE share=?
+                SELECT ?,?,snapshot,share FROM visible_posts WHERE share=?
                 ON CONFLICT(owner,source) DO NOTHING''', (user['id'], new_id(), share))
             store.post(share=share)
             row = db.execute('SELECT id,card FROM library WHERE owner=? AND source=?', (user['id'], share)).fetchone()

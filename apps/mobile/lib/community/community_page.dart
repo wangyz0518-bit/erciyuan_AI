@@ -7,6 +7,7 @@ import 'community_scope.dart';
 import 'community_api.dart';
 import 'community_controller.dart';
 import 'community_forms.dart';
+import 'support_page.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage(
@@ -281,6 +282,33 @@ class _CommunityPageState extends State<CommunityPage> {
     await load();
   }
 
+  Future<void> report([Json? comment]) async {
+    if (!await login() || !mounted) return;
+    final reason = await communityText(
+      context,
+      comment == null ? '举报帖子' : '举报评论',
+      '举报原因',
+      limit: 1000,
+      action: '提交举报',
+    );
+    if (reason == null || !mounted) return;
+    await api.request('POST', '/community/reports', {
+      'post_id': post!['id'],
+      if (comment != null) 'comment_id': comment['id'],
+      'message': reason,
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('举报已提交，可在「我的」查看处理记录')));
+    }
+  }
+
+  Future<void> openSupport() async {
+    if (!await login() || !mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => SupportPage(model)));
+  }
+
   Future<void> migrate() async {
     final yes = await showDialog<bool>(
       context: context,
@@ -333,7 +361,10 @@ class _CommunityPageState extends State<CommunityPage> {
           }
         }),
       ],
-      if (item['username'] == api.username) button('删除帖子', () => remove()),
+      if (item['username'] == api.username)
+        button('删除帖子', () => remove())
+      else
+        button('举报帖子', () => report()),
       const Divider(),
       Row(
         children: [
@@ -365,6 +396,12 @@ class _CommunityPageState extends State<CommunityPage> {
                         tooltip: '删除评论',
                         onPressed: busy ? null : () => run(() => remove(row)),
                         icon: const Icon(Icons.delete_outline),
+                      )
+                    else
+                      IconButton(
+                        tooltip: '举报评论',
+                        onPressed: busy ? null : () => run(() => report(row)),
+                        icon: const Icon(Icons.flag_outlined),
                       ),
                   ],
                 ),
@@ -431,6 +468,12 @@ class _CommunityPageState extends State<CommunityPage> {
                 button('登录 / 注册', () async {
                   if (await login()) await load();
                 }),
+              if (api.origin != null)
+                ListTile(
+                  leading: const Icon(Icons.feedback_outlined),
+                  title: const Text('反馈与处理记录'),
+                  onTap: busy ? null : () => run(openSupport),
+                ),
               ListTile(
                 leading: const Icon(Icons.folder_outlined),
                 title: const Text('本机数据管理'),

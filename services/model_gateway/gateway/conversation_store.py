@@ -28,6 +28,8 @@ class ConversationStore:
             self.db.execute("INSERT INTO conversation_turns SELECT '', * FROM legacy_turns ORDER BY rowid")
             self.db.execute('DROP TABLE legacy_turns')
         self.db.execute('CREATE INDEX IF NOT EXISTS turns_by_character ON conversation_turns(owner, character)')
+        self.db.execute("""CREATE INDEX IF NOT EXISTS account_turn_usage ON conversation_turns(created,kind)
+            WHERE owner<>''""")
         with self.db:
             self.db.execute("UPDATE conversation_turns SET state='interrupted',code='SERVER_RESTARTED' WHERE state='running'")
             self.db.execute("UPDATE conversation_turns SET audio_state='interrupted' WHERE audio_state IN ('waiting','streaming','awaiting_playback')")
@@ -98,6 +100,13 @@ class ConversationStore:
             result[0:0] = [{'role':'user','content':prompt}, {'role':'assistant','content':reply}]
             size += len(prompt)+len(reply)
         return result
+
+    def daily_account_usage(self, since, until):
+        rows = self.db.execute("""SELECT date(created,'unixepoch') AS day, count(*) AS total,
+            sum(kind='text') AS text, sum(kind IN ('hold','call')) AS voice
+            FROM conversation_turns WHERE owner<>'' AND created BETWEEN ? AND ?
+            GROUP BY day ORDER BY day""", (since, until))
+        return [dict(row) for row in rows]
 
     def close(self):
         self.db.close()
