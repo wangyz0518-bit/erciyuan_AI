@@ -8,8 +8,9 @@ import 'package:integration_test/integration_test.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   const endpoint = String.fromEnvironment('COMMUNITY_GATEWAY_URL');
+  const withOperator = bool.fromEnvironment('COMMUNITY_OPERATOR_E2E');
   testWidgets(
-    'guest previews a shared role, registers, imports, chats and comments',
+    'a guest finds and imports a shared role, chats, reports content and reads the operator replies',
     (tester) async {
       final guest = CommunityApi(CommunityApi.parseOrigin(endpoint));
       final suffix = DateTime.now().microsecondsSinceEpoch.toString();
@@ -23,6 +24,13 @@ void main() {
             throw error is CommunityError ? error.cause ?? error : error;
           });
       final author = CommunityApi(guest.origin, token: a['token']);
+      addTearDown(() => author.request('POST', '/community/logout'));
+      final other = await author.request('POST', '/community/posts', {
+        'body': '无关讨论$suffix',
+      });
+      addTearDown(
+        () => author.request('DELETE', "/community/posts/${other['id']}"),
+      );
       final card = await author.request('POST', '/community/characters', {
         'name': '海盐$suffix',
         'description': '来自海边',
@@ -34,9 +42,15 @@ void main() {
         'body': '一起听海',
         'character_id': card['id'],
       });
+      if (withOperator) {
+        await author.request(
+          'POST',
+          "/community/posts/${post['id']}/comments",
+          {'body': '供审核的测试评论'},
+        );
+      }
       addTearDown(() async {
         await author.request('DELETE', "/community/posts/${post['id']}");
-        await author.request('POST', '/community/logout');
       });
       Future<void> waitFor(Finder finder) async {
         final clock = Stopwatch()..start();
@@ -66,6 +80,32 @@ void main() {
       }
 
       Finder nav(String section) => find.byKey(ValueKey('nav-$section'));
+      final result = find.byKey(ValueKey("community-post-${post['id']}"));
+      Future<void> search(String value) async {
+        final field = find.byKey(const ValueKey('community-search'));
+        final ready = find.descendant(
+          of: field,
+          matching: find.byWidgetPredicate(
+            (w) => w is EditableText && !w.readOnly,
+          ),
+        );
+        await waitFor(ready);
+        await tester.enterText(ready, value);
+        expect(tester.widget<EditableText>(ready).controller.text, value);
+        await tap(find.byTooltip('搜索'));
+        await waitFor(find.text('清除搜索「$value」'));
+        await waitFor(ready);
+      }
+
+      Future<void> previewLink() async {
+        await tap(find.byTooltip('打开分享链接'));
+        await tester.enterText(
+          find.byType(EditableText).last,
+          '${guest.origin}/s/${post['share']}',
+        );
+        await tap(find.text('预览'));
+      }
+
       await app.main();
       await waitFor(find.byKey(const ValueKey('character-draft')));
       for (final section in ['companion', 'roles', 'community', 'profile']) {
@@ -81,12 +121,13 @@ void main() {
       await tester.pageBack();
       await tester.pump(const Duration(milliseconds: 400));
       await tap(nav('community'));
-      await tap(find.byTooltip('打开分享链接'));
-      await tester.enterText(
-        find.byType(EditableText).last,
-        '${guest.origin}/s/${post['share']}',
-      );
-      await tap(find.text('预览'));
+      await previewLink();
+      await waitFor(find.text('加入我的角色 / 开始聊天'));
+      await tester.pageBack();
+      await search(card['name'] as String);
+      await waitFor(result);
+      expect(find.text(other['body']), findsNothing);
+      await tap(result);
       await tap(find.text('加入我的角色 / 开始聊天'));
       await tap(find.text('创建新账户'));
       final fields = find.descendant(
@@ -136,16 +177,22 @@ void main() {
       }
       expect(find.text('切换入口后保留的草稿'), findsOneWidget);
       await tap(nav('community'));
-      await tap(find.text(card['name']));
+      await search('一起听海');
+      await tap(result);
       await tap(find.text('写评论'));
       await tester.enterText(find.byType(EditableText).last, '已导入，谢谢分享');
       await tap(find.text('发送'));
       await waitFor(find.text('已导入，谢谢分享'));
       expect(
         (await author.items("/community/posts/${post['id']}/comments"))
-            .single['username'],
+            .singleWhere((row) => row['body'] == '已导入，谢谢分享')['username'],
         'b$suffix',
       );
+      if (withOperator) {
+        await tap(find.byTooltip('举报评论'));
+        await tester.enterText(find.byType(EditableText).last, '请审核这条评论');
+        await tap(find.text('提交举报'));
+      }
       await tap(find.text('举报帖子'));
       await tester.enterText(find.byType(EditableText).last, '请审核人设说明');
       await tap(find.text('提交举报'));
@@ -155,10 +202,58 @@ void main() {
       await tap(find.text('提交反馈'));
       await tester.enterText(find.byType(EditableText).last, '建议增加角色标签');
       await tap(find.text('提交'));
-      await waitFor(find.text('建议增加角色标签'));
+      await waitFor(find.textContaining('建议增加角色标签'));
+      if (withOperator) {
+        final deadline = Stopwatch()..start();
+        List<Json> tickets;
+        do {
+          tickets = await reader.items('/community/tickets');
+          if (tickets.length == 3 && tickets.every((t) => t['reply'] != null)) {
+            break;
+          }
+          await tester.pump(const Duration(milliseconds: 350));
+        } while (deadline.elapsed < const Duration(seconds: 90));
+        expect(
+          tickets.map((t) => t['action']),
+          unorderedEquals(['hide', 'hide', 'reply']),
+        );
+        await tap(find.byTooltip('刷新'));
+        await waitFor(find.textContaining('运营回复：已下架测试分享'));
+        await waitFor(find.textContaining('运营回复：已下架测试评论'));
+        await waitFor(find.textContaining('运营回复：已收到角色标签建议'));
+      }
       expect((await author.items('/community/tickets')), isEmpty);
       await tester.pageBack();
       await tester.pump(const Duration(milliseconds: 400));
+      if (withOperator) {
+        await tap(nav('community'));
+        await search(card['name'] as String);
+        await waitFor(find.text('没有找到匹配的帖子或角色。'));
+        expect(result, findsNothing);
+        await tap(find.text("清除搜索「${card['name']}」"));
+        await waitFor(find.text(other['body']));
+        await previewLink();
+        await waitFor(find.text('帖子已删除、已下架或分享已撤回。'));
+        expect(find.text('加入我的角色 / 开始聊天'), findsNothing);
+        await waitFor(find.text(other['body']));
+        await expectLater(
+          reader.request('POST', "/community/shares/${post['share']}/import"),
+          throwsA(
+            isA<CommunityError>().having(
+              (e) => e.code,
+              'code',
+              'POST_NOT_FOUND',
+            ),
+          ),
+        );
+        await tap(nav('roles'));
+        await waitFor(find.text(card['name']));
+        expect(
+          (await reader.items('/v3/conversations/$importedId')).last['prompt'],
+          '新账户的第一条消息',
+        );
+        await tap(nav('profile'));
+      }
       await tap(find.text('退出账户'));
       await waitFor(find.text('登录 / 注册'));
       await tap(nav('roles'));
@@ -183,6 +278,6 @@ void main() {
       await waitFor(find.text('登录 / 注册'));
       await reader.request('POST', '/community/logout');
     },
-    skip: endpoint.isEmpty,
+    skip: endpoint.isEmpty && !withOperator,
   );
 }

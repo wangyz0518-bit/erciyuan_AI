@@ -16,10 +16,12 @@
 
 2. 先用 `adb -s <设备ID> reverse tcp:18946 tcp:18946` 转发端口，再从 `apps/mobile` 在 Android 模拟器运行 `flutter run -d <设备ID> --dart-define=COMMUNITY_GATEWAY_URL=http://127.0.0.1:18946`。正式社区构建只需服务地址。真机使用自己部署的 HTTPS 地址。未指定服务地址的独立安装可进入社区，选择「连接社区服务」输入地址。
 3. 注册账户 A，在「角色」创建或编辑角色，选择「分享」，核对公开角色卡，填写帖子并发布。从帖子详情复制链接。
-4. 退出 A，以访客身份在社区右上角粘贴链接。点「加入我的角色 / 开始聊天」，注册或登录账户 B。导入完成后会打开该角色的聊天页。回到社区可以在原帖评论、回复。
+4. 退出 A，以访客身份在社区搜索框输入帖子正文片段或公开角色名，点搜索图标或键盘搜索键，打开匹配的帖子。也可以在社区右上角粘贴分享链接。点「加入我的角色 / 开始聊天」，注册或登录账户 B。导入完成后会打开该角色的聊天页。回到社区可以在原帖评论、回复。
 5. 用 B 重复导入可打开同一角色。在另一台设备上登录 B，可以从「角色」找到它。A 删除帖子后，新访问者看到链接已撤回，B 仍可与已导入的角色聊天。
 
 ## 数据归属
+
+社区搜索接口 `GET /community/posts?q=关键词&before=帖子ID` 支持访客访问。搜索使用发帖时的公开角色名和帖子正文，匹配连续文字，英文字母忽略大小写。结果按帖子 ID 从新到旧排列，每页最多 30 条。翻页时携带同一关键词。「清除搜索」恢复全部公开帖子。撤回或下架的分享会从搜索结果中移除。
 
 - 服务端根据登录会话确定账户。密码以带独立随机盐的 scrypt 派生值保存，服务端仅保存会话令牌摘要，有效期 30 天。退出时先清除本机登录状态，再向服务端撤销会话。离线时会在下次启动或登录时重试撤销。
 - 每次发布保存一份独立的公开快照，包含名称、简介、人设、内置形象和公开音色预设。个人音色绑定、私人录音、聊天和记忆各自保存在原账户作用域。账户角色库、帖子和评论由服务端持久保存。
@@ -56,4 +58,13 @@
 
 ```powershell
 flutter test integration_test/community_test.dart -d <设备ID> --dart-define=COMMUNITY_GATEWAY_URL=http://127.0.0.1:18946
+```
+
+完整联调在 [Community search and moderation](../../.github/workflows/community-integration.yml) 工作流中运行。Android 模拟器通过 `10.0.2.2` 连接宿主机上的临时网关，浏览器在同一实例审核帖子、评论和反馈，App 刷新后检查运营回复、分享下架和角色保留。开发机复跑时，先启动专用 Android 模拟器，在 `apps/mobile` 运行 `flutter pub get`，然后从 `services/model_gateway` 执行下列命令。
+
+```powershell
+python -m pip install -r requirements.txt playwright==1.65.2
+python -m playwright install chromium
+$env:ANDROID_SERIAL = 'emulator-5554'  # 按 adb devices 的结果填写
+python -m pytest -q -s tests/android_community_e2e.py
 ```

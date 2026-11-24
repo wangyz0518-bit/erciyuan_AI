@@ -6,6 +6,8 @@
 
 前 3 页概述系统架构、功能模块和实现效果，后 5 页记录里程碑、技术细节、验收结果和待办。
 
+**2026-11-25 进展**　访客可在社区按帖子正文或公开角色名搜索，打开结果即可预览、登录并导入角色。Android App 与独立运营网页共用模拟网关，自动检查从导入聊天、评论举报到用户查看处理结果的完整流程。[试用与验证说明](docs/guides/community.md) · [联调运行记录](https://github.com/wangyz0518-bit/erciyuan_AI/actions/workflows/community-integration.yml)
+
 ## 已确认方向
 
 - 首版平台：**Android、iOS**；原生鸿蒙后续适配，见 [ADR-0002](docs/decisions/0002-three-platform-scope.md)。

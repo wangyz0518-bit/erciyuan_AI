@@ -241,9 +241,12 @@ def register(app, store):
         return await binding(cid, user)
 
     @app.get('/community/posts')
-    async def feed(before: int | None = Query(None, ge=1)):
+    async def feed(before: int | None = Query(None, ge=1), q: str = Query('', max_length=100)):
         rows = db.execute('''SELECT p.*,a.username FROM visible_posts p JOIN accounts a ON p.author=a.id
-            WHERE (? IS NULL OR p.id<?) ORDER BY p.id DESC LIMIT 30''', (before, before))
+            WHERE (:before IS NULL OR p.id < :before)
+              AND (:q = '' OR instr(lower(p.body), lower(:q)) > 0
+                   OR instr(lower(json_extract(p.snapshot, '$.name')), lower(:q)) > 0)
+            ORDER BY p.id DESC LIMIT 30''', {'before': before, 'q': q.strip()})
         return {'items': [store.public(r) for r in rows]}
 
     @app.post('/community/posts', status_code=201)

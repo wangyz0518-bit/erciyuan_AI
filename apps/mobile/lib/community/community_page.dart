@@ -29,6 +29,8 @@ class _CommunityPageState extends State<CommunityPage> {
   CommunityController get model => widget.model;
   CommunityApi get api => model.api;
   String error = '';
+  final searchField = TextEditingController();
+  String query = '';
   List<Json> rows = [], comments = [];
   bool busy = false, more = false, guestHistory = false;
   Json? post;
@@ -43,6 +45,33 @@ class _CommunityPageState extends State<CommunityPage> {
     run(load);
   }
 
+  @override
+  void dispose() {
+    searchField.dispose();
+    super.dispose();
+  }
+
+  Future<List<Json>> feed({int? before}) {
+    final params = {
+      if (query.isNotEmpty) 'q': query,
+      if (before != null) 'before': before.toString(),
+    };
+    return api.items(
+      Uri(
+        path: '/community/posts',
+        queryParameters: params.isEmpty ? null : params,
+      ).toString(),
+    );
+  }
+
+  Future<void> search() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    query = searchField.text.trim();
+    rows = [];
+    more = false;
+    await load();
+  }
+
   Future<void> run(Future<void> Function() task) async {
     if (busy) return;
     setState(() {
@@ -53,6 +82,23 @@ class _CommunityPageState extends State<CommunityPage> {
     try {
       await task();
     } on CommunityError catch (e) {
+      if (mounted &&
+          e.code == 'POST_NOT_FOUND' &&
+          widget.section == AppSection.community &&
+          previous == api) {
+        // A share may be withdrawn while its detail or a search result is open.
+        post = null;
+        pendingShare = null;
+        pendingPost = null;
+        rows = [];
+        comments = [];
+        more = false;
+        try {
+          await load();
+        } on CommunityError {
+          // The feed can be retried independently with the refresh button.
+        }
+      }
       if (e.code == 'LOGIN_REQUIRED' && previous.signedIn) {
         await model.expired(previous);
         if (mounted && widget.section == AppSection.roles) rows = [];
@@ -89,7 +135,7 @@ class _CommunityPageState extends State<CommunityPage> {
     } else if (widget.section == AppSection.profile) {
       guestHistory = await model.database.hasGuestHistory(localOwnerId);
     } else {
-      rows = await api.items('/community/posts');
+      rows = await feed();
       more = rows.length == 30;
     }
   }
@@ -109,9 +155,7 @@ class _CommunityPageState extends State<CommunityPage> {
       comments = [...comments, ...next];
       more = next.length == 50;
     } else {
-      final next = await api.items(
-        '/community/posts?before=${rows.last['id']}',
-      );
+      final next = await feed(before: rows.last['id'] as int);
       rows = [...rows, ...next];
       more = next.length == 30;
     }
@@ -525,15 +569,54 @@ class _CommunityPageState extends State<CommunityPage> {
                   ),
               ],
             ] else ...[
+              TextField(
+                key: const ValueKey('community-search'),
+                controller: searchField,
+                readOnly: busy,
+                textInputAction: TextInputAction.search,
+                inputFormatters: [LengthLimitingTextInputFormatter(100)],
+                onSubmitted: (_) => run(search),
+                decoration: InputDecoration(
+                  labelText: '搜索帖子或角色名',
+                  suffixIcon: IconButton(
+                    tooltip: '搜索',
+                    onPressed: busy ? null : () => run(search),
+                    icon: const Icon(Icons.search),
+                  ),
+                ),
+              ),
+              if (query.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => run(() async {
+                            searchField.clear();
+                            await search();
+                          }),
+                    icon: const Icon(Icons.close),
+                    label: Text(
+                      '清除搜索「$query」',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
               button('发布讨论', () => publish()),
-              if (rows.isEmpty && !busy)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('还没有帖子。发布第一篇讨论，或到「角色」分享角色。'),
+              if (rows.isEmpty && !busy && error.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    query.isEmpty
+                        ? '还没有帖子。发布第一篇讨论，或到「角色」分享角色。'
+                        : '没有找到匹配的帖子或角色。',
+                  ),
                 ),
               for (final item in rows)
                 Card(
                   child: ListTile(
+                    key: ValueKey("community-post-${item['id']}"),
                     leading: item['card'] == null
                         ? null
                         : RolePortrait(item['card']['avatar']),
@@ -543,7 +626,13 @@ class _CommunityPageState extends State<CommunityPage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      '${item['username']}${item['share'] == null ? '' : ' · 角色分享'}',
+                      [
+                        '${item['username']}${item['share'] == null ? '' : ' · 角色分享'}',
+                        if (query.isNotEmpty && item['card'] != null)
+                          item['body'],
+                      ].join('\n'),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: busy ? null : () => run(() => showPost(item)),
