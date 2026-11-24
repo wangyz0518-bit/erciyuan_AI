@@ -13,6 +13,8 @@ const localOwnerId = 'local-device-owner-v1';
 /// loaded from the database rather than recreated for each app launch.
 Future<CompanionApp> bootstrapCompanionApp({
   String ownerId = localOwnerId,
+  bool embedded = false,
+  String? selectedId,
   PersonDatabase? database,
   CompanionHomeBuilder? homeBuilder,
   Uri? gatewayUri,
@@ -25,18 +27,18 @@ Future<CompanionApp> bootstrapCompanionApp({
       );
   final existing = await store.charactersForOwner(ownerId);
   final starters = [
-    if (existing.isEmpty) ...[
+    if (!existing.any((c) => c.scope.characterId == 'star'))
       Character(
         scope: PersonScope(ownerId: ownerId, characterId: 'star'),
         name: '小星',
         description: '温柔而好奇的伙伴',
       ),
+    if (!existing.any((c) => c.scope.characterId == 'moon'))
       Character(
         scope: PersonScope(ownerId: ownerId, characterId: 'moon'),
         name: '小月',
         description: '善于倾听的伙伴',
       ),
-    ],
     if (!existing.any((c) => c.scope.characterId == sproutCharacterId))
       Character(
         scope: PersonScope(ownerId: ownerId, characterId: sproutCharacterId),
@@ -47,7 +49,11 @@ Future<CompanionApp> bootstrapCompanionApp({
   for (final character in starters) {
     await store.createCharacter(
       character: character,
-      timelineId: 'timeline-$ownerId-${character.scope.characterId}',
+      // A migrated guest timeline keeps its original ID. Re-seeding the guest
+      // on this device must allocate a fresh timeline for that same starter.
+      timelineId: ownerId == localOwnerId
+          ? 'timeline-$ownerId-${character.scope.characterId}-${DateTime.now().microsecondsSinceEpoch}'
+          : 'timeline-$ownerId-${character.scope.characterId}',
       baseIdentityJson: '{"source":"local-starter-character","version":1}',
       onlyIfMissing: true,
     );
@@ -68,13 +74,17 @@ Future<CompanionApp> bootstrapCompanionApp({
         );
 
   return CompanionApp(
+    embedded: embedded,
+    closeDatabaseOnDispose: !embedded,
     homeBuilder: homeBuilder,
     database: store,
     gateway: gateway,
     controller: CharacterSelectionController(
       ownerId: ownerId,
       catalog: _DatabaseCharacterCatalog(characters),
-      initialScope: await store.mostRecentCharacterForOwner(ownerId),
+      initialScope: selectedId == null
+          ? await store.mostRecentCharacterForOwner(ownerId)
+          : PersonScope(ownerId: ownerId, characterId: selectedId),
     ),
   );
 }

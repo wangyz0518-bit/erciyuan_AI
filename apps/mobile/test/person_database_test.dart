@@ -32,6 +32,55 @@ void main() {
     await temp.delete(recursive: true);
   });
 
+  test('claiming guest history preserves events without merging two private timelines', () async {
+    await store.createCharacter(
+      character: const Character(scope: star, name: '小星', description: '访客'),
+      timelineId: 'guest-history',
+      baseIdentityJson: '{"source":"guest"}',
+    );
+    await store.createCharacter(
+      character: const Character(
+        scope: outsider,
+        name: '小星',
+        description: '账户',
+      ),
+      timelineId: 'account-history',
+    );
+    await store.appendEvent(
+      scope: star,
+      eventId: 'same-id',
+      speaker: 'user',
+      content: '访客的旧记录',
+    );
+    await store.appendEvent(
+      scope: outsider,
+      eventId: 'same-id',
+      speaker: 'user',
+      content: '账户的旧记录',
+    );
+    await store.claimGuest(star.ownerId, outsider.ownerId);
+    await store.claimGuest(star.ownerId, outsider.ownerId);
+    final characters = await store.charactersForOwner(outsider.ownerId);
+    final copy = characters.singleWhere(
+      (role) => role.scope.characterId.startsWith('m-'),
+    );
+    expect(copy.appearance, 'star');
+    expect(await store.timelineIdFor(copy.scope), 'guest-history');
+    expect(await store.rawEventById(scope: star, eventId: 'same-id'), isNull);
+    expect(
+      (await store.rawEventById(
+        scope: copy.scope,
+        eventId: 'same-id',
+      ))!.content,
+      '访客的旧记录',
+    );
+    expect(
+      (await store.rawEventById(scope: outsider, eventId: 'same-id'))!.content,
+      '账户的旧记录',
+    );
+    expect(characters.length, 2);
+  });
+
   Future<void> seed() async {
     await store.createCharacter(
       character: const Character(scope: star, name: '小星', description: 'A'),

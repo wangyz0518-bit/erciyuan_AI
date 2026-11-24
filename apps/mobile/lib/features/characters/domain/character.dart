@@ -21,12 +21,16 @@ class Character {
     required this.scope,
     required this.name,
     required this.description,
+    this.avatar,
   });
 
   final PersonScope scope;
   final String name;
   final String description;
+  final String? avatar;
+  String get appearance => avatar ?? scope.characterId;
 
   // The older person gateway supports the original roles. V3 also serves 小芽.
-  bool get supportsLegacyGateway => scope.characterId != sproutCharacterId;
+  bool get supportsLegacyGateway =>
+      const {'star', 'moon'}.contains(scope.characterId);
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart' as sqflite;
@@ -14,7 +15,7 @@ import '../domain/raw_event.dart';
 final class PersonDatabase {
   PersonDatabase._(this._db, this._automaticSummarizer);
 
-  static const int schemaVersion = 4;
+  static const int schemaVersion = 5;
   final Database _db;
   final MemorySummarizer? _automaticSummarizer;
   Object? _lastArchiveError;
@@ -44,10 +45,18 @@ final class PersonDatabase {
         },
         onCreate: (database, version) async {
           await _createVersionOne(database);
+          await database.execute(
+            'ALTER TABLE characters ADD COLUMN avatar TEXT',
+          );
           await _createGenerationTasks(database);
           await PersonMemoryRepository.createSchema(database);
         },
         onUpgrade: (database, oldVersion, newVersion) async {
+          if (oldVersion < 5) {
+            await database.execute(
+              'ALTER TABLE characters ADD COLUMN avatar TEXT',
+            );
+          }
           if (oldVersion < 2) await _createGenerationTasks(database);
           if (oldVersion < 3) {
             await PersonMemoryRepository.createSchema(database);
@@ -194,6 +203,7 @@ final class PersonDatabase {
         'character_id': character.scope.characterId,
         'name': character.name,
         'description': character.description,
+        'avatar': character.avatar,
         'base_identity_json': baseIdentityJson,
         'created_at_utc': now,
       });
@@ -223,9 +233,84 @@ final class PersonDatabase {
           ),
           name: row['name']! as String,
           description: row['description']! as String,
+          avatar: row['avatar'] as String?,
         ),
       ),
     );
+  }
+
+  /// Install account cards locally without replacing their timeline or memories.
+  Future<void> syncCharacter(Character character, String persona) async {
+    final scope = character.scope;
+    await createCharacter(
+      character: character,
+      timelineId: 'timeline-${scope.ownerId}-${scope.characterId}',
+      baseIdentityJson: jsonEncode({'persona': persona}),
+      onlyIfMissing: true,
+    );
+    await _db.update(
+      'characters',
+      {
+        'name': character.name,
+        'description': character.description,
+        'avatar': character.avatar,
+        if (!scope.characterId.startsWith('m-'))
+          'base_identity_json': jsonEncode({'persona': persona}),
+      },
+      where: 'owner_id=? AND character_id=?',
+      whereArgs: _args(scope),
+    );
+  }
+
+  Future<bool> hasGuestHistory(String guest) async => (await _db.query(
+    'raw_events',
+    columns: ['event_id'],
+    where: 'owner_id=?',
+    whereArgs: [guest],
+    limit: 1,
+  )).isNotEmpty;
+
+  /// Give each guest timeline its own private role so an existing account
+  /// timeline can never be overwritten. All source references move atomically.
+  Future<void> claimGuest(String guest, String owner) async {
+    if (guest == owner || owner.isEmpty) throw ArgumentError('Invalid target');
+    final random = Random.secure();
+    await _db.transaction((txn) async {
+      await txn.execute('PRAGMA defer_foreign_keys=ON');
+      final roles = await txn.rawQuery(
+        'SELECT DISTINCT character_id FROM raw_events WHERE owner_id=?',
+        [guest],
+      );
+      for (final row in roles) {
+        final previous = row['character_id'] as String;
+        final id =
+            'm-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
+        for (final table in [
+          'characters',
+          'character_timelines',
+          'raw_events',
+          'generation_tasks',
+          'archive_segments',
+          'memory_summaries',
+          'summary_sources',
+          'memory_terms',
+          'archive_cursors',
+          'persona_identity_versions',
+          'identity_candidates',
+        ]) {
+          await txn.update(
+            table,
+            {
+              'owner_id': owner,
+              'character_id': id,
+              if (table == 'characters') 'avatar': previous,
+            },
+            where: 'owner_id=? AND character_id=?',
+            whereArgs: [guest, previous],
+          );
+        }
+      }
+    });
   }
 
   /// The last character with a persisted interaction. Used by the A-first

@@ -1,31 +1,19 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'bootstrap.dart';
-import 'immersive/immersive_home.dart';
-import 'immersive/model_gateway.dart';
+import 'community/community_controller.dart';
+import 'community/community_host.dart';
+import 'features/timeline/data/person_database.dart';
+import 'features/memory/domain/memory_models.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    final voice = ModelGateway.configured();
-    final app = await bootstrapCompanionApp(
-      homeBuilder: voice != null && voice.useV3
-          ? (selection, database, textGateway) => ImmersiveHome(
-              selection,
-              database,
-              textGateway,
-              voiceGateway: voice,
-            )
-          : null,
-      gatewayUri: const String.fromEnvironment('PERSON_GATEWAY_URL').isEmpty
-          ? null
-          : Uri.parse(const String.fromEnvironment('PERSON_GATEWAY_URL')),
-      gatewayToken:
-          const String.fromEnvironment('PERSON_GATEWAY_DEV_TOKEN').isEmpty
-          ? null
-          : const String.fromEnvironment('PERSON_GATEWAY_DEV_TOKEN'),
+    final database = await PersonDatabase.open(
+      automaticSummarizer: const DeterministicSummarizer(),
     );
-    runApp(app);
+    final community = CommunityController(database);
+    await community.restore();
+    runApp(CommunityHost(community));
   } catch (error) {
     // Never overwrite or reset an existing database on startup failure.
     runApp(

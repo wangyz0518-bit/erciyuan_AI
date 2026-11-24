@@ -32,6 +32,7 @@ class Settings:
     voice_model: str = 'cosyvoice-v3.5-flash'
     asr_model: str = 'qwen3-asr-flash-realtime'
     voice_proxy: str | None = None
+    community_enabled: bool = False
 
     @classmethod
     def env(cls):
@@ -48,6 +49,7 @@ class Settings:
             voice_yue=os.getenv('COSYVOICE_YUE_VOICE_ID', ''),
             asr_model=os.getenv('QWEN_ASR_MODEL', 'qwen3-asr-flash-realtime'),
             voice_proxy=os.getenv('GATEWAY_VOICE_PROXY') or None,
+            community_enabled=os.getenv('COMMUNITY_ENABLED', 'false').lower() == 'true',
         )
 
 
@@ -78,7 +80,7 @@ class Providers:
             await self._http.aclose()
             self._http = None
 
-    async def reply(self, character: str, history: list[dict], content: str):
+    async def reply(self, character: str, history: list[dict], content: str, *, persona=None):
         s = self.settings
         if s.mode == 'mock':
             for part in ['这是接口模拟回复。', '我记得你刚才说：', content[:100]]:
@@ -87,7 +89,7 @@ class Providers:
             return
         if not s.deepseek_key:
             raise ProviderError('MODEL_NOT_CONFIGURED')
-        messages = [{'role': 'system', 'content': PERSONAS[character]}, *history,
+        messages = [{'role': 'system', 'content': persona if persona is not None else PERSONAS[character]}, *history,
                     {'role': 'user', 'content': content}]
         payload = {'model': s.deepseek_model, 'messages': messages, 'stream': True,
                    'max_tokens': 2048, 'thinking': {'type': 'enabled' if s.thinking else 'disabled'}}

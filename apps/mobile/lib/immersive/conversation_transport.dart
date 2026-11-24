@@ -7,11 +7,16 @@ import 'model_gateway.dart' show GatewayException;
 
 /// One role-scoped WebSocket. Reconnect restores history without replaying input.
 class ConversationTransport {
-  ConversationTransport(this.baseUrl, this.token);
+  ConversationTransport(
+    this.baseUrl,
+    this.token, {
+    this.accountSession = false,
+  });
+  final bool accountSession;
   final String baseUrl, token;
   // An isolated Mac test gateway can supply its own development CA. Normal
   // HTTPS gateways continue to use the system roots.
-  static SecurityContext? _localTrust() {
+  static SecurityContext? localTrust() {
     const encoded = String.fromEnvironment('MODEL_GATEWAY_CA_DER');
     if (encoded.isEmpty) return null;
     final context = SecurityContext();
@@ -28,7 +33,7 @@ class ConversationTransport {
     return context..setTrustedCertificatesBytes(ascii.encode(pem));
   }
 
-  late final SecurityContext? _trust = _localTrust();
+  late final SecurityContext? _trust = localTrust();
   late final HttpClient? _secureSocketClient = _trust == null
       ? null
       : HttpClient(context: _trust);
@@ -229,20 +234,30 @@ class ConversationTransport {
   Future<Uint8List> recording(String id) => _request('/v3/recordings/$id');
 
   Future<List<Map<String, Object?>>> voices() async => _rows(
-    (jsonDecode(utf8.decode(await _request('/v1/voice-profiles')))
-        as Map)['items'],
+    (jsonDecode(
+      utf8.decode(
+        await _request(
+          accountSession ? '/community/voices' : '/v1/voice-profiles',
+        ),
+      ),
+    ) as Map)['items'],
   );
 
-  Future<Map<String, Object?>> binding(String role) async =>
-      Map<String, Object?>.from(
-        jsonDecode(
-          utf8.decode(await _request('/v1/characters/$role/voice-binding')),
-        ) as Map,
-      );
+  Future<Map<String, Object?>> binding(
+    String role,
+  ) async => Map<String, Object?>.from(
+    jsonDecode(
+      utf8.decode(
+        await _request(
+          '${accountSession ? '/community' : '/v1'}/characters/$role/voice-binding',
+        ),
+      ),
+    ) as Map,
+  );
 
   Future<void> bind(String role, String? id, int revision) async {
     await _request(
-      '/v1/characters/$role/voice-binding',
+      '${accountSession ? '/community' : '/v1'}/characters/$role/voice-binding',
       update: {'profile_id': id, 'revision': revision},
     );
   }

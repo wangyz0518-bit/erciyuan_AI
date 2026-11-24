@@ -10,6 +10,7 @@ import 'chat_controller.dart';
 import 'conversation_controller.dart';
 import '../features/characters/domain/character.dart';
 import '../features/characters/presentation/data_management_page.dart';
+import '../community/community_scope.dart';
 import '../features/avatar/presentation/character_avatar_scene.dart';
 import '../features/avatar/presentation/avatar_fallback_scene.dart';
 import '../features/avatar/presentation/avatar_zoom.dart';
@@ -45,7 +46,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
   );
   ChatController get chat => widget.chat;
   final zoomByRole = <String, double>{};
-  double get halfZoom => chat.character.scope.characterId == sproutCharacterId
+  double get halfZoom => chat.character.appearance == sproutCharacterId
       ? sproutHalfZoom
       : halfAvatarZoom;
   double get zoom => zoomByRole[chat.selected] ?? halfZoom;
@@ -207,6 +208,12 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
     focus.unfocus();
     await audio.stopAll();
     if (!mounted) return;
+    if (kind == 'community') {
+      endCall();
+      CommunityScope.of(context)?.open();
+      panelOpen = false;
+      return;
+    }
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -260,17 +267,21 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
           ],
         ),
         if (kind == 'profile') ...[
-          const ListTile(
-            leading: Icon(Icons.person_outline),
-            title: Text('访客'),
-            subtitle: Text('本机体验 · 暂未接入账号服务'),
+          ListTile(
+            leading: const Icon(Icons.person_outline),
+            title: Text(CommunityScope.of(context)?.username ?? '访客'),
+            subtitle: const Text('社区与账户'),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              CommunityScope.of(context)?.open();
+            },
           ),
         ],
         if (kind == 'roles')
           for (final role in chat.characters)
             ListTile(
               key: Key('select-${voiceRole(role.scope.characterId)}'),
-              leading: role.scope.characterId == sproutCharacterId
+              leading: role.appearance == sproutCharacterId
                   ? const CircleAvatar(
                       backgroundImage: AssetImage(sproutPortrait),
                     )
@@ -499,7 +510,7 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
                   mouth: session?.playing == true ? .55 : 0,
                   fallback: SizedBox.expand(
                     child: CharacterScene(
-                      role: chat.selected,
+                      role: voiceRole(chat.character.appearance),
                       zoom: zoom,
                       replying: chat.busy,
                       foreground: foreground && !toolsOpen,

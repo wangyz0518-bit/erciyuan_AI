@@ -41,7 +41,11 @@ class ConversationController extends ChangeNotifier {
     ConversationCapture? capture,
     this.onTimelineMessage,
   }) : _capture = capture ?? ConversationCapture(),
-       transport = ConversationTransport(gateway.baseUrl, gateway.token) {
+       transport = ConversationTransport(
+         gateway.baseUrl,
+         gateway.token,
+         accountSession: gateway.accountSession,
+       ) {
     _segmenter = SpeechSegmenter(
       onStart: _speechStart,
       onFrame: _callFrame,
