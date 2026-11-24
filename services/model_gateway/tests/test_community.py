@@ -105,6 +105,41 @@ def test_two_accounts_forum_import_and_voice(tmp_path):
         assert client.get('/v3/conversations/'+clone,headers=a).status_code == 404
 
 
+def test_search_public_snapshots_and_paginate_matching_posts(tmp_path):
+    settings = Settings(mode='mock', token=TOKEN, data_dir=str(tmp_path), community_enabled=True)
+    with TestClient(create_app(settings)) as client:
+        owner = credentials(client, '搜索作者')
+        card = dict(name='Sea%_海盐', description='沿岸', persona='散步', avatar='moon', voice='default')
+        owned = client.post('/community/characters', headers=owner, json=card).json()['id']
+
+        def matches(q, **params):
+            response = client.get('/community/posts', params={'q': q, **params})
+            response.raise_for_status()
+            return [row['id'] for row in response.json()['items']]
+
+        assert matches('海盐') == []
+        shared = client.post('/community/posts', headers=owner,
+                             json={'body': '潮汐', 'character_id': owned}).json()['id']
+        client.put(f'/community/characters/{owned}', headers=owner, json=dict(card, name='私下改名')).raise_for_status()
+        assert matches('  sea%_海  ') == [shared]
+        assert matches('私下改名') == []
+        ids = [shared]
+        for i in range(32):
+            body = '潮汐 &+笔记' if i % 2 == 0 else '潮汐'
+            ids.append(client.post('/community/posts', headers=owner, json={'body': body}).json()['id'])
+            client.post('/community/posts', headers=owner, json={'body': '无关讨论'}).raise_for_status()
+        assert matches('%_') == [shared]
+        assert matches('&+') == list(reversed(ids[1::2]))
+        first = matches('潮汐')
+        assert len(first) == 30
+        assert first + matches('潮汐', before=first[-1]) == ids[::-1]
+        feed = client.get('/community/posts').json()['items']
+        assert matches('   ') == [row['id'] for row in feed]
+        client.delete(f'/community/posts/{shared}', headers=owner).raise_for_status()
+        assert matches('海盐') == []
+        assert client.get('/community/posts', params={'q': 'x' * 101}).status_code == 422
+
+
 def test_domain_association_and_dev_gateway_opt_in(tmp_path, monkeypatch):
     settings = Settings(mode='mock', token=TOKEN, data_dir=str(tmp_path))
     with TestClient(create_app(settings)) as client:

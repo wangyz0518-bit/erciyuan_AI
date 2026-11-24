@@ -57,6 +57,8 @@ def test_operator_workflow(tmp_path, monkeypatch):
         assert resolve(pid, 'hide').status_code == 200
         assert resolve(pid, 'dismiss').status_code == 409
         assert client.get('/community/posts').json()['items'] == []
+        for term in ('公开说明', '小芽'):
+            assert client.get('/community/posts', params={'q': term}).json()['items'] == []
         for path in (f'/community/posts/{post_id}', comments, share, '/s/' + post['share']):
             assert client.get(path).status_code == 404
         assert client.post(share + '/import', headers=owner).status_code == 404
