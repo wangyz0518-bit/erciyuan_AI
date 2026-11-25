@@ -6,7 +6,7 @@
 
 | 目录 / 文档 | 用途 |
 | --- | --- |
-| [项目进展报告（2026-11-24 · PDF）](reports/project-status-20261124.pdf) | 系统架构、功能效果、开发里程碑和验收快照 |
+| [项目进展报告（2026-11-25 · PDF）](reports/project-status-20261125.pdf) | 四个入口、五块新增功能、联调结果与待办 |
 | [process/](process/README.md) | 文档规范及稳定的协作流程 |
 | [design/](design/README.md) | 人物中心产品原则、正式 Flutter/三层记忆架构设计、可点击原型与设计测试数据 |
 | [research/](research/README.md) | 调研、选型和技术评估；结论不自动构成决策 |
