@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:material_ui/material_ui.dart';
+
+import '../immersive/avatar.dart' show FacePainter;
 
 /// The same role art is used in the library, shares, and the import preview.
 class RoleArtwork extends StatelessWidget {
@@ -12,9 +15,16 @@ class RoleArtwork extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final custom = portrait;
+    if (custom == null && avatar == 'moon') {
+      return ColoredBox(
+        color: const Color(0xFF20373A),
+        child: CustomPaint(painter: FacePainter('yue', '平静', '待机')),
+      );
+    }
     final asset = switch (avatar) {
+      'star' when !kIsWeb && defaultTargetPlatform == TargetPlatform.android =>
+        'assets/dragon_avatar/idle.webp',
       'star' => 'assets/immersive_chat/chat-half.png',
-      'moon' => 'assets/dragon_avatar/idle.webp',
       'sprout' => 'assets/sprout_avatar/portrait.webp',
       _ => null,
     };
