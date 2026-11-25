@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../community/community_scope.dart';
-import '../../avatar/presentation/sprout_avatar_scene.dart';
+import '../../../community/role_portrait.dart';
 import '../../chat/data/model_gateway_adapter.dart';
 import '../../timeline/data/person_database.dart';
 import '../application/character_selection_controller.dart';
@@ -44,11 +44,8 @@ class CharacterHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF151A29),
     appBar: AppBar(
       title: Text(onOpen == null ? '人物主页' : '角色'),
-      backgroundColor: const Color(0xFF22283B),
-      foregroundColor: Colors.white,
       actions: [
         if (CommunityScope.of(context) case final community?
             when onOpen == null)
@@ -76,81 +73,60 @@ class CharacterHomePage extends StatelessWidget {
     body: SafeArea(
       child: AnimatedBuilder(
         animation: controller,
-        builder: (context, _) => LayoutBuilder(
-          builder: (context, constraints) => ListView(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-            children: [
-              const Text(
-                '今天想和谁聊聊？',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 27,
-                  fontWeight: FontWeight.bold,
+        builder: (context, _) => ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+          children: [
+            Text(
+              '今天想和谁聊聊？',
+              style: Theme.of(context).textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            for (final character in controller.characters)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _CharacterChoice(
+                  character: character,
+                  controller: controller,
+                  onOpen: () => _openTimeline(context, character.scope),
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                '每位人物只有一条持续的对话时间线，回到这里不会丢失历史。',
-                style: TextStyle(color: Color(0xFFC4CDE0), height: 1.5),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const ValueKey('continue-timeline'),
+              onPressed: () => _openTimeline(context, controller.activeScope),
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: Text('继续与${controller.activeCharacter.name}对话'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(double.infinity, 52),
               ),
-              const SizedBox(height: 20),
-              for (final character in controller.characters)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _CharacterChoice(
-                    character: character,
-                    controller: controller,
-                    onOpen: () => _openTimeline(context, character.scope),
-                  ),
-                ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                key: const ValueKey('continue-timeline'),
-                onPressed: () => _openTimeline(context, controller.activeScope),
-                icon: const Icon(Icons.chat_bubble_outline),
-                label: Text('继续与${controller.activeCharacter.name}对话'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 52),
-                  backgroundColor: const Color(0xFF7969C3),
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Card(
-                color: const Color(0xFF292F45),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: Color(0xFFD2BAFF)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          !controller.activeCharacter.supportsLegacyGateway
-                              ? '小芽的在线对话使用 v3 网关；当前入口提供本地演示。'
-                              : gateway == null
-                              ? '当前为离线 Mock：人物回复只是本地演示，历史保存在 SQLite。'
-                              : '当前连接开发文字网关，人物历史保存在本地 SQLite。',
-                          style: const TextStyle(
-                            color: Color(0xFFDEE2EE),
-                            height: 1.4,
-                          ),
-                        ),
+            ),
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        !controller.activeCharacter.supportsLegacyGateway
+                            ? '小芽的在线对话使用 v3 网关；当前入口提供本地演示。'
+                            : gateway == null
+                            ? '当前为离线 Mock：人物回复只是本地演示，历史保存在 SQLite。'
+                            : '当前连接开发文字网关，人物历史保存在本地 SQLite。',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              if (constraints.maxWidth < 375)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text(
-                    '支持窄屏滚动操作',
-                    style: TextStyle(color: Color(0xFFC4CDE0)),
-                  ),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     ),
@@ -171,14 +147,16 @@ class _CharacterChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = character.scope == controller.activeScope;
-    final isSprout = character.appearance == sproutCharacterId;
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       margin: EdgeInsets.zero,
-      color: selected ? const Color(0xFF474265) : const Color(0xFF2B3145),
+      color: selected
+          ? scheme.surfaceContainerHighest
+          : scheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
-          color: selected ? const Color(0xFFD2BAFF) : Colors.transparent,
+          color: selected ? scheme.primary : Colors.transparent,
           width: 1.5,
         ),
       ),
@@ -190,20 +168,12 @@ class _CharacterChoice extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              CircleAvatar(
-                backgroundColor: const Color(0xFFD4C7F3),
-                radius: 31,
-                foregroundImage: isSprout
-                    ? const AssetImage(sproutPortrait)
-                    : null,
-                child: Icon(
-                  isSprout
-                      ? Icons.spa_outlined
-                      : character.appearance == 'star'
-                      ? Icons.star_rounded
-                      : Icons.dark_mode_rounded,
-                  color: const Color(0xFF39304D),
-                  size: 38,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 66,
+                  height: 80,
+                  child: RoleArtwork(character.appearance),
                 ),
               ),
               const SizedBox(width: 14),
@@ -222,18 +192,12 @@ class _CharacterChoice extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       character.description,
-                      style: const TextStyle(
-                        color: Color(0xFFD3D8E5),
-                        fontSize: 13,
-                      ),
+                      style: const TextStyle(fontSize: 13),
                     ),
                     if (selected)
-                      const Text(
+                      Text(
                         '当前人物',
-                        style: TextStyle(
-                          color: Color(0xFFE7D0FF),
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: scheme.primary, fontSize: 12),
                       ),
                   ],
                 ),

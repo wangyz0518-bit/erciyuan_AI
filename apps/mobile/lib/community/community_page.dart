@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../bootstrap.dart';
 import '../features/characters/presentation/data_management_page.dart';
 import 'community_scope.dart';
+import 'community_cards.dart';
 import 'community_api.dart';
 import 'community_controller.dart';
 import 'community_forms.dart';
@@ -406,6 +407,127 @@ class _CommunityPageState extends State<CommunityPage> {
     onPressed: busy ? null : () => run(task),
     child: Text(text),
   );
+  Future<void> manageRole(Json card, LibraryAction action) async {
+    switch (action) {
+      case LibraryAction.assets:
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => RoleAssetsPage(api, card)),
+        );
+        if (mounted) await load();
+      case LibraryAction.memory:
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => MemoryPage(model, card['id']),
+          ),
+        );
+      case LibraryAction.edit:
+        await edit(card);
+      case LibraryAction.share:
+        await publish(card);
+    }
+  }
+
+  Widget accountEntry(
+    IconData icon,
+    String label,
+    Future<void> Function() task,
+  ) => ListTile(
+    leading: Icon(icon),
+    title: Text(label),
+    trailing: const Icon(Icons.chevron_right, size: 18),
+    onTap: busy ? null : () => run(task),
+  );
+
+  List<Widget> profile() {
+    final theme = Theme.of(context);
+    return [
+      Card(
+        color: theme.colorScheme.secondaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: theme.colorScheme.surfaceContainerLow,
+                child: Icon(
+                  api.signedIn ? Icons.person : Icons.person_outline,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      api.username ?? '访客',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (api.origin != null)
+                      Text(
+                        api.origin!.host,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      ProfileSection(
+        '账户',
+        children: [
+          if (api.origin == null)
+            accountEntry(Icons.link, '连接社区服务', configure)
+          else if (api.signedIn) ...[
+            accountEntry(Icons.cloud_outlined, '账户与备份', () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => AccountPage(model)),
+              );
+            }),
+            if (guestHistory)
+              accountEntry(Icons.move_to_inbox_outlined, '迁入本机访客记录', migrate),
+            accountEntry(Icons.logout, '退出账户', () async {
+              await model.logout();
+              await load();
+            }),
+          ] else ...[
+            accountEntry(Icons.login, '登录 / 注册', () async {
+              if (await login()) await load();
+            }),
+            accountEntry(
+              Icons.key_outlined,
+              '找回账户',
+              () => resetPassword(context, api),
+            ),
+          ],
+        ],
+      ),
+      ProfileSection(
+        '数据与反馈',
+        children: [
+          accountEntry(Icons.folder_outlined, '本机数据管理', () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => DataManagementPage(
+                  database: model.database,
+                  ownerId: api.owner ?? localOwnerId,
+                ),
+              ),
+            );
+          }),
+          if (api.origin != null)
+            accountEntry(Icons.feedback_outlined, '反馈与处理记录', openSupport),
+        ],
+      ),
+    ];
+  }
+
   List<Widget> detail() {
     final item = post!;
     return [
@@ -528,51 +650,9 @@ class _CommunityPageState extends State<CommunityPage> {
                 error,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
-            if (widget.section == AppSection.profile) ...[
-              ListTile(
-                title: Text(api.username ?? '访客'),
-                subtitle: api.origin == null ? null : Text(api.origin!.host),
-              ),
-              if (api.origin == null)
-                button('连接社区服务', configure)
-              else if (api.signedIn) ...[
-                button('账户与备份', () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => AccountPage(model)),
-                  );
-                }),
-                if (guestHistory) button('迁入本机访客记录', migrate),
-                button('退出账户', () async {
-                  await model.logout();
-                  await load();
-                }),
-              ] else
-                button('登录 / 注册', () async {
-                  if (await login()) await load();
-                }),
-              if (api.origin != null && !api.signedIn)
-                button('找回账户', () => resetPassword(context, api)),
-              if (api.origin != null)
-                ListTile(
-                  leading: const Icon(Icons.feedback_outlined),
-                  title: const Text('反馈与处理记录'),
-                  onTap: busy ? null : () => run(openSupport),
-                ),
-              ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: const Text('本机数据管理'),
-                onTap: busy
-                    ? null
-                    : () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => DataManagementPage(
-                            database: model.database,
-                            ownerId: api.owner ?? localOwnerId,
-                          ),
-                        ),
-                      ),
-              ),
-            ] else if (api.origin == null)
+            if (widget.section == AppSection.profile)
+              ...profile()
+            else if (api.origin == null)
               button('连接社区服务', configure)
             else if (post != null)
               ...detail()
@@ -582,45 +662,23 @@ class _CommunityPageState extends State<CommunityPage> {
                   if (await login()) await load();
                 })
               else ...[
-                button('创建角色', () => edit()),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.tonalIcon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('创建角色'),
+                    onPressed: busy ? null : () => run(() => edit()),
+                  ),
+                ),
                 for (final card in rows)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            card['name'],
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          Text(card['description']),
-                          Wrap(
-                            spacing: 6,
-                            children: [
-                              button('聊天', () => enterChat(card)),
-                              button('素材', () async {
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => RoleAssetsPage(api, card),
-                                  ),
-                                );
-                                await load();
-                              }),
-                              button('记忆', () async {
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        MemoryPage(model, card['id']),
-                                  ),
-                                );
-                              }),
-                              button('编辑', () => edit(card)),
-                              button('分享', () => publish(card)),
-                            ],
-                          ),
-                        ],
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: LibraryRoleCard(
+                      card: card,
+                      onChat: busy ? null : () => run(() => enterChat(card)),
+                      onManage: busy
+                          ? null
+                          : (action) => run(() => manageRole(card, action)),
                     ),
                   ),
               ],
@@ -633,7 +691,12 @@ class _CommunityPageState extends State<CommunityPage> {
                 inputFormatters: [LengthLimitingTextInputFormatter(100)],
                 onSubmitted: (_) => run(search),
                 decoration: InputDecoration(
-                  labelText: '搜索帖子或角色名',
+                  hintText: '搜索帖子或角色名',
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
                   suffixIcon: IconButton(
                     tooltip: '搜索',
                     onPressed: busy ? null : () => run(search),
@@ -659,35 +722,58 @@ class _CommunityPageState extends State<CommunityPage> {
                     ),
                   ),
                 ),
+              const SizedBox(height: 10),
               Wrap(
-                spacing: 8,
+                spacing: 6,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  button(discovery ? '返回全部帖子' : '发现角色', () async {
-                    discovery = !discovery;
-                    rows = [];
-                    more = false;
-                    query = '';
-                    searchField.clear();
-                    await load();
-                  }),
+                  FilterChip(
+                    label: Text(discovery ? '返回全部帖子' : '发现角色'),
+                    selected: discovery,
+                    avatar: discovery
+                        ? null
+                        : const Icon(Icons.auto_awesome_outlined, size: 16),
+                    onSelected: busy
+                        ? null
+                        : (_) => run(() async {
+                            discovery = !discovery;
+                            rows = [];
+                            more = false;
+                            query = '';
+                            searchField.clear();
+                            await load();
+                          }),
+                  ),
                   if (api.signedIn)
-                    button('回复通知', () async {
-                      final notice = await Navigator.of(context).push<Json>(
-                        MaterialPageRoute(
-                          builder: (_) => NotificationsPage(api),
-                        ),
-                      );
-                      if (notice != null) {
-                        await showPost(
-                          await api.request(
-                            'GET',
-                            "/community/posts/${notice['post']}",
-                          ),
-                          focus: notice,
-                        );
-                      }
-                    }),
-                  button('发布讨论', () => publish()),
+                    TextButton.icon(
+                      icon: const Icon(Icons.notifications_none, size: 17),
+                      label: const Text('回复通知'),
+                      onPressed: busy
+                          ? null
+                          : () => run(() async {
+                              final notice = await Navigator.of(context)
+                                  .push<Json>(
+                                    MaterialPageRoute(
+                                      builder: (_) => NotificationsPage(api),
+                                    ),
+                                  );
+                              if (notice != null) {
+                                await showPost(
+                                  await api.request(
+                                    'GET',
+                                    "/community/posts/${notice['post']}",
+                                  ),
+                                  focus: notice,
+                                );
+                              }
+                            }),
+                    ),
+                  FilledButton.tonalIcon(
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('发布讨论'),
+                    onPressed: busy ? null : () => run(() => publish()),
+                  ),
                 ],
               ),
               if (rows.isEmpty && !busy && error.isEmpty)
@@ -700,30 +786,10 @@ class _CommunityPageState extends State<CommunityPage> {
                   ),
                 ),
               for (final item in rows)
-                Card(
-                  child: ListTile(
-                    key: ValueKey("community-post-${item['id']}"),
-                    leading: item['card'] == null
-                        ? null
-                        : RolePortrait(
-                            item['card']['avatar'],
-                            portrait: item['card']['portrait'],
-                          ),
-                    title: Text(
-                      item['card']?['name'] ?? item['body'],
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      [
-                        '${item['username']}${item['share'] == null ? '' : ' · 角色分享'}',
-                        if (query.isNotEmpty && item['card'] != null)
-                          item['body'],
-                      ].join('\n'),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
+                Padding(
+                  padding: const EdgeInsets.only(top: 9),
+                  child: CommunityPostTile(
+                    item: item,
                     onTap: busy ? null : () => run(() => showPost(item)),
                   ),
                 ),

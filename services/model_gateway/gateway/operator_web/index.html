@@ -33,21 +33,22 @@
       <p id="notice" role="status" aria-live="polite"></p>
       <section id="overview">
         <div class="queue-cards">
-          <button data-open="reports"><span>待处理举报</span><strong id="pending-reports">—</strong><small>查看举报 →</small></button>
-          <button data-open="feedback"><span>待回复反馈</span><strong id="pending-feedback">—</strong><small>查看反馈 →</small></button>
+          <button data-open="reports"><span>待处理举报</span><strong id="pending-reports">—</strong><small aria-hidden="true">↗</small></button>
+          <button data-open="feedback"><span>待回复反馈</span><strong id="pending-feedback">—</strong><small aria-hidden="true">↗</small></button>
         </div>
         <article class="panel"><div class="section-head"><h2>对话用量</h2>
           <label class="compact">统计周期<select id="days"><option value="7">近 7 天</option><option value="30">近 30 天</option></select></label>
         </div>
         <div class="usage-summary"><div>文字轮数<strong id="text-total">—</strong></div><div>语音轮数<strong id="voice-total">—</strong></div></div>
         <p class="note">按 UTC 日期汇总已登录账户的 v3 对话轮数，语音包含按住说话和连续通话。</p>
-        <table><thead><tr><th>日期</th><th>文字</th><th>语音</th><th>合计</th></tr></thead><tbody id="daily"></tbody></table>
+        <details class="daily-detail"><summary>每日对话明细</summary>
+        <table><thead><tr><th>日期</th><th>文字</th><th>语音</th><th>合计</th></tr></thead><tbody id="daily"></tbody></table></details>
         </article>
         <article class="panel">
           <h2>模型与语音调用</h2>
           <p class="note">按所选周期汇总已登录账户的在线对话与音色试听。估算费用使用调用时配置的人民币单价。</p>
           <div class="provider-table">
-            <table>
+            <table aria-label="供应商用量与费用">
               <thead><tr><th>模式 / 模型</th><th>调用</th><th>失败</th><th>中断 / 未结束</th><th>用量</th><th>估算费用</th></tr></thead>
               <tbody id="providers"></tbody>
             </table>
