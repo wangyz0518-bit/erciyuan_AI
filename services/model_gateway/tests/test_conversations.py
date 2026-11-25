@@ -1,6 +1,7 @@
 import asyncio
 import io
 import json
+import sqlite3
 import struct
 import wave
 
@@ -235,6 +236,55 @@ def test_restart_role_isolation_and_unheard_call_context(tmp_path):
     assert '秘密' not in str(store.history('xing'))
     assert '我的问题' in str(store.history('xing'))
     store.close()
+
+
+@pytest.mark.parametrize('query', ['rows', 'history'])
+def test_history_queries_do_not_return_recording_bytes_from_sqlite(tmp_path, query):
+    store = ConversationStore(tmp_path)
+    try:
+        reader = store.scoped('reader')
+        turns = [('one', None), ('two', b''), ('three', b'\x00\x00')]
+        expected_context = []
+        for turn_id, recording in turns:
+            reader.begin(turn_id, 'xing', 'hold', turn_id, recording)
+            reader.update(turn_id, state='complete', reply='received')
+            expected_context.extend([
+                {'role': 'user', 'content': turn_id},
+                {'role': 'assistant', 'content': 'received'},
+            ])
+        store.scoped('author').begin('one', 'xing', 'hold', 'other account')
+        reader.begin('four', 'yue', 'text', 'other character')
+        expected_rows = [reader.public(reader.get(turn_id)) for turn_id, _ in turns]
+
+        def metadata_row(cursor, values):
+            assert not any(isinstance(value, bytes) for value in values)
+            return sqlite3.Row(cursor, values)
+
+        store.db.row_factory = metadata_row
+        if query == 'rows':
+            rows = reader.rows('xing')
+            assert rows == expected_rows
+            assert all(type(row['has_recording']) is bool for row in rows)
+            assert [row['has_recording'] for row in rows] == [False, False, True]
+        else:
+            assert reader.history('xing') == expected_context
+    finally:
+        store.close()
+
+
+def test_history_window_counts_running_turns_before_building_context(tmp_path):
+    store = ConversationStore(tmp_path)
+    try:
+        for index in range(101):
+            store.begin(str(index), 'xing', 'text', f'prompt {index}')
+        for index in (0, 1, 100):
+            store.update(str(index), state='complete', reply=f'reply {index}')
+        assert [row['id'] for row in store.rows('xing')] == [str(i) for i in range(1, 101)]
+        assert [msg['content'] for msg in store.history('xing')] == [
+            'prompt 1', 'reply 1', 'prompt 100', 'reply 100',
+        ]
+    finally:
+        store.close()
 
 
 def test_late_input_abort_cancels_only_its_reply(tmp_path):

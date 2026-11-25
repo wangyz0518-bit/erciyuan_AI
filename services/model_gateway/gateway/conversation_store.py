@@ -7,6 +7,13 @@ from pathlib import Path
 from .providers import ProviderError
 
 
+RECENT_TURNS = '''
+    FROM conversation_turns
+    WHERE owner = ? AND character = ?
+    ORDER BY rowid DESC LIMIT 100
+'''
+
+
 class ConversationStore:
     def __init__(self, directory):
         Path(directory).mkdir(parents=True, exist_ok=True)
@@ -80,12 +87,26 @@ class ConversationStore:
         return {k:v for k,v in row.items() if k not in ('recording','fingerprint','owner')} | {'has_recording': bool(row['recording'])}
 
     def rows(self, character):
-        rows = self.db.execute('SELECT * FROM conversation_turns WHERE owner=? AND character=? ORDER BY rowid DESC LIMIT 100', (self.owner, character)).fetchall()
-        return [self.public(dict(row)) for row in reversed(rows)]
+        cursor = self.db.execute('''
+            SELECT id, character, kind, prompt, reply, state, audio_state,
+                   played_frames, total_frames, code, created,
+                   coalesce(length(recording), 0) > 0 AS has_recording
+        ''' + RECENT_TURNS, (self.owner, character))
+        rows = []
+        for row in cursor:
+            item = dict(row)
+            item['has_recording'] = bool(item['has_recording'])
+            rows.append(item)
+        rows.reverse()
+        return rows
 
     def history(self, character):
+        cursor = self.db.execute(
+            'SELECT kind, prompt, reply, state, audio_state ' + RECENT_TURNS,
+            (self.owner, character),
+        )
         result, size = [], 0
-        for row in reversed(self.rows(character)):
+        for row in cursor:
             if row['state'] == 'running':
                 continue
             prompt, reply = row['prompt'], row['reply']
