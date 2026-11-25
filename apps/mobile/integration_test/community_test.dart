@@ -1,9 +1,9 @@
 import 'package:erciyuan_mobile/community/community_api.dart';
 import 'package:erciyuan_mobile/community/community_forms.dart';
 import 'package:erciyuan_mobile/main.dart' as app;
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -98,12 +98,20 @@ void main() {
       }
 
       Future<void> previewLink() async {
-        await tap(find.byTooltip('打开分享链接'));
-        await tester.enterText(
-          find.byType(EditableText).last,
-          '${guest.origin}/s/${post['share']}',
+        await tap(
+          find.byWidgetPredicate(
+            (w) =>
+                w is IconButton && w.tooltip == '打开分享链接' && w.onPressed != null,
+          ),
         );
-        await tap(find.text('预览'));
+        final dialog = find.widgetWithText(AlertDialog, '打开角色链接');
+        final field = find.descendant(
+          of: dialog,
+          matching: find.byType(EditableText),
+        );
+        await waitFor(field);
+        await tester.enterText(field, '${guest.origin}/s/${post['share']}');
+        await tap(find.descendant(of: dialog, matching: find.text('预览')));
       }
 
       await app.main();
