@@ -76,9 +76,32 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
         await waitFor(finder);
         await tester.ensureVisible(finder.first);
+        final buttons = find.ancestor(
+          of: finder.first,
+          matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+        );
+        if (buttons.evaluate().isNotEmpty) {
+          await waitFor(
+            find.ancestor(
+              of: finder.first,
+              matching: find.byWidgetPredicate(
+                (w) => w is ButtonStyleButton && w.onPressed != null,
+              ),
+            ),
+          );
+        }
         await waitFor(finder.first.hitTestable());
         await tester.tap(finder.first);
         await tester.pump(const Duration(milliseconds: 450));
+      }
+
+      Future<void> enterDialog(String value) async {
+        final field = find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(EditableText),
+        );
+        await waitFor(field);
+        await tester.enterText(field, value);
       }
 
       Finder nav(String section) => find.byKey(ValueKey('nav-$section'));
@@ -160,11 +183,11 @@ void main() {
       await tap(find.text('设置'));
       await tap(find.text('角色记忆'));
       await tap(find.text('添加记忆'));
-      await tester.enterText(find.byType(EditableText).last, '周末喜欢海边散步');
+      await enterDialog('周末喜欢海边散步');
       await tap(find.text('保存'));
       await waitFor(find.text('周末喜欢海边散步'));
       await tap(find.text('纠正'));
-      await tester.enterText(find.byType(EditableText).last, '周末喜欢海边看书');
+      await enterDialog('周末喜欢海边看书');
       await tap(find.text('保存'));
       await waitFor(find.text('周末喜欢海边看书'));
       await tester.pageBack();
@@ -210,7 +233,7 @@ void main() {
       await search('一起听海');
       await tap(result);
       await tap(find.text('写评论'));
-      await tester.enterText(find.byType(EditableText).last, '已导入，谢谢分享');
+      await enterDialog('已导入，谢谢分享');
       await tap(find.text('发送'));
       await waitFor(find.text('已导入，谢谢分享'));
       expect(
@@ -234,17 +257,17 @@ void main() {
         await tap(find.text('海盐作者的回复'));
         await waitFor(find.textContaining('通知定位'));
         await tap(find.byTooltip('举报评论'));
-        await tester.enterText(find.byType(EditableText).last, '请审核这条评论');
+        await enterDialog('请审核这条评论');
         await tap(find.text('提交举报'));
       }
       await tap(find.text('举报帖子'));
-      await tester.enterText(find.byType(EditableText).last, '请审核人设说明');
+      await enterDialog('请审核人设说明');
       await tap(find.text('提交举报'));
       await tap(nav('profile'));
       await tap(find.text('反馈与处理记录'));
       await waitFor(find.text('请审核人设说明'));
       await tap(find.text('提交反馈'));
-      await tester.enterText(find.byType(EditableText).last, '建议增加角色标签');
+      await enterDialog('建议增加角色标签');
       await tap(find.text('提交'));
       await waitFor(find.textContaining('建议增加角色标签'));
       if (withOperator) {

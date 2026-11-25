@@ -71,7 +71,23 @@ def review_in_browser(origin, credentials):
         browser.close()
 
 
-def test_android_and_web_share_one_gateway(gateway_port, monkeypatch):
+@pytest.fixture
+def android_origin(gateway_port):
+    if os.name != 'nt':
+        yield f'http://10.0.2.2:{gateway_port}'
+        return
+    # Windows emulator NAT may route 10.0.2.2 through a host proxy. Forward
+    # this run's one loopback port on the explicitly selected test emulator.
+    adb = [shutil.which('adb') or 'adb', '-s', os.environ['ANDROID_SERIAL'], 'reverse']
+    port = f'tcp:{gateway_port}'
+    subprocess.run([*adb, port, port], check=True)
+    try:
+        yield f'http://127.0.0.1:{gateway_port}'
+    finally:
+        subprocess.run([*adb, '--remove', port], check=False)
+
+
+def test_android_and_web_share_one_gateway(gateway_port, android_origin, monkeypatch):
     origin = f'http://127.0.0.1:{gateway_port}'
     credentials = {'username': '验收运营', 'password': secrets.token_hex(16)}
     mobile_dir = Path(__file__).resolve().parents[3] / 'apps' / 'mobile'
@@ -84,7 +100,7 @@ def test_android_and_web_share_one_gateway(gateway_port, monkeypatch):
         command = [
             flutter, 'test', 'integration_test/community_test.dart', '--no-pub',
             '-d', os.environ['ANDROID_SERIAL'], '--reporter', 'expanded',
-            f'--dart-define=COMMUNITY_GATEWAY_URL=http://10.0.2.2:{gateway_port}',
+            f'--dart-define=COMMUNITY_GATEWAY_URL={android_origin}',
             '--dart-define=COMMUNITY_OPERATOR_E2E=true',
         ]
         with subprocess.Popen(command, cwd=mobile_dir) as mobile:
