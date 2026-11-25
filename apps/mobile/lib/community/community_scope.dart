@@ -23,9 +23,13 @@ class CommunityScope extends InheritedWidget {
     required this.open,
     required this.section,
     required this.username,
+    this.openMemory,
+    this.portraitFor,
     required super.child,
   });
   final OpenSection open;
+  final void Function(BuildContext, String)? openMemory;
+  final String? Function(String)? portraitFor;
   final AppSection section;
   final String? username;
   static CommunityScope? of(BuildContext context) =>

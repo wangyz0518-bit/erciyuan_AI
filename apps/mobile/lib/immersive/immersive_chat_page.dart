@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
@@ -304,6 +305,14 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
               },
             ),
         if (kind == 'settings') ...[
+          if (CommunityScope.of(context)?.openMemory case final open?)
+            ListTile(
+              title: const Text('角色记忆'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                open(context, chat.selected);
+              },
+            ),
           ListTile(
             title: const Text('镜头'),
             subtitle: Text(avatarShotLabel(zoom, halfZoom)),
@@ -498,31 +507,41 @@ class _ImmersiveChatPageState extends State<ImmersiveChatPage>
               zoom: zoom,
               onChanged: changeZoom,
               children: [
-                CharacterAvatarScene(
-                  key: avatar,
-                  character: chat.character,
-                  showMenu: false,
-                  dragonImmersive: true,
-                  zoom: zoom,
-                  motion: session?.playing == true
-                      ? AvatarSceneMotion.talking
-                      : chat.busy
-                      ? AvatarSceneMotion.thinking
-                      : (calling && !(session?.muted ?? muted)) ||
-                            session?.recording == true ||
-                            audio.recording
-                      ? AvatarSceneMotion.listening
-                      : AvatarSceneMotion.idle,
-                  mouth: session?.playing == true ? .55 : 0,
-                  fallback: SizedBox.expand(
-                    child: CharacterScene(
-                      role: voiceRole(chat.character.appearance),
-                      zoom: zoom,
-                      replying: chat.busy,
-                      foreground: foreground && !toolsOpen,
+                if (CommunityScope.of(context)?.portraitFor?.call(chat.selected)
+                    case final portrait?)
+                  Positioned.fill(
+                    child: Image.memory(
+                      base64Decode(portrait),
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                    ),
+                  )
+                else
+                  CharacterAvatarScene(
+                    key: avatar,
+                    character: chat.character,
+                    showMenu: false,
+                    dragonImmersive: true,
+                    zoom: zoom,
+                    motion: session?.playing == true
+                        ? AvatarSceneMotion.talking
+                        : chat.busy
+                        ? AvatarSceneMotion.thinking
+                        : (calling && !(session?.muted ?? muted)) ||
+                              session?.recording == true ||
+                              audio.recording
+                        ? AvatarSceneMotion.listening
+                        : AvatarSceneMotion.idle,
+                    mouth: session?.playing == true ? .55 : 0,
+                    fallback: SizedBox.expand(
+                      child: CharacterScene(
+                        role: voiceRole(chat.character.appearance),
+                        zoom: zoom,
+                        replying: chat.busy,
+                        foreground: foreground && !toolsOpen,
+                      ),
                     ),
                   ),
-                ),
                 SafeArea(
                   child: Column(
                     children: [

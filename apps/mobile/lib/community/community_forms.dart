@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:material_ui/material_ui.dart';
 
 import 'community_api.dart';
@@ -9,25 +11,34 @@ Future<String?> communityText(
   int limit = 1000,
   int lines = 4,
   String action = '确定',
+  String initial = '',
 }) => showDialog<String>(
   context: context,
-  builder: (_) => _TextForm(title, label, limit, lines, action),
+  builder: (_) => _TextForm(title, label, limit, lines, action, initial),
 );
 
 class _TextForm extends StatefulWidget {
-  const _TextForm(this.title, this.label, this.limit, this.lines, this.action);
-  final String title, label, action;
+  const _TextForm(
+    this.title,
+    this.label,
+    this.limit,
+    this.lines,
+    this.action,
+    this.initial,
+  );
+  final String title, label, action, initial;
   final int limit, lines;
   @override
   State<_TextForm> createState() => _TextFormState();
 }
 
 class _TextFormState extends State<_TextForm> {
-  String value = '';
+  late String value = widget.initial.trim();
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(widget.title),
-    content: TextField(
+    content: TextFormField(
+      initialValue: widget.initial,
       autofocus: true,
       maxLength: widget.limit,
       maxLines: widget.lines,
@@ -40,7 +51,9 @@ class _TextFormState extends State<_TextForm> {
         child: const Text('取消'),
       ),
       FilledButton(
-        onPressed: value.isEmpty ? null : () => Navigator.pop(context, value),
+        onPressed: value.isEmpty || value.length > widget.limit
+            ? null
+            : () => Navigator.pop(context, value),
         child: Text(widget.action),
       ),
     ],
@@ -136,14 +149,17 @@ class CardEditor extends StatefulWidget {
 }
 
 class _CardEditorState extends State<CardEditor> {
-  late final card = <String, dynamic>{
-    'name': '',
-    'description': '',
-    'persona': '',
-    'avatar': 'star',
-    'voice': 'default',
-    ...?widget.card,
-  }..remove('id');
+  late final card =
+      <String, dynamic>{
+          'name': '',
+          'description': '',
+          'persona': '',
+          'avatar': 'star',
+          'voice': 'default',
+          ...?widget.card,
+        }
+        ..remove('id')
+        ..remove('portrait');
   final form = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -202,10 +218,16 @@ class _CardEditorState extends State<CardEditor> {
 }
 
 class RolePortrait extends StatelessWidget {
-  const RolePortrait(this.avatar, {super.key});
+  const RolePortrait(this.avatar, {super.key, this.portrait});
   final String avatar;
+  final String? portrait;
   @override
   Widget build(BuildContext context) {
+    if (portrait != null) {
+      return CircleAvatar(
+        backgroundImage: MemoryImage(base64Decode(portrait!)),
+      );
+    }
     final asset = switch (avatar) {
       'sprout' => 'assets/sprout_avatar/portrait.webp',
       'star' => 'assets/immersive_chat/avatar.png',
@@ -230,7 +252,7 @@ class RoleCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              RolePortrait(card['avatar']),
+              RolePortrait(card['avatar'], portrait: card['portrait']),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

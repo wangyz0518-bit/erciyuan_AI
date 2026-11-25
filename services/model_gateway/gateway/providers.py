@@ -11,6 +11,9 @@ import httpx
 from websockets.asyncio.client import connect
 
 
+from . import usage
+
+
 class ProviderError(Exception):
     def __init__(self, code: str):
         self.code = code
@@ -92,6 +95,7 @@ class Providers:
         messages = [{'role': 'system', 'content': persona if persona is not None else PERSONAS[character]}, *history,
                     {'role': 'user', 'content': content}]
         payload = {'model': s.deepseek_model, 'messages': messages, 'stream': True,
+                   'stream_options': {'include_usage': True},
                    'max_tokens': 2048, 'thinking': {'type': 'enabled' if s.thinking else 'disabled'}}
         try:
             async with self.http_client() as client:
@@ -107,6 +111,7 @@ class Providers:
                         if raw == '[DONE]':
                             break
                         packet = json.loads(raw)
+                        usage.record_tokens((packet.get('usage') or {}).get('total_tokens'))
                         choices = packet.get('choices', [])
                         if not choices:
                             continue

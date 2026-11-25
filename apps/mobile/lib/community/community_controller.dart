@@ -16,6 +16,7 @@ class CommunityController extends ChangeNotifier {
   static const legacy = String.fromEnvironment('MODEL_GATEWAY_URL');
   CommunityApi api = CommunityApi(null);
   String? selectedId;
+  final portraits = <String, String>{};
   bool explicitServer = false;
   int revision = 0;
   bool get legacyGuest =>
@@ -81,6 +82,7 @@ class CommunityController extends ChangeNotifier {
       key: 'community.session',
       value: jsonEncode({...result, 'origin': api.origin!.origin}),
     );
+    portraits.clear();
     api = CommunityApi(
       api.origin,
       token: result['token'],
@@ -134,19 +136,28 @@ class CommunityController extends ChangeNotifier {
     if (reloadHome && current == api) _changed();
   }
 
-  Future<void> _cache(CommunityApi current, Json card) =>
-      database.syncCharacter(
-        Character(
-          scope: PersonScope(
-            ownerId: current.owner!,
-            characterId: localRole(card['id']),
-          ),
-          name: card['name'],
-          description: card['description'],
-          avatar: card['avatar'],
+  Future<void> _cache(CommunityApi current, Json card) async {
+    if (current != api) return;
+    final key = card['id'] as String;
+    final portrait = card['portrait'] as String?;
+    if (portrait == null) {
+      portraits.remove(key);
+    } else {
+      portraits[key] = portrait;
+    }
+    await database.syncCharacter(
+      Character(
+        scope: PersonScope(
+          ownerId: current.owner!,
+          characterId: localRole(card['id']),
         ),
-        card['persona'],
-      );
+        name: card['name'],
+        description: card['description'],
+        avatar: card['avatar'],
+      ),
+      card['persona'],
+    );
+  }
 
   Future<void> choose(Json card) async {
     final current = api;
@@ -196,6 +207,7 @@ class CommunityController extends ChangeNotifier {
 
   Future<void> _clear() async {
     await storage.delete(key: 'community.session');
+    portraits.clear();
     api = CommunityApi(api.origin);
     selectedId = null;
   }

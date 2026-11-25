@@ -11,6 +11,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 
+from . import usage as provider_usage
+
+
 class Message(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     message: str = Field(min_length=1, max_length=1000)
@@ -109,7 +112,7 @@ def register(app, community, account):
             count(CASE WHEN kind='feedback' THEN 1 END) AS feedback
             FROM support_tickets WHERE action IS NULL""").fetchone()
         return {'username': user['username'], 'pending': dict(pending), 'days': days,
-                'since': since, 'usage': usage}
+                'since': since, 'usage': usage, 'providers': provider_usage.totals(db, since, now)}
 
     @app.get('/ops/api/tickets')
     async def tickets(queue: Literal['reports','feedback'], status: Literal['open','closed'] = 'open',

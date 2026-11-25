@@ -32,6 +32,37 @@ void main() {
     await temp.delete(recursive: true);
   });
 
+  test(
+    'restore validates owner and rolls back an incomplete snapshot',
+    () async {
+      for (final scope in [star, outsider]) {
+        await store.createCharacter(
+          character: Character(scope: scope, name: '小星', description: '测试'),
+          timelineId: 'timeline-${scope.ownerId}',
+        );
+        await store.appendEvent(
+          scope: scope,
+          eventId: 'test',
+          speaker: 'user',
+          content: scope.ownerId,
+        );
+      }
+      final original = jsonDecode(await store.exportOwnerJson(star.ownerId));
+      final unaffected = await store.exportOwnerJson(outsider.ownerId);
+      final invalid = jsonDecode(jsonEncode(original));
+      invalid['raw_events'][0]['owner_id'] = outsider.ownerId;
+      await expectLater(
+        store.restoreOwnerJson(star.ownerId, invalid),
+        throwsFormatException,
+      );
+      expect(jsonDecode(await store.exportOwnerJson(star.ownerId)), original);
+      await store.clearOwner(star.ownerId);
+      await store.restoreOwnerJson(star.ownerId, original);
+      expect(jsonDecode(await store.exportOwnerJson(star.ownerId)), original);
+      expect(await store.exportOwnerJson(outsider.ownerId), unaffected);
+    },
+  );
+
   test('claiming guest history preserves events without merging two private timelines', () async {
     await store.createCharacter(
       character: const Character(scope: star, name: '小星', description: '访客'),

@@ -23,6 +23,14 @@ class CommunityError implements Exception {
     'SERVER_REQUIRED' => '请先连接社区服务。',
     'INVALID_SERVER' => '请输入 HTTPS 服务地址，本机开发可用回环地址。',
     'NETWORK' => '无法连接社区，请检查网络后重试。',
+    'INVALID_RECOVERY' => '用户名或恢复码无效。',
+    'NO_BACKUP' => '此账户还没有备份。',
+    'BACKUP_TOO_LARGE' => '备份超过 8 MB。',
+    'INVALID_BACKUP' => '备份数据无效。',
+    'INVALID_PORTRAIT' => '请选择尺寸合适的 PNG、JPEG 或 WebP 图片。',
+    'MEMORY_LIMIT' => '每个角色最多保留 20 条确认记忆。',
+    'VOICE_NOT_FOUND' => '此账户无法使用该音色。',
+    'PUBLIC_VOICE_NOT_CONFIGURED' => '此音色尚未配置在线语音服务。',
     _ => '操作未完成（$code）。',
   };
 }
