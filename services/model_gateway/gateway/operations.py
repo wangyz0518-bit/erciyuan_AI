@@ -1,6 +1,4 @@
 """Community support tickets, moderation and the same-origin operator console."""
-from . import usage as provider_usage
-
 import json
 import os
 import time
@@ -11,6 +9,9 @@ from fastapi import Depends, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
+
+
+from . import usage as provider_usage
 
 
 class Message(BaseModel):

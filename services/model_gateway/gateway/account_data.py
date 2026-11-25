@@ -92,7 +92,8 @@ def register(app, store, account):
                 raise HTTPException(413, 'BACKUP_TOO_LARGE')
             raw.extend(part)
         try:
-            data = json.loads(raw)
+            document = raw.decode('utf-8')
+            data = json.loads(document)
             if (not isinstance(data, dict) or data.get('format') != 'erciyuan-person-memory-export'
                     or data.get('schema_version') != 1 or data.get('owner_id') != user['id']
                     or data.get('attachments') != []):
@@ -107,7 +108,7 @@ def register(app, store, account):
         created = int(time.time())
         with db:
             db.execute('INSERT OR REPLACE INTO device_backups VALUES (?,?,?)',
-                       (user['id'], raw.decode('utf-8'), created))
+                       (user['id'], document, created))
         return {'created': created}
 
     @app.get('/community/account/backup')

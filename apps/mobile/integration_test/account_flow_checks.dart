@@ -7,6 +7,7 @@ import 'package:erciyuan_mobile/community/community_controller.dart';
 import 'package:erciyuan_mobile/community/community_forms.dart';
 import 'package:erciyuan_mobile/community/role_tools_page.dart';
 import 'package:erciyuan_mobile/features/timeline/data/person_database.dart';
+import 'package:erciyuan_mobile/features/memory/domain/memory_models.dart';
 import 'package:erciyuan_mobile/features/characters/domain/character.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -51,6 +52,11 @@ void registerAccountFlowChecks(String endpoint) {
         speaker: 'user',
         content: '新设备可恢复的文字',
       );
+      await first.memory.archiveNext(
+        scope: scope,
+        minimumEvents: 1,
+        summarizer: const DeterministicSummarizer(),
+      );
       final card = (await api.items('/community/characters'))
           .singleWhere((r) => r['id'] == 'sprout');
       // A tiny synthetic PNG goes through the same image normalization as a picked file.
@@ -72,10 +78,20 @@ void registerAccountFlowChecks(String endpoint) {
             timer.elapsed < const Duration(seconds: 25)) {
           await tester.pump(const Duration(milliseconds: 150));
         }
-        expect(f, findsWidgets);
+        expect(
+          f,
+          findsWidgets,
+          reason: tester
+              .widgetList<Text>(find.byType(Text))
+              .map((w) => w.data)
+              .whereType<String>()
+              .take(20)
+              .join(' / '),
+        );
       }
 
       Future<void> tap(Finder f) async {
+        await tester.pump();
         await wait(f);
         await tester.ensureVisible(f.first);
         await wait(f.first.hitTestable());
@@ -86,7 +102,13 @@ void registerAccountFlowChecks(String endpoint) {
       Future<void> press(String label) async => tap(find.text(label));
       Finder inDialog(String label) => find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.text(label),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is FilledButton &&
+              w.onPressed != null &&
+              w.child is Text &&
+              (w.child as Text).data == label,
+        ),
       );
       Future<void> fill(List<String> values) async {
         final fields = find.descendant(
@@ -121,8 +143,9 @@ void registerAccountFlowChecks(String endpoint) {
       await press('备份本机数据');
       await tap(inDialog('开始备份'));
       await wait(find.text('备份成功'));
-      final other = CommunityController(fresh)..api = api;
-      await other.refreshLibrary();
+      final other = CommunityController(fresh)..api = CommunityApi(origin);
+      await other.authenticate(name, pass, false);
+      expect(other.api.token, isNot(api.token));
       expect(
         (jsonDecode(await fresh.exportOwnerJson(owner))['raw_events'] as List),
         isEmpty,
@@ -135,6 +158,10 @@ void registerAccountFlowChecks(String endpoint) {
         (jsonDecode(await fresh.exportOwnerJson(owner))['raw_events'] as List)
             .single['content'],
         '新设备可恢复的文字',
+      );
+      expect(
+        (await fresh.memory.summariesFor(scope)).single.text,
+        contains('新设备可恢复的文字'),
       );
       await press('生成恢复码');
       await fill([pass]);

@@ -10,6 +10,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, Field
 
 from . import usage
+from .providers import ProviderError
 
 
 class Memory(BaseModel):
@@ -39,9 +40,18 @@ def voice_options(owner):
     from .community import PRESETS
     options = {key: (name, os.getenv('COMMUNITY_VOICE_' + key.upper(), ''), True)
                for key, name in PRESETS.items()}
-    for entry in json.loads(os.getenv('COMMUNITY_PRIVATE_VOICES') or '{}').get(owner, []):
-        if entry['id'].startswith('private-'):
-            options[entry['id']] = (entry['name'], entry['provider_id'], False)
+    try:
+        configured = json.loads(os.getenv('COMMUNITY_PRIVATE_VOICES') or '{}')
+        entries = configured.get(owner, []) if isinstance(configured, dict) else []
+    except ValueError:
+        entries = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        key, name, provider = (entry.get(field) for field in ('id', 'name', 'provider_id'))
+        if (isinstance(key, str) and key.startswith('private-') and len(key) <= 80 and
+                isinstance(name, str) and name.strip() and isinstance(provider, str) and provider.strip()):
+            options[key] = (name, provider, False)
     return options
 
 
@@ -122,9 +132,12 @@ def register(app, store, account):
         if not provider_id and service.settings.mode == 'live':
             raise HTTPException(409, 'PUBLIC_VOICE_NOT_CONFIGURED')
         line = '你好，很高兴见到你。'
-        with usage.call(store, service.settings, 'tts') as meter:
-            meter.quantity = len(line)
-            wav = await service.providers.speech_for_voice(line, provider_id or 'mock')
+        try:
+            with usage.call(store, service.settings, 'tts') as meter:
+                meter.quantity = len(line)
+                wav = await service.providers.speech_for_voice(line, provider_id or 'mock')
+        except ProviderError as error:
+            raise HTTPException(502, error.code) from None
         return {'audio': base64.b64encode(wav).decode('ascii'), 'mode': service.settings.mode}
 
     notice_query = """SELECT n.id,n.seen,c.post,c.id AS comment,c.body,c.parent,a.username

@@ -369,3 +369,7 @@ footer {
     flex-wrap: wrap;
   }
 }
+
+.provider-table {
+  overflow-x: auto;
+}

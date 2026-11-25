@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
@@ -186,7 +187,23 @@ class _RoleAssetsPageState extends State<RoleAssetsPage>
       }
       raw.add(chunk);
     }
-    previewImage = base64Encode(raw.takeBytes());
+    final bytes = raw.takeBytes();
+    final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+    try {
+      final descriptor = await ui.ImageDescriptor.encoded(buffer);
+      try {
+        if (descriptor.width * descriptor.height > 12000000 ||
+            descriptor.width > 8192 ||
+            descriptor.height > 8192) {
+          throw const FormatException('图片尺寸过大');
+        }
+      } finally {
+        descriptor.dispose();
+      }
+    } finally {
+      buffer.dispose();
+    }
+    previewImage = base64Encode(bytes);
     replaceImage = true;
   }
 

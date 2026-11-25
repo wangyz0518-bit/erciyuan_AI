@@ -664,6 +664,8 @@ class _CommunityPageState extends State<CommunityPage> {
                 children: [
                   button(discovery ? '返回全部帖子' : '发现角色', () async {
                     discovery = !discovery;
+                    rows = [];
+                    more = false;
                     query = '';
                     searchField.clear();
                     await load();
