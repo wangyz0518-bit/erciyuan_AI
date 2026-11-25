@@ -76,13 +76,15 @@
 
 ## 验证
 
-在网关环境运行 `python -m pytest tests/test_community.py tests/test_operations.py tests/test_conversations.py`。启动独立模拟网关后，在专用 Android 模拟器的 Flutter 工程运行以下命令。此用例会注册临时测试账户。
+在网关环境运行 `python -m pytest` 可检查账户、角色、社区、运营和对话服务。在独立模拟网关监听本机 18946 端口后，使用 `adb -s <设备ID> reverse tcp:18946 tcp:18946` 连接专用 Android 模拟器，再从 Flutter 工程运行以下命令。此用例会注册临时测试账户。
 
 ```powershell
 flutter test integration_test/community_test.dart -d <设备ID> --dart-define=COMMUNITY_GATEWAY_URL=http://127.0.0.1:18946
 ```
 
-完整联调在 [Community search and moderation](../../.github/workflows/community-integration.yml) 工作流中运行。Android 模拟器通过 `10.0.2.2` 连接宿主机上的临时网关，浏览器在同一实例审核帖子、评论和反馈，App 刷新后检查运营回复、分享下架和角色保留。开发机复跑时，先启动专用 Android 模拟器，在 `apps/mobile` 运行 `flutter pub get`，然后从 `services/model_gateway` 执行下列命令。
+完整联调使用同一临时网关。Android App 导入角色、纠正记忆、对话并举报，浏览器处理举报和反馈，App 查看回复并检查下架后的角色副本。第二条流程验证素材绑定、换设备恢复、重设密码和注销。Linux 模拟器通过 `10.0.2.2` 访问宿主机，Windows 验收脚本自动转发本轮端口。[联调工作流](../../.github/workflows/community-integration.yml)
+
+开发机复跑时，先启动专用 Android 模拟器，在 `apps/mobile` 运行 `flutter pub get`，然后从 `services/model_gateway` 执行下列命令。
 
 ```powershell
 python -m pip install -r requirements.txt playwright==1.65.2

@@ -4,6 +4,7 @@
 
 | 文档 | 范围与状态 |
 | --- | --- |
+| [项目进展报告（2026-11-25 · PDF）](project-status-20261125.pdf) | 基于 `d9a57d3`，覆盖角色记忆与素材、发现与通知、账户恢复与备份、运营计量和 Android 跨端联调 |
 | [项目进展报告（2026-11-24 · PDF）](project-status-20261124.pdf) | 以 `5456f4a` 为基线系统梳理正式 App、角色社区及独立运营后台，包含验证范围与待办 |
 | [android-poc-report-20261112.md](android-poc-report-20261112.md) | 2026-11-12 第一批 Android API 36 模拟器验证记录；区分通过、部分通过和未验证项 |
 | [龙角角色 Live2D 最小验证](dragon-live2d-minimal-20261114.md) | Windows Viewer 已验证四层模型的翼尾待机，完整身体动作及手机真机待验证 |
