@@ -96,6 +96,7 @@ function showOverview(data) {
   $('daily').replaceChildren(table);
   const providerRows = document.createDocumentFragment();
   const units = { model: 'token', tts: '字符', asr: '秒' };
+  const fields = Array.from(document.querySelectorAll('.provider-table th'), th => th.textContent);
   for (const item of data.providers) {
     const tr = document.createElement('tr');
     const amount = item.quantity == null ? '用量未返回' :
@@ -104,7 +105,11 @@ function showOverview(data) {
     const price = item.mode === 'mock' ? '模拟 · ¥0' : item.estimated_cny == null ?
       reasons.join('、') : '¥' + item.estimated_cny.toFixed(4);
     [`${item.mode === 'mock' ? '模拟' : '在线'} · ${item.model}`, item.calls, item.failed,
-      item.interrupted + ' / ' + item.unfinished, amount, price].forEach(value => tr.append(el('td', value)));
+      item.interrupted + ' / ' + item.unfinished, amount, price].forEach((value, index) => {
+        const cell = el('td', value);
+        cell.dataset.label = fields[index];
+        tr.append(cell);
+      });
     providerRows.append(tr);
   }
   if (!data.providers.length) {
@@ -133,7 +138,7 @@ function showTicket(ticket) {
   const card = el('article', '', 'ticket');
   const head = el('div', '', 'ticket-head');
   head.append(el('h3', '#' + ticket.id + '  ' + kinds[ticket.kind]),
-    el('span', outcomes[ticket.action] || '待处理', 'badge'));
+    el('span', outcomes[ticket.action] || '待处理', ticket.action ? 'badge resolved' : 'badge'));
   card.append(head, el('div', ticket.reporter + ' · ' +
     new Date(ticket.created * 1000).toLocaleString('zh-CN'), 'meta'), caseDetails(ticket));
   if (ticket.action) {

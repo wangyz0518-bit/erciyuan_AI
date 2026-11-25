@@ -1,8 +1,9 @@
-import 'dart:convert';
-
 import 'package:material_ui/material_ui.dart';
 
 import 'community_api.dart';
+import 'role_portrait.dart';
+
+export 'role_portrait.dart' show RolePortrait;
 
 Future<String?> communityText(
   BuildContext context,
@@ -215,29 +216,6 @@ class _CardEditorState extends State<CardEditor> {
       ),
     ),
   );
-}
-
-class RolePortrait extends StatelessWidget {
-  const RolePortrait(this.avatar, {super.key, this.portrait});
-  final String avatar;
-  final String? portrait;
-  @override
-  Widget build(BuildContext context) {
-    if (portrait != null) {
-      return CircleAvatar(
-        backgroundImage: MemoryImage(base64Decode(portrait!)),
-      );
-    }
-    final asset = switch (avatar) {
-      'sprout' => 'assets/sprout_avatar/portrait.webp',
-      'star' => 'assets/immersive_chat/avatar.png',
-      _ => null,
-    };
-    return CircleAvatar(
-      backgroundImage: asset == null ? null : AssetImage(asset),
-      child: asset == null ? const Icon(Icons.dark_mode_rounded) : null,
-    );
-  }
 }
 
 class RoleCard extends StatelessWidget {

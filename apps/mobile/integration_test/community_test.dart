@@ -223,6 +223,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       await tap(nav('roles'));
       await waitFor(find.text(card['name']));
+      await tap(find.byTooltip("管理${card['name']}"));
+      await tap(find.text('记忆'));
+      await waitFor(find.text('周末喜欢海边看书'));
+      await tester.pageBack();
       await tap(nav('companion'));
       await waitFor(find.byKey(const Key('character-name')));
       if (find.byKey(const Key('text-mode')).evaluate().isNotEmpty) {

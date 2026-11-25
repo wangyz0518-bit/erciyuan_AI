@@ -157,9 +157,36 @@ class _CommunityHostState extends State<CommunityHost> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF7969C3),
-          brightness: Brightness.dark,
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: const Color(0xFFAD86A4),
+              brightness: Brightness.dark,
+            ).copyWith(
+              primary: const Color(0xFFF4BDA8),
+              onPrimary: const Color(0xFF432921),
+              surface: const Color(0xFF1B1820),
+              surfaceContainerLow: const Color(0xFF27232E),
+              surfaceContainer: const Color(0xFF302A35),
+              onSurface: const Color(0xFFF9F1ED),
+              onSurfaceVariant: const Color(0xFFD1C2CD),
+            ),
+        appBarTheme: const AppBarThemeData(
+          centerTitle: false,
+          backgroundColor: Color(0xFF1B1820),
+          titleTextStyle: TextStyle(
+            color: Color(0xFFF9F1ED),
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        cardTheme: const CardThemeData(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          elevation: 0,
+        ),
+        navigationBarTheme: const NavigationBarThemeData(
+          backgroundColor: Color(0xFF242029),
+          indicatorColor: Color(0xFF594039),
         ),
       ),
       home: Scaffold(
@@ -173,6 +200,12 @@ class _CommunityHostState extends State<CommunityHost> {
               NavigationDestination(
                 key: ValueKey('nav-${entry.name}'),
                 label: entry.label,
+                selectedIcon: Icon(switch (entry) {
+                  AppSection.companion => Icons.chat_bubble_rounded,
+                  AppSection.roles => Icons.people_rounded,
+                  AppSection.community => Icons.forum_rounded,
+                  AppSection.profile => Icons.person_rounded,
+                }, color: const Color(0xFFFFD6C3)),
                 icon: Icon(switch (entry) {
                   AppSection.companion => Icons.chat_bubble_outline,
                   AppSection.roles => Icons.people_outline,

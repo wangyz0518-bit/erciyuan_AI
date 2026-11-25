@@ -2,7 +2,7 @@
   color-scheme: light;
   font: 16px/1.55 "Inter","Microsoft YaHei",system-ui,sans-serif;
   color: #282539;
-  background: #f7f6fa;
+  background: #f6f4f4;
   --purple: #62439b;
   --edge: #dedce6;
   --muted: #645f72;
@@ -140,14 +140,14 @@ h3 {
 aside {
   display: flex;
   flex-direction: column;
-  gap: 2.3rem;
+  gap: 2rem;
   padding: 2rem 1.3rem;
-  background: #2d263b;
+  background: #302732;
   color: #fff;
 }
 
 aside .mark {
-  background: #c8b7e4;
+  background: #ffd7c3;
   color: #342845;
 }
 
@@ -165,7 +165,7 @@ nav button,.account button {
 
 nav button[aria-current="page"],nav button:hover,.account button:hover {
   color: #fff;
-  background: #463951;
+  background: #51404e;
 }
 
 .account {
@@ -213,15 +213,19 @@ header {
 
 .queue-cards button {
   display: grid;
-  gap: .35rem;
+  position: relative;
+  align-content: space-between;
+  gap: .65rem;
   padding: 1.2rem 1.45rem;
   border-radius: .85rem;
   text-align: left;
-  background: #efe9f8;
+  background: #f6e6de;
+  border-color: #dfc7ba;
 }
 
 .queue-cards button:nth-child(2) {
-  background: #eaf1ed;
+  background: #e5efeb;
+  border-color: #c5dad0;
 }
 
 .queue-cards strong,.usage-summary strong {
@@ -231,7 +235,11 @@ header {
 }
 
 .queue-cards small {
-  color: #514561;
+  position: absolute;
+  top: .8rem;
+  right: 1rem;
+  font-size: 1.2rem;
+  color: #61545b;
 }
 
 .panel,.ticket {
@@ -285,10 +293,27 @@ th,.meta {
 
 .badge {
   padding: .15rem .55rem;
-  background: #eee7f6;
-  color: #57406e;
+  background: #f9e8d8;
+  color: #714527;
   border-radius: .4rem;
   font-size: .83rem;
+}
+
+.badge.resolved {
+  background: #e5f0ea;
+  color: #315e4b;
+}
+
+.daily-detail {
+  margin-top: .65rem;
+}
+
+.daily-detail summary {
+  width: fit-content;
+  padding: .4rem 0;
+  cursor: pointer;
+  color: var(--purple);
+  font-weight: 600;
 }
 
 .ticket p,.evidence {
@@ -365,6 +390,7 @@ footer {
   .work {
     padding: 1rem;
   }
+  .work header { margin-top: .5rem; }
   .section-head {
     flex-wrap: wrap;
   }
@@ -372,4 +398,46 @@ footer {
 
 .provider-table {
   overflow-x: auto;
+}
+
+@media (max-width: 620px) {
+  .provider-table table, .provider-table tbody { display: block; }
+  .provider-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .provider-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .65rem 1rem;
+    padding: .8rem 0;
+    border-top: 1px solid var(--edge);
+  }
+  .provider-table td {
+    padding: 0;
+    border: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .provider-table td:first-child {
+    grid-column: 1 / -1;
+    font-weight: 650;
+  }
+  .provider-table td[data-label]:not(:first-child)::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: .78rem;
+  }
+  .queue-cards { gap: .65rem; }
+  .queue-cards small { right: .6rem; font-size: 1rem; }
+}
+@media (max-width: 420px) {
+  .account { min-width: 0; }
+  #identity { overflow-wrap: anywhere; }
+  .queue-cards button { padding: .85rem; }
+  .queue-cards small { display: none; }
 }
