@@ -18,10 +18,36 @@ permissions:
 jobs:
   ios-simulator:
     name: Build, install and test iOS Simulator (unsigned)
+    # macos-15 keeps Xcode 16.4 as the image default, whose iOS SDK predates
+    # the `AVAsset.load(_:isolation:)` overload: video_player_avfoundation
+    # 2.12.4 (pinned transitively via video_player, and present on main) calls
+    # it unconditionally in AVFactory.swift, so the app fails to compile with
+    # "Extra argument 'isolation' in call". The plugin declares iOS 15.0, so
+    # lowering the deployment target does not help -- only a newer SDK does.
+    #
+    # macos-15 also ships Xcode 26.0.1 / 26.1.1 / 26.2 / 26.3, so the job
+    # selects 26.3 explicitly instead of moving to macos-26. macos-26 was the
+    # original fix, but its arm64 pool on this repo is thin enough that jobs
+    # were cancelled while queued ("The job was not acquired by Runner of type
+    # hosted even after multiple attempts"), which is a worse failure than the
+    # compile error because nothing runs at all. macos-15 has consistently
+    # handed out runners here.
     runs-on: macos-15
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        run: |
+          # Pin the newest Xcode 26 the macos-15 image ships. Fail loudly with
+          # the available list rather than silently building on 16.4.
+          chosen=/Applications/Xcode_26.3.app
+          if [[ ! -d "$chosen" ]]; then
+            echo "::error::$chosen is missing; installed Xcode versions:"
+            ls -d /Applications/Xcode*.app
+            exit 1
+          fi
+          sudo xcode-select -s "$chosen"
+          xcodebuild -version
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.50.0"
@@ -32,11 +58,38 @@ jobs:
           sw_vers
           xcodebuild -version
           flutter --version
+          flutter doctor -v
           xcrun simctl list devices available
       - name: Install official mobile dependencies
         working-directory: apps/mobile
         run: flutter pub get
+      - name: Cache ONNX Runtime iOS xcframework
+        uses: actions/cache@v4
+        with:
+          path: apps/mobile/ios/ConversationVAD/Vendor/onnxruntime.xcframework
+          key: ort-ios-xcframework-${{ hashFiles('apps/mobile/tool/fetch_onnxruntime_ios.py') }}
+      - name: Fetch ONNX Runtime iOS xcframework
+        working-directory: apps/mobile
+        # The upstream CDN behind ConversationVAD/Package.swift is retired
+        # (Azure Front Door returns a 404 configuration page, and its
+        # *.azureedge.net certificate does not match the host, so Xcode reports
+        # a bogus TLS error). See the script docstring for the full analysis.
+        # Set ORT_IOS_XCFRAMEWORK_URL to use an internal mirror if NuGet is
+        # not reachable from the runner.
+        run: python3 tool/fetch_onnxruntime_ios.py
       - name: Build, install, launch and exercise actual iOS Simulator
+        # `flutter test integration_test` rebuilds the app once per test file
+        # (each file is its own entrypoint), so the eight suites spend roughly
+        # 11 minutes inside `Xcode build` against ~2.5 minutes of assertions.
+        # That put the run just over the old 20-minute safety net -- see the
+        # script header. IOS_INTEGRATION_TIMEOUT_MIN gives the run room without
+        # approaching this job's own 60-minute timeout.
+        #
+        # Deliberately one job, not a matrix: macOS hosted runners on this repo
+        # repeatedly cancel queued jobs under capacity pressure, so multiplying
+        # the job count trades a timeout for a queue cancellation. The script
+        # still accepts IOS_INTEGRATION_SHARD=<index>/<count> for self-hosted or
+        # local runs where capacity is not the constraint.
         run: bash apps/mobile/tool/run_ios_simulator_ci.sh
       - name: Upload iOS Simulator screenshot and unsigned .app
         if: always()
