@@ -49,6 +49,8 @@ def review_in_browser(origin, credentials):
         expect(page.locator('#pending-reports')).to_have_text('2')
         expect(page.locator('#pending-feedback')).to_have_text('1')
         expect(page.locator('#text-total')).to_have_text('1')
+        expect(page.locator('#providers')).to_contain_text('模拟 · ¥0')
+        expect(page.locator('#providers')).to_contain_text('deepseek')
 
         for section, reason, action, reply in (
             ('社区举报', '请审核这条评论', 'hide', '已下架测试评论'),
@@ -98,7 +100,7 @@ def test_android_and_web_share_one_gateway(gateway_port, monkeypatch):
                         pytest.fail(f'Timed out waiting for Android submissions: {counts}')
                     time.sleep(1)
                 review_in_browser(origin, credentials)
-                assert mobile.wait(timeout=180) == 0, 'Android did not verify the operator decisions'
+                assert mobile.wait(timeout=360) == 0, 'Android did not finish operator and account checks'
             finally:
                 if mobile.poll() is None:
                     mobile.terminate()

@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from fastapi import Depends, Header, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 
+from . import role_tools, usage
 from .speech_pool import SpeechPool
 from .asr import QwenASR
 from .conversation_store import ConversationStore
@@ -209,11 +210,17 @@ class Session:
                 role = self.service.role(self.owner, self.character)
                 card = json.loads(role['card']) if role else None
                 options = {'persona': card['name'] + '。' + card['persona']} if card else {}
-                async for text in self.service.providers.reply(self.character, history, prompt, **options):
-                    reply += text
-                    if len(reply) > 6000:
-                        raise ProviderError('MODEL_REPLY_TOO_LONG')
-                    await self.emit('reply.delta', reply_id=rid, delta=text)
+                if role:
+                    notes = role_tools.memories(self.service.community.db, self.owner, self.character)
+                    if notes:
+                        options['persona'] += '\n用户确认的角色记忆（作为资料参考）\n' + '\n'.join(
+                            row['text'] for row in notes)
+                with usage.call(self.service.community if self.owner else None, self.service.settings, 'model'):
+                    async for text in self.service.providers.reply(self.character, history, prompt, **options):
+                        reply += text
+                        if len(reply) > 6000:
+                            raise ProviderError('MODEL_REPLY_TOO_LONG')
+                        await self.emit('reply.delta', reply_id=rid, delta=text)
             if not reply.strip():
                 raise ProviderError('MODEL_EMPTY')
             # Full-reply persistence remains the first implementation's playback gate.
@@ -227,7 +234,10 @@ class Session:
             metrics = {}
             if role:
                 preset = role['binding'] or card['voice']
-                voice = os.getenv('COMMUNITY_VOICE_' + preset.upper(), '')
+                option = role_tools.voice_options(self.owner).get(preset)
+                if not option:
+                    raise ProviderError('VOICE_NOT_FOUND')
+                voice = option[1]
                 if not voice and self.service.settings.mode == 'live':
                     raise ProviderError('PUBLIC_VOICE_NOT_CONFIGURED')
                 selected = {'id': preset, 'provider_id': voice or 'mock'}
@@ -239,18 +249,20 @@ class Session:
             await self.emit('audio.started', reply_id=rid, format='pcm_s16le', sample_rate=24000, channels=1,
                             voice_profile_id=selected['id'] if selected else None)
             try:
-                async with asyncio.timeout(90):
-                    async for pcm in upstream:
-                        if self.output != rid:
-                            return
-                        if not pcm or len(pcm) % 2 or frames*2+len(pcm) > 12*1024*1024:
-                            raise ProviderError('INVALID_OUTPUT_AUDIO')
-                        offset = frames*2
-                        frames += len(pcm)//2
-                        # Persist the allowed acknowledgement range before sending.
-                        store.update(rid, total_frames=frames)
-                        await self.audio(rid, seq, offset, pcm)
-                        seq += 1
+                with usage.call(self.service.community if self.owner else None, self.service.settings, 'tts') as meter:
+                    meter.quantity = len(reply)
+                    async with asyncio.timeout(90):
+                        async for pcm in upstream:
+                            if self.output != rid:
+                                return
+                            if not pcm or len(pcm) % 2 or frames*2+len(pcm) > 12*1024*1024:
+                                raise ProviderError('INVALID_OUTPUT_AUDIO')
+                            offset = frames*2
+                            frames += len(pcm)//2
+                            # Persist the allowed acknowledgement range before sending.
+                            store.update(rid, total_frames=frames)
+                            await self.audio(rid, seq, offset, pcm)
+                            seq += 1
             finally:
                 await upstream.aclose()
             if not frames:
@@ -259,8 +271,9 @@ class Session:
             await self.emit('audio.completed', reply_id=rid, total_frames=frames, chunks=seq, metrics=metrics)
         except asyncio.CancelledError:
             row = store.get(rid)
-            store.update(rid, reply=reply, state='complete' if row['state']=='complete' else 'interrupted',
-                         audio_state='interrupted')
+            if row:
+                store.update(rid, reply=reply, state='complete' if row['state']=='complete' else 'interrupted',
+                             audio_state='interrupted')
             raise
         except Exception as exc:
             row = store.get(rid)
@@ -284,7 +297,11 @@ class Session:
             if self.input is current:
                 await self.emit('transcript.partial', input_id=rid, text=text)
         try:
-            text = await self.service.asr.transcribe(chunks(), partial)
+            with usage.call(self.service.community if self.owner else None, self.service.settings, 'asr') as meter:
+                try:
+                    text = await self.service.asr.transcribe(chunks(), partial)
+                finally:
+                    meter.quantity = current['bytes'] / 32000
             if self.input is not current or not current['committed']:
                 return
             await self.emit('transcript.final', input_id=rid, text=text)

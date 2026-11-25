@@ -94,6 +94,27 @@ function showOverview(data) {
     voices += row.voice;
   }
   $('daily').replaceChildren(table);
+  const providerRows = document.createDocumentFragment();
+  const units = { model: 'token', tts: '字符', asr: '秒' };
+  for (const item of data.providers) {
+    const tr = document.createElement('tr');
+    const amount = item.quantity == null ? '用量未返回' :
+      Number(item.quantity.toFixed(2)) + ' ' + units[item.kind] + (item.unknown_quantity ? '（部分）' : '');
+    const reasons = [item.unknown_rate ? '缺单价' : '', item.unknown_quantity ? '缺用量' : ''].filter(Boolean);
+    const price = item.mode === 'mock' ? '模拟 · ¥0' : item.estimated_cny == null ?
+      reasons.join('、') : '¥' + item.estimated_cny.toFixed(4);
+    [`${item.mode === 'mock' ? '模拟' : '在线'} · ${item.model}`, item.calls, item.failed,
+      item.interrupted + ' / ' + item.unfinished, amount, price].forEach(value => tr.append(el('td', value)));
+    providerRows.append(tr);
+  }
+  if (!data.providers.length) {
+    const cell = el('td', '此周期暂无已记录的供应商调用。');
+    cell.colSpan = 6;
+    const tr = document.createElement('tr');
+    tr.append(cell);
+    providerRows.append(tr);
+  }
+  $('providers').replaceChildren(providerRows);
   $('text-total').textContent = texts;
   $('voice-total').textContent = voices;
 }

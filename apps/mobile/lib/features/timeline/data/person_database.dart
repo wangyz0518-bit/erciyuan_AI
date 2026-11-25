@@ -741,5 +741,53 @@ final class PersonDatabase {
     });
   }
 
+  Future<void> clearOwner(String owner) async {
+    await _db.delete('characters', where: 'owner_id=?', whereArgs: [owner]);
+  }
+
+  Future<void> restoreOwnerJson(
+    String owner,
+    Map<String, dynamic> backup,
+  ) async {
+    const tables = [
+      'characters',
+      'character_timelines',
+      'raw_events',
+      'generation_tasks',
+      'archive_segments',
+      'archive_cursors',
+      'memory_summaries',
+      'memory_terms',
+      'summary_sources',
+      'persona_identity_versions',
+      'identity_candidates',
+    ];
+    if (backup['owner_id'] != owner ||
+        backup['format'] != 'erciyuan-person-memory-export' ||
+        backup['schema_version'] != 1 ||
+        backup['database_schema_version'] != schemaVersion) {
+      throw const FormatException('备份账户或数据库版本不匹配');
+    }
+    await _db.transaction((txn) async {
+      await txn.delete('characters', where: 'owner_id=?', whereArgs: [owner]);
+      for (final table in tables) {
+        final rows = backup[table];
+        if (rows is! List) throw const FormatException('备份缺少数据表');
+        final columns = (await txn.rawQuery('PRAGMA table_info($table)'))
+            .map((r) => r['name'])
+            .toSet();
+        for (final row in rows) {
+          if (row is! Map<String, dynamic> ||
+              row['owner_id'] != owner ||
+              row.length != columns.length ||
+              !row.keys.every(columns.contains)) {
+            throw const FormatException('备份记录无效');
+          }
+          await txn.insert(table, row);
+        }
+      }
+    });
+  }
+
   Future<void> close() => _db.close();
 }

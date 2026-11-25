@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'account_flow_checks.dart';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   const endpoint = String.fromEnvironment('COMMUNITY_GATEWAY_URL');
@@ -129,6 +131,13 @@ void main() {
       await tester.pageBack();
       await tester.pump(const Duration(milliseconds: 400));
       await tap(nav('community'));
+      await waitFor(result);
+      await tap(find.text('发现角色'));
+      await waitFor(find.text('返回全部帖子'));
+      await waitFor(result);
+      expect(find.text(other['body']), findsNothing);
+      await tap(find.text('返回全部帖子'));
+      await waitFor(find.text(other['body']));
       await previewLink();
       await waitFor(find.text('加入我的角色 / 开始聊天'));
       await tester.pageBack();
@@ -147,6 +156,19 @@ void main() {
       await tap(find.text('注册'));
       await waitFor(find.byKey(const Key('character-name')));
       expect(find.text(card['name']), findsOneWidget);
+      await tap(find.byKey(const Key('open-menu')));
+      await tap(find.text('设置'));
+      await tap(find.text('角色记忆'));
+      await tap(find.text('添加记忆'));
+      await tester.enterText(find.byType(EditableText).last, '周末喜欢海边散步');
+      await tap(find.text('保存'));
+      await waitFor(find.text('周末喜欢海边散步'));
+      await tap(find.text('纠正'));
+      await tester.enterText(find.byType(EditableText).last, '周末喜欢海边看书');
+      await tap(find.text('保存'));
+      await waitFor(find.text('周末喜欢海边看书'));
+      await tester.pageBack();
+      await tester.pump(const Duration(milliseconds: 450));
       await tap(find.byKey(const Key('text-mode')));
       await tester.enterText(
         find.byKey(const Key('message-input')),
@@ -197,6 +219,20 @@ void main() {
         'b$suffix',
       );
       if (withOperator) {
+        final comments = await author.items(
+          "/community/posts/${post['id']}/comments",
+        );
+        final mine = comments.singleWhere((row) => row['body'] == '已导入，谢谢分享');
+        await author.request(
+          'POST',
+          "/community/posts/${post['id']}/comments",
+          {'parent_id': mine['id'], 'body': '海盐作者的回复'},
+        );
+        await tester.pageBack();
+        await waitFor(find.byKey(const ValueKey('community-search')));
+        await tap(find.text('回复通知'));
+        await tap(find.text('海盐作者的回复'));
+        await waitFor(find.textContaining('通知定位'));
         await tap(find.byTooltip('举报评论'));
         await tester.enterText(find.byType(EditableText).last, '请审核这条评论');
         await tap(find.text('提交举报'));
@@ -288,4 +324,5 @@ void main() {
     },
     skip: endpoint.isEmpty && !withOperator,
   );
+  registerAccountFlowChecks(endpoint);
 }

@@ -12,6 +12,7 @@ import '../immersive/model_gateway.dart';
 import 'community_api.dart';
 import 'community_controller.dart';
 import 'community_page.dart';
+import 'role_tools_page.dart';
 import 'community_scope.dart';
 
 class CommunityHost extends StatefulWidget {
@@ -144,6 +145,12 @@ class _CommunityHostState extends State<CommunityHost> {
     open: open,
     section: section,
     username: model.api.username,
+    portraitFor: (id) => model.portraits[id],
+    openMemory: model.api.signedIn
+        ? (context, id) => Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => MemoryPage(model, id)))
+        : null,
     child: MaterialApp(
       navigatorKey: navigator,
       title: '二次元 AI',

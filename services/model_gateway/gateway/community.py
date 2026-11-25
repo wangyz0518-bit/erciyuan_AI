@@ -16,7 +16,7 @@ from fastapi import Depends, Header, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import operations
+from . import operations, role_tools, usage
 from .providers import PERSONAS
 
 PRESETS = {'default': '默认', 'bright': '明快'}
@@ -48,6 +48,7 @@ class Card(Input):
 class Post(Input):
     body: str = Field(min_length=1, max_length=3000)
     character_id: str | None = Field(default=None, max_length=64)
+    share_portrait: bool = False
 
 
 class Comment(Input):
@@ -56,7 +57,7 @@ class Comment(Input):
 
 
 class Binding(Input):
-    profile_id: Literal['default', 'bright'] | None = None
+    profile_id: str | None = Field(default=None, max_length=80)
     revision: int = Field(ge=0)
 
 
@@ -97,6 +98,7 @@ class Community:
             CREATE INDEX IF NOT EXISTS comments_by_post ON comments(post,id);
         """)
         operations.initialize(self.db)
+        usage.initialize(self.db)
 
     def user(self, token):
         if not isinstance(token, str) or len(token) != 64:
@@ -152,6 +154,9 @@ def register(app, store):
             raise HTTPException(401, 'LOGIN_REQUIRED')
         return user
 
+    from . import account_data
+    account_data.register(app, store, account)
+    role_tools.register(app, store, account)
     operations.register(app, store, account)
 
     @app.post('/community/register', status_code=201)
@@ -178,7 +183,8 @@ def register(app, store):
         store.limit(request.client.host)
         row = db.execute('SELECT * FROM accounts WHERE login=?', (data.username.strip().casefold(),)).fetchone()
         digest = await asyncio.to_thread(password_hash, data.password, row['salt'] if row else bytes(16))
-        if not row or not hmac.compare_digest(row['digest'], digest):
+        if (not row or not hmac.compare_digest(row['digest'], digest) or not db.execute(
+                'SELECT 1 FROM accounts WHERE id=? AND digest=?', (row['id'], digest)).fetchone()):
             raise HTTPException(401, 'INVALID_CREDENTIALS')
         return store.start_session(row['id'], row['username'])
 
@@ -218,12 +224,14 @@ def register(app, store):
     async def update_card(cid: str, data: Card, user=Depends(account)):
         store.role(user['id'], cid)
         with db:
-            db.execute('UPDATE library SET card=? WHERE owner=? AND id=?', (data.model_dump_json(), user['id'], cid))
+            db.execute('UPDATE library SET card=json_patch(card,?) WHERE owner=? AND id=?',
+                       (data.model_dump_json(), user['id'], cid))
         return {'id': cid, **data.model_dump()}
 
     @app.get('/community/voices')
     async def voices(user=Depends(account)):
-        return {'items': [dict(id=k, name=v, status='ready') for k, v in PRESETS.items()]}
+        return {'items': [dict(id=key, name=value[0], status='ready', public=value[2])
+                          for key, value in role_tools.voice_options(user['id']).items()]}
 
     @app.get('/community/characters/{cid}/voice-binding')
     async def binding(cid: str, user=Depends(account)):
@@ -233,6 +241,8 @@ def register(app, store):
     @app.put('/community/characters/{cid}/voice-binding')
     async def bind(cid: str, data: Binding, user=Depends(account)):
         store.role(user['id'], cid)
+        if data.profile_id is not None and data.profile_id not in role_tools.voice_options(user['id']):
+            raise HTTPException(422, 'VOICE_NOT_FOUND')
         with db:
             changed = db.execute('UPDATE library SET binding=?, revision=revision+1 WHERE owner=? AND id=? AND revision=?',
                                  (data.profile_id, user['id'], cid, data.revision)).rowcount
@@ -241,17 +251,22 @@ def register(app, store):
         return await binding(cid, user)
 
     @app.get('/community/posts')
-    async def feed(before: int | None = Query(None, ge=1), q: str = Query('', max_length=100)):
+    async def feed(before: int | None = Query(None, ge=1), q: str = Query('', max_length=100),
+                   roles_only: bool = False):
         rows = db.execute('''SELECT p.*,a.username FROM visible_posts p JOIN accounts a ON p.author=a.id
-            WHERE (:before IS NULL OR p.id < :before)
+            WHERE (:before IS NULL OR p.id < :before) AND (:roles=0 OR p.share IS NOT NULL)
               AND (:q = '' OR instr(lower(p.body), lower(:q)) > 0
                    OR instr(lower(json_extract(p.snapshot, '$.name')), lower(:q)) > 0)
-            ORDER BY p.id DESC LIMIT 30''', {'before': before, 'q': q.strip()})
+            ORDER BY p.id DESC LIMIT 30''', {'before': before, 'q': q.strip(), 'roles': roles_only})
         return {'items': [store.public(r) for r in rows]}
 
     @app.post('/community/posts', status_code=201)
     async def publish(data: Post, user=Depends(account)):
         card = store.role(user['id'], data.character_id)['card'] if data.character_id else None
+        if card and not data.share_portrait:
+            public_card = json.loads(card)
+            public_card.pop('portrait', None)
+            card = json.dumps(public_card, ensure_ascii=False)
         with db:
             pid = db.execute('INSERT INTO posts(author,body,share,snapshot,created) VALUES (?,?,?,?,?)',
                              (user['id'], data.body, new_id() if card else None, card, int(time.time()))).lastrowid
@@ -284,6 +299,10 @@ def register(app, store):
                 raise HTTPException(404, 'COMMENT_NOT_FOUND')
             cid = db.execute('INSERT INTO comments(post,author,body,parent,created) VALUES (?,?,?,?,?)',
                              (pid, user['id'], data.body, data.parent_id, int(time.time()))).lastrowid
+            recipient = (db.execute('SELECT author FROM comments WHERE id=?', (data.parent_id,)) if data.parent_id
+                         else db.execute('SELECT author FROM posts WHERE id=?', (pid,))).fetchone()[0]
+            if recipient != user['id']:
+                db.execute('INSERT INTO reply_notices(owner,comment) VALUES (?,?)', (recipient, cid))
         return {'id': cid}
 
     @app.delete('/community/posts/{pid}/comments/{cid}')

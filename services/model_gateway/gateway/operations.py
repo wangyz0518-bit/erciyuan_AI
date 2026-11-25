@@ -1,4 +1,6 @@
 """Community support tickets, moderation and the same-origin operator console."""
+from . import usage as provider_usage
+
 import json
 import os
 import time
@@ -109,7 +111,7 @@ def register(app, community, account):
             count(CASE WHEN kind='feedback' THEN 1 END) AS feedback
             FROM support_tickets WHERE action IS NULL""").fetchone()
         return {'username': user['username'], 'pending': dict(pending), 'days': days,
-                'since': since, 'usage': usage}
+                'since': since, 'usage': usage, 'providers': provider_usage.totals(db, since, now)}
 
     @app.get('/ops/api/tickets')
     async def tickets(queue: Literal['reports','feedback'], status: Literal['open','closed'] = 'open',

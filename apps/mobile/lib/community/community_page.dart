@@ -8,6 +8,9 @@ import 'community_api.dart';
 import 'community_controller.dart';
 import 'community_forms.dart';
 import 'support_page.dart';
+import 'account_page.dart';
+import 'role_tools_page.dart';
+import 'notifications_page.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage(
@@ -31,6 +34,8 @@ class _CommunityPageState extends State<CommunityPage> {
   String error = '';
   final searchField = TextEditingController();
   String query = '';
+  bool discovery = false;
+  Json? focusedReply;
   List<Json> rows = [], comments = [];
   bool busy = false, more = false, guestHistory = false;
   Json? post;
@@ -54,6 +59,7 @@ class _CommunityPageState extends State<CommunityPage> {
   Future<List<Json>> feed({int? before}) {
     final params = {
       if (query.isNotEmpty) 'q': query,
+      if (discovery) 'roles_only': 'true',
       if (before != null) 'before': before.toString(),
     };
     return api.items(
@@ -140,9 +146,10 @@ class _CommunityPageState extends State<CommunityPage> {
     }
   }
 
-  Future<void> showPost(Json item) async {
+  Future<void> showPost(Json item, {Json? focus}) async {
     final replies = await api.items('/community/posts/${item['id']}/comments');
     post = item;
+    focusedReply = focus;
     comments = replies;
     more = replies.length == 50;
   }
@@ -240,12 +247,29 @@ class _CommunityPageState extends State<CommunityPage> {
 
   Future<void> publish([Json? card]) async {
     if (!await login() || !mounted) return;
+    bool sharePortrait = false;
     if (card != null) {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('预览公开角色卡'),
-          content: SingleChildScrollView(child: RoleCard(card)),
+          content: StatefulBuilder(
+            builder: (context, update) => SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RoleCard({...card, if (!sharePortrait) 'portrait': null}),
+                  if (card['portrait'] != null)
+                    CheckboxListTile(
+                      title: const Text('随角色分享自定义形象'),
+                      value: sharePortrait,
+                      onChanged: (v) => update(() => sharePortrait = v == true),
+                    ),
+                  const Text('公开角色卡包含人设与公开音色。私人绑定和记忆仅自己可见。'),
+                ],
+              ),
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -271,6 +295,7 @@ class _CommunityPageState extends State<CommunityPage> {
     final item = await api.request('POST', '/community/posts', {
       'body': body,
       if (card != null) 'character_id': card['id'],
+      if (sharePortrait) 'share_portrait': true,
     });
     if (!mounted) return;
     if (widget.section == AppSection.roles) {
@@ -418,6 +443,14 @@ class _CommunityPageState extends State<CommunityPage> {
           button('写评论', () => comment()),
         ],
       ),
+      if (focusedReply case final notice?)
+        ListTile(
+          leading: const Icon(Icons.notifications_active_outlined),
+          title: Text(notice['body']),
+          subtitle: Text(
+            "通知定位 · #${notice['comment']} · ${notice['username']}",
+          ),
+        ),
       if (comments.isEmpty) const Text('还没有评论。'),
       for (final row in comments)
         ListTile(
@@ -503,6 +536,11 @@ class _CommunityPageState extends State<CommunityPage> {
               if (api.origin == null)
                 button('连接社区服务', configure)
               else if (api.signedIn) ...[
+                button('账户与备份', () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => AccountPage(model)),
+                  );
+                }),
                 if (guestHistory) button('迁入本机访客记录', migrate),
                 button('退出账户', () async {
                   await model.logout();
@@ -512,6 +550,8 @@ class _CommunityPageState extends State<CommunityPage> {
                 button('登录 / 注册', () async {
                   if (await login()) await load();
                 }),
+              if (api.origin != null && !api.signedIn)
+                button('找回账户', () => resetPassword(context, api)),
               if (api.origin != null)
                 ListTile(
                   leading: const Icon(Icons.feedback_outlined),
@@ -559,6 +599,22 @@ class _CommunityPageState extends State<CommunityPage> {
                             spacing: 6,
                             children: [
                               button('聊天', () => enterChat(card)),
+                              button('素材', () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => RoleAssetsPage(api, card),
+                                  ),
+                                );
+                                await load();
+                              }),
+                              button('记忆', () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        MemoryPage(model, card['id']),
+                                  ),
+                                );
+                              }),
                               button('编辑', () => edit(card)),
                               button('分享', () => publish(card)),
                             ],
@@ -603,7 +659,35 @@ class _CommunityPageState extends State<CommunityPage> {
                     ),
                   ),
                 ),
-              button('发布讨论', () => publish()),
+              Wrap(
+                spacing: 8,
+                children: [
+                  button(discovery ? '返回全部帖子' : '发现角色', () async {
+                    discovery = !discovery;
+                    query = '';
+                    searchField.clear();
+                    await load();
+                  }),
+                  if (api.signedIn)
+                    button('回复通知', () async {
+                      final notice = await Navigator.of(context).push<Json>(
+                        MaterialPageRoute(
+                          builder: (_) => NotificationsPage(api),
+                        ),
+                      );
+                      if (notice != null) {
+                        await showPost(
+                          await api.request(
+                            'GET',
+                            "/community/posts/${notice['post']}",
+                          ),
+                          focus: notice,
+                        );
+                      }
+                    }),
+                  button('发布讨论', () => publish()),
+                ],
+              ),
               if (rows.isEmpty && !busy && error.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -619,7 +703,10 @@ class _CommunityPageState extends State<CommunityPage> {
                     key: ValueKey("community-post-${item['id']}"),
                     leading: item['card'] == null
                         ? null
-                        : RolePortrait(item['card']['avatar']),
+                        : RolePortrait(
+                            item['card']['avatar'],
+                            portrait: item['card']['portrait'],
+                          ),
                     title: Text(
                       item['card']?['name'] ?? item['body'],
                       maxLines: 2,
