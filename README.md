@@ -8,7 +8,7 @@
 
 **本轮进展**　用户可以纠正或忘记角色记忆，预览并绑定形象和音色，从社区发现与导入角色，通过回复通知回到原评论。在「我的」可以生成恢复码、备份和恢复本机数据或注销账户。独立运营后台可查看模型和语音服务的调用、失败、用量与估算费用。
 
-Android 模拟器、网关和运营网页已在同一服务实例完成联调，使用合成账户和模拟模型、语音服务。iOS 验收结果单列在报告第 7 页。[试用与验证说明](docs/guides/community.md) · [本次联调记录](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/45541101483)
+Android 模拟器、网关和运营网页已在同一服务实例完成联调，并通过 `main` 复验，使用合成账户和模拟模型、语音服务。iOS 验收结果单列在报告第 7 页。[试用与验证说明](docs/guides/community.md) · [主线联调记录](https://github.com/wangyz0518-bit/erciyuan_AI/actions/runs/45542096238)
 
 ## 已确认方向
 
